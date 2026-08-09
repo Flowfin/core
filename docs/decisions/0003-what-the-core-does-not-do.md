@@ -78,6 +78,9 @@ The core decodes, refuses by name what is not on its list, and stops at the
 bitmap. Putting that bitmap on a surface is the client's, and so is any scaling
 done for a particular display.
 
+Video decoding is the opposite placement for a different reason, and the record
+for #112 is where that line is drawn.
+
 ### Video decoding is outside
 
 Placed outside for the reason recorded against #112, which is where the argument
