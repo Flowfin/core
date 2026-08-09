@@ -16,6 +16,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0040. The cache store interface, and a core with no store](0040-the-cache-store-interface.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
 - [0072. Federation is a deliberate per-server act](0072-federation-is-a-deliberate-per-server-act.md)
+- [0100. The diagnostics interface, and its relation to measurement spans](0100-the-diagnostics-interface.md)
 - [0101. What the core trusts, and what it is built to survive](0101-what-the-core-trusts.md)
 - [0102. The clocks every deadline is measured against](0102-the-clocks-every-deadline-is-measured-against.md)
 - [0112. Where the platform decoder begins](0112-where-the-platform-decoder-begins.md)
