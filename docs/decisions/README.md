@@ -12,5 +12,6 @@ allocated, and why a record is superseded rather than edited are in
 - [0007. A slow server and a server that is gone](0007-a-slow-server-and-a-server-that-is-gone.md)
 - [0008. What the core can measure of the speed budget](0008-what-the-core-can-measure-of-the-speed-budget.md)
 - [0009. The concurrency model, and what the core promises about threads](0009-the-concurrency-model.md)
+- [0068. The data locality position](0068-the-data-locality-position.md)
 - [0102. The clocks every deadline is measured against](0102-the-clocks-every-deadline-is-measured-against.md)
 - [0112. Where the platform decoder begins](0112-where-the-platform-decoder-begins.md)
