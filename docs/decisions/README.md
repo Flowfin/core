@@ -20,6 +20,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0041. How a cache key is built, and why a collision is a disclosure](0041-how-a-cache-key-is-built.md)
 - [0043. A stale answer, and the freshness rule per kind of entry](0043-a-stale-answer-and-the-freshness-rule-per-kind.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
+- [0045. The recovery schedule for a server that is gone](0045-the-recovery-schedule.md)
 - [0047. The queue every write goes through](0047-the-write-queue.md)
 - [0069. Every host the core may contact](0069-every-host-the-core-may-contact.md)
 - [0071. What may leave through a diagnostic event](0071-what-may-leave-through-a-diagnostic-event.md)
