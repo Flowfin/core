@@ -20,6 +20,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0041. How a cache key is built, and why a collision is a disclosure](0041-how-a-cache-key-is-built.md)
 - [0043. A stale answer, and the freshness rule per kind of entry](0043-a-stale-answer-and-the-freshness-rule-per-kind.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
+- [0047. The queue every write goes through](0047-the-write-queue.md)
 - [0069. Every host the core may contact](0069-every-host-the-core-may-contact.md)
 - [0071. What may leave through a diagnostic event](0071-what-may-leave-through-a-diagnostic-event.md)
 - [0072. Federation is a deliberate per-server act](0072-federation-is-a-deliberate-per-server-act.md)
@@ -27,3 +28,4 @@ allocated, and why a record is superseded rather than edited are in
 - [0101. What the core trusts, and what it is built to survive](0101-what-the-core-trusts.md)
 - [0102. The clocks every deadline is measured against](0102-the-clocks-every-deadline-is-measured-against.md)
 - [0112. Where the platform decoder begins](0112-where-the-platform-decoder-begins.md)
+- [0115. Creating the core, stopping it, and a host that suspends it](0115-creating-and-stopping-the-core.md)
