@@ -17,6 +17,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0033. The secret store interface, and a core with no secret store](0033-the-secret-store-interface.md)
 - [0038. Retry and backoff](0038-retry-and-backoff.md)
 - [0040. The cache store interface, and a core with no store](0040-the-cache-store-interface.md)
+- [0041. How a cache key is built, and why a collision is a disclosure](0041-how-a-cache-key-is-built.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
 - [0072. Federation is a deliberate per-server act](0072-federation-is-a-deliberate-per-server-act.md)
 - [0100. The diagnostics interface, and its relation to measurement spans](0100-the-diagnostics-interface.md)
