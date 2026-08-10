@@ -21,6 +21,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0043. A stale answer, and the freshness rule per kind of entry](0043-a-stale-answer-and-the-freshness-rule-per-kind.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
 - [0069. Every host the core may contact](0069-every-host-the-core-may-contact.md)
+- [0071. What may leave through a diagnostic event](0071-what-may-leave-through-a-diagnostic-event.md)
 - [0072. Federation is a deliberate per-server act](0072-federation-is-a-deliberate-per-server-act.md)
 - [0100. The diagnostics interface, and its relation to measurement spans](0100-the-diagnostics-interface.md)
 - [0101. What the core trusts, and what it is built to survive](0101-what-the-core-trusts.md)
