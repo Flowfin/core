@@ -12,6 +12,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0007. A slow server and a server that is gone](0007-a-slow-server-and-a-server-that-is-gone.md)
 - [0008. What the core can measure of the speed budget](0008-what-the-core-can-measure-of-the-speed-budget.md)
 - [0009. The concurrency model, and what the core promises about threads](0009-the-concurrency-model.md)
+- [0028. The address a person typed, and how every path is joined to it](0028-the-address-a-person-typed.md)
 - [0038. Retry and backoff](0038-retry-and-backoff.md)
 - [0040. The cache store interface, and a core with no store](0040-the-cache-store-interface.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
