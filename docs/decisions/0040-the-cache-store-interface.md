@@ -138,14 +138,19 @@ Where the bytes go. The client's, and 0003 and 0006 both refuse the core choosin
 
 ## Why this is written down before the code
 
-Three landed records already depend on this interface and none of them describes
-it. 0006 sends the core's bytes through "the interface in #40" and says it never
-looks for a path. 0009 names "the byte store in #40" in the list of four things
-that never run on a caller's thread. 0003 refuses the core a filesystem on the
-grounds that a client supplies the location.
+Landed records already depend on this interface and none of them describes it.
+0006 sends the core's bytes through "the interface in #40" and says it never
+looks for a path. 0009 names "the byte store in #40" among the four things that
+never run on a caller's thread. 0101 puts it outside the boundary in both
+directions and treats every byte read back out of it as untrusted. 0003 refuses
+the core a filesystem of its own on the grounds that a client supplies the
+location. Those are the ones quoted here rather than all of them, and the set
+moves, so it is derived:
 
-So the first subsystem with something to cache finds an interface named three
-times and defined nowhere, and it invents one. The shape it invents is
+    $ git grep -l '#40' -- docs/decisions
+
+So the first subsystem with something to cache finds the interface named wherever
+it matters and defined nowhere, and it invents one. The shape it invents is
 predictable, because it is the shape a developer's own machine makes easiest: a
 synchronous get and put over a file path, with a not-found returned as an error.
 Each of those three defaults is wrong here for a different reason already written

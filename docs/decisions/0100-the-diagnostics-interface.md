@@ -159,18 +159,22 @@ issue's defect rather than this record's.
 
 This seam is already assumed by landed records and by open work, and it is
 specified nowhere. 0003 sends diagnostics out of the core "behind the interface in
-#100". 0068 promises an operator that events are handed to "whatever the client
-supplied under #100 and #61" and retained nowhere. #71 plans a redaction rule over
-fields that no record says exist.
+#100". 0005 has the core tell a client "through the diagnostics interface in #100"
+at the moment it discards a token. 0068 promises an operator that events are
+handed to "whatever the client supplied under #100 and #61" and retained nowhere.
+#71 plans a redaction rule over fields that no record says exist. Those are the
+ones quoted here rather than all of them, and the set moves, so it is derived:
 
-So the next subsystem that has something to report finds three references to an
-interface and no interface. What it invents is predictable: a formatted string,
-emitted from wherever it was convenient, because that is the shape every runtime
-makes easiest. Each of those decisions is individually reasonable and each one
-removes something. A string cannot be redacted by field name, so #71 becomes
-pattern matching over text. A string has wording in it, which 0003 gave to the
-client. An emit from a caller's thread breaks 0009 in the place least likely to be
-tested.
+    $ git grep -l '#100' -- docs/decisions
+
+So the next subsystem that has something to report finds the interface named
+wherever it matters and no interface behind the name. What it invents is
+predictable: a formatted string, emitted from wherever it was convenient, because
+that is the shape every runtime makes easiest. Each of those decisions is
+individually reasonable and each one removes something. A string cannot be
+redacted by field name, so #71 becomes pattern matching over text. A string has
+wording in it, which 0003 gave to the client. An emit from a caller's thread
+breaks 0009 in the place least likely to be tested.
 
 None of that has happened here yet, because there is no code in this tree to have
 done it. That is the whole reason this is cheap today: the record costs one file
