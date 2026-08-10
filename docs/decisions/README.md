@@ -15,6 +15,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0028. The address a person typed, and how every path is joined to it](0028-the-address-a-person-typed.md)
 - [0029. Certificate validation, and the server an operator signed themselves](0029-certificate-validation-and-the-self-signed-server.md)
 - [0033. The secret store interface, and a core with no secret store](0033-the-secret-store-interface.md)
+- [0034. Renewal, and the token generation a rejection is answered against](0034-renewal-and-the-token-generation.md)
 - [0038. Retry and backoff](0038-retry-and-backoff.md)
 - [0040. The cache store interface, and a core with no store](0040-the-cache-store-interface.md)
 - [0041. How a cache key is built, and why a collision is a disclosure](0041-how-a-cache-key-is-built.md)
