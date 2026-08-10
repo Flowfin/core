@@ -23,6 +23,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0043. A stale answer, and the freshness rule per kind of entry](0043-a-stale-answer-and-the-freshness-rule-per-kind.md)
 - [0045. The recovery schedule for a server that is gone](0045-the-recovery-schedule.md)
 - [0047. The queue every write goes through](0047-the-write-queue.md)
+- [0050. The decoded bytes the core holds at once](0050-the-decoded-bytes-budget.md)
 - [0055. The image formats the core decodes, and how the rest are refused](0055-the-image-formats-the-core-decodes.md)
 - [0057. The cadence a playback position is reported on](0057-the-progress-reporting-cadence.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
