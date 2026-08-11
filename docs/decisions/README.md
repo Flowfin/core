@@ -12,6 +12,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0007. A slow server and a server that is gone](0007-a-slow-server-and-a-server-that-is-gone.md)
 - [0008. What the core can measure of the speed budget](0008-what-the-core-can-measure-of-the-speed-budget.md)
 - [0009. The concurrency model, and what the core promises about threads](0009-the-concurrency-model.md)
+- [0027. The transport's timeouts, its connection limit, and connection reuse](0027-the-transports-timeouts-and-connections.md)
 - [0028. The address a person typed, and how every path is joined to it](0028-the-address-a-person-typed.md)
 - [0029. Certificate validation, and the server an operator signed themselves](0029-certificate-validation-and-the-self-signed-server.md)
 - [0033. The secret store interface, and a core with no secret store](0033-the-secret-store-interface.md)
