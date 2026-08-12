@@ -30,6 +30,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0055. The image formats the core decodes, and how the rest are refused](0055-the-image-formats-the-core-decodes.md)
 - [0057. The cadence a playback position is reported on](0057-the-progress-reporting-cadence.md)
 - [0061. The span facility, and what a span costs when nobody is listening](0061-the-span-facility.md)
+- [0064. The two numbers the core does not report, and what a client gets instead](0064-the-numbers-the-core-does-not-report.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
 - [0069. Every host the core may contact](0069-every-host-the-core-may-contact.md)
 - [0071. What may leave through a diagnostic event](0071-what-may-leave-through-a-diagnostic-event.md)
