@@ -1,0 +1,71 @@
+# Deterministic pull-request hygiene (#83). It refuses only what can be decided by
+# reading the pull request and the issues it closes, so it never argues about
+# judgement and never fails for a reason somebody has to interpret.
+#
+# The rules are in .github/pr-hygiene/hygiene.sh rather than in this file, because
+# each one owes a fixture proving it bites and a fixture run against a copy of the
+# logic proves the copy. Every run executes those fixtures before it judges
+# anything, so a run that reports a pass is a run whose rules were proven in the
+# same minute.
+name: pr-hygiene
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+# Read-only. The check reads the pull request, the issues it closes and the list of
+# changed paths, and writes nothing anywhere.
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+# Cancel a superseded run on the same pull request; the check is cheap and reading
+# an older body tells nobody anything.
+concurrency:
+  group: pr-hygiene-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    name: Deterministic PR-hygiene checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      - name: Collect what the rules read
+        # The body reaches the shell through the environment and is never
+        # interpolated into the script, so a body crafted to look like shell is
+        # data in every run. The same applies to the repository name.
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          # Fail closed on a listing that could not be made. An empty file here
+          # would read as a pull request that changed nothing, and a scope
+          # comparison against nothing passes for the wrong reason.
+          if ! gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}/files" --paginate \
+               --jq '.[].filename' > "$RUNNER_TEMP/changed-paths.txt"; then
+            echo "::error::Could not list the changed paths for #${PR_NUMBER}. Refusing rather than judging a pull request whose diff was not read."
+            exit 1
+          fi
+
+      - name: Prove the rules, then apply them
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PR_BODY_FILE="$RUNNER_TEMP/pr-body.md" \
+          CHANGED_PATHS_FILE="$RUNNER_TEMP/changed-paths.txt" \
+            bash .github/pr-hygiene/hygiene.sh check
