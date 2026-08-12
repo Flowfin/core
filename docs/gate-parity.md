@@ -105,14 +105,19 @@ What this repository runs today, which is what a `satisfied` row points at:
     gh api repos/Flowfin/core/contents/.github/workflows --jq '.[].name'
     dco.yml
     dependency-review.yml
+    pr-hygiene.yml
     scorecard.yml
     unicode-guard.yml
     zizmor.yml
 
-Read at `5246156fa176cebdbca0170b4657871060c94c01` on this repository's default
-branch. #80 named four of these as already satisfied and the fifth, the sign-off
-gate, is running here as well, so five rows below are `satisfied` rather than
-four.
+Read at `04417407d52fbad5192216ba2de14b16dc3d1816` on this repository's default
+branch. #80 named four of these as already satisfied, the sign-off gate is the
+fifth, and the hygiene check is the sixth. That last one landed through #83 after
+the first version of this table was written, so its row moved from naming a plan
+to naming a run. This is the drift the table is most exposed to: a row is written
+while a check is still an issue, the check lands, and the row goes on describing
+the plan. The command above is what says how many rows are `satisfied`, and a
+count written into this paragraph would be the next thing to go stale.
 
 ## What the verdicts mean
 
@@ -122,6 +127,13 @@ it.
 `adopted` is taken in the same shape, and the row names the issue that lands it.
 
 `adapted` is taken in a changed shape, and the row says what changed and why.
+
+`satisfied` answers a different question from the two above it. Those two say what
+shape a check is taken in, and `satisfied` says whether it has landed, so a row
+can be both. Where a check runs here in a changed shape, the verdict is
+`satisfied` and the row still says what changed and why, because losing that
+sentence at the moment the check lands is losing it at the moment somebody starts
+relying on the check.
 
 `declined` does not apply here, and the row says why.
 
@@ -152,7 +164,7 @@ work is.
 | `opengrep.yml` | `Enforce greppable invariants` | The mistake a compiler and a type system cannot see and a pattern can, made a second time | adapted | #82. The rule set is data rather than code and every rule carries the failure it prevents, which is what makes a rule with no stated failure refusable by the loader. The first rules are taken from decisions already recorded here rather than from that repository's, and 0027, 0040, 0003 and 0071 are where those four come from. |
 | `perf-baseline.yml` | none, it runs on a schedule and on demand | A number published on a page with no run behind it, and a slow change nobody measured | adapted | #65 for the harness, #67 for publishing each measurement with the command that produced it, and #66 for the part that differs: the speed budget here is published as numbers a build can miss, so a missed number reddens a build rather than being archived for somebody to read. |
 | `prettier.yml` | `prettier` | An argument about formatting, and a diff nobody can read for the whitespace in it | adapted | #18. The formatter is whichever one the toolchain pinned in #14 brings rather than that one, and #18 carries a trap that repository does not have: a formatter defaulting to one line ending, run in a checkout made with `core.autocrlf=true`, reports every tracked file as failing on a tree with no modifications. |
-| `pr-hygiene.yml` | none, it runs only on a pull request | A change that arrives without the things a reader needs, judged by a person's patience rather than by a rule | adapted | #83, which keeps the word that matters, deterministic, so the check refuses only what can be decided by reading the pull request. Its rule set starts smaller, because this board has fewer conventions so far and a hygiene check that refuses conventions nobody has written yet is one that gets bypassed in its first week. |
+| `pr-hygiene.yml` | none, it runs only on a pull request | A change that arrives without the things a reader needs, judged by a person's patience rather than by a rule | satisfied | `pr-hygiene.yml` runs here, landed through #83 in a changed shape. It keeps the word that matters, deterministic, so the check refuses only what can be decided by reading the pull request and the issues it names. Its rule set is the smaller one, because this board has fewer conventions so far and a hygiene check that refuses conventions nobody has written yet is one that gets bypassed in its first week. Its rules sit in `.github/pr-hygiene/hygiene.sh` rather than in the workflow file, and each run proves them against their own fixtures before it judges anything, so a rule cannot pass a fixture and refuse something else in the gate. |
 | `publish.yml` | none on this commit; it runs on a stable tag push and on demand | A release built by hand on somebody's machine, and a tag that ships what a pull request could not merge | waiting | Entry 6 of #1 decides whether there is a publish at all and to where. Where there is, #96 runs the full gate before anything is published and #94 produces the bytes. |
 | `publish-beta.yml` | none, it runs only on demand | A pre-release nobody can install, so nothing is tested before it is released | waiting | Entry 6 of #1. A channel that publishes an installable build on every push to the default branch is a promise to installers, and no entry of #1 has made one yet. |
 | `publish-failure-alert.yml` | `Report any workflow that concluded non-success on the default branch` | A scheduled or post-merge workflow that starts failing with nobody waiting on it, and stays red for weeks | adopted | #90, which takes the property rather than a list: the run derives what it watches from the runs on the default branch, opens an issue rather than sending a notification, and prints the full list of what it examined so a workflow it never heard of cannot read as one it checked. |
