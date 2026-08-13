@@ -1,0 +1,12 @@
+# Nothing here is a gate.
+#
+# The templates beside this file are prompts for a person. Keeping the blank issue
+# available is what makes the first line of each of them true: a form nobody can
+# walk past is enforcement whatever it says about itself, and somebody with
+# something to report that fits neither template should not be turned away by a
+# heading.
+#
+# No contact links. A link here publishes a route to a person, and which address
+# this repository publishes, for a vulnerability or for anything else, is entry 5
+# of #1 and is not decided.
+blank_issues_enabled: true
