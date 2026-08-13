@@ -105,19 +105,23 @@ What this repository runs today, which is what a `satisfied` row points at:
     gh api repos/Flowfin/core/contents/.github/workflows --jq '.[].name'
     dco.yml
     dependency-review.yml
+    doc-paths.yml
     pr-hygiene.yml
     scorecard.yml
     unicode-guard.yml
     zizmor.yml
 
-Read at `04417407d52fbad5192216ba2de14b16dc3d1816` on this repository's default
-branch. #80 named four of these as already satisfied, the sign-off gate is the
-fifth, and the hygiene check is the sixth. That last one landed through #83 after
-the first version of this table was written, so its row moved from naming a plan
-to naming a run. This is the drift the table is most exposed to: a row is written
-while a check is still an issue, the check lands, and the row goes on describing
-the plan. The command above is what says how many rows are `satisfied`, and a
-count written into this paragraph would be the next thing to go stale.
+Read at `b412218c1c1a8ed32e415c34f11f652ea8cf4864` on this repository's default
+branch. #80 named four of these as already satisfied and the sign-off gate as a
+fifth. The hygiene check and the document check landed after the first version of
+this table was written, through #83 and #110, so each of their rows moved from
+naming a plan to naming a run. This is the drift the table is most exposed to: a
+row is written while a check is still an issue, the check lands, and the row goes
+on describing the plan. It has happened twice now, and both repairs came after
+the merge rather than inside it, because the paste above can only be read once
+the file is on the default branch. The command above is what says how many rows
+are `satisfied`, and a count written into this paragraph would be the next thing
+to go stale.
 
 ## What the verdicts mean
 
@@ -174,7 +178,7 @@ work is.
 | `scorecard.yml` | `Scorecard analysis` | A supply-chain regression in the repository's own configuration, found by somebody else | satisfied | `scorecard.yml` runs here. |
 | `stryker-mutation.yml` | none, it runs on a schedule and on demand | A suite that covers a line without asserting anything about it | adapted | #85, with no deviation in placement: scheduled, reported and gating nothing, because the question it answers is far too slow to sit in front of a merge. What differs is the scope list, since the modules differ, and here it is the surface named in #84. |
 | `unicode-guard.yml` | `Reject Trojan Source Unicode` | Source that reads one way to a person and another way to a compiler | satisfied | `unicode-guard.yml` runs here. |
-| `wiki-lint.yml` | `wiki-lint` | Prose that names a path or a command that no longer exists, so the first thing a reader follows is the first thing that is wrong | adapted | #110. There the documentation is a separate repository with no gate of its own, so the check cannot run on a pull request without a typo already in the wiki reddening every unrelated change. Here the documents and the code are in one tree and move in one commit, so the check runs on the pull request, which is where the change that moves a file can fix the sentence naming it. |
+| `wiki-lint.yml` | `wiki-lint` | Prose that names a path or a command that no longer exists, so the first thing a reader follows is the first thing that is wrong | satisfied | `doc-paths.yml` runs here, landed through #110 in a changed shape, and it covers the path half of that protection and not the command half. There the documentation is a separate repository with no gate of its own, so the check cannot run on a pull request without a typo already in the wiki reddening every unrelated change. Here the documents and the code are in one tree and move in one commit, so the check runs on the pull request, which is where the change that moves a file can fix the sentence naming it. Its rules sit in `.github/doc-paths/doc-paths.sh` rather than in the workflow file, and each run proves them against their own fixtures before it judges anything. A command a document tells a reader to run is not checked: that needs a verb in the tree or a pinned toolchain to look in and this repository has neither, #14 pins one, and the run prints the absence on every pull request rather than leaving it to be assumed. The external addresses are a second job that returns zero whatever it finds, since an address outside this repository that is down for an hour is not a defect here. |
 | `zizmor.yml` | `Audit workflows (zizmor)` | Workflow YAML treated as configuration when it is release-critical attack surface | satisfied | `zizmor.yml` runs here. |
 | none on that gate | not applicable | A concurrency claim broken under a load nobody reproduces by hand, found as a rare wrong answer rather than as a failure | added here | #117. Parity is a floor rather than a ceiling. This repository is a library hosted inside other people's processes rather than one process on a server, and 0009 makes promises about which thread a caller is left on, so a detector that reddens when one of those promises is broken is a check this board needs and that gate does not run. |
 
