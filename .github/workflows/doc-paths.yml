@@ -1,0 +1,61 @@
+# A document names paths that resolve (#110). A named path that does not resolve is
+# the cheapest kind of wrong and the first one a reader meets, because a reader
+# follows the path, and it appears without anybody touching the document when a
+# file moves in a commit that never opened the paragraph naming it.
+#
+# The rules are in .github/doc-paths/doc-paths.sh rather than in this file, because
+# each one owes a fixture proving it bites and a fixture run against a copy of the
+# logic proves the copy. Every run executes those fixtures before it judges
+# anything, so a run that reports a pass is a run whose rules were proven in the
+# same minute.
+#
+# Two jobs, and the second cannot fail the first. An address outside this
+# repository that is down for an hour is not a defect here, and a gate that reddens
+# for it teaches people that red means nothing.
+name: doc-paths
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Read-only. The check reads the tree it was handed and writes nothing anywhere.
+permissions:
+  contents: read
+
+concurrency:
+  group: doc-paths-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  paths:
+    name: Documents name paths that resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      - name: Prove the rules, then apply them
+        run: bash .github/doc-paths/doc-paths.sh check
+
+  addresses:
+    name: External addresses in documents, reported and not gating
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Two reasons rather than one, because either alone can be taken away by an
+    # edit that looks harmless. The verb returns zero whatever it found, and this
+    # keeps a failure anywhere else in the job off the workflow's own conclusion.
+    continue-on-error: true
+    # It waits for nothing and nothing waits for it, so it can neither hold up the
+    # check above nor be read as a precondition of it.
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Ask each external address a document names
+        run: bash .github/doc-paths/doc-paths.sh addresses
