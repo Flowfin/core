@@ -26,6 +26,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0046. What is served before a session is restored](0046-what-is-served-before-a-session-is-restored.md)
 - [0047. The queue every write goes through](0047-the-write-queue.md)
 - [0050. The decoded bytes the core holds at once](0050-the-decoded-bytes-budget.md)
+- [0053. Announced tiles, the order they are started in, and the fetch two of them share](0053-announced-tiles-and-the-shared-fetch.md)
 - [0054. Artwork's own tier, the split, and what gives way](0054-artworks-own-tier.md)
 - [0055. The image formats the core decodes, and how the rest are refused](0055-the-image-formats-the-core-decodes.md)
 - [0057. The cadence a playback position is reported on](0057-the-progress-reporting-cadence.md)
