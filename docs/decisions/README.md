@@ -32,6 +32,8 @@ allocated, and why a record is superseded rather than edited are in
 - [0054. Artwork's own tier, the split, and what gives way](0054-artworks-own-tier.md)
 - [0055. The image formats the core decodes, and how the rest are refused](0055-the-image-formats-the-core-decodes.md)
 - [0057. The cadence a playback position is reported on](0057-the-progress-reporting-cadence.md)
+- [0058. Where playback resumes, the two ends of an item, and whose position wins](0058-where-playback-resumes.md)
+- [0060. What counts as watched, and who said so](0060-what-counts-as-watched.md)
 - [0061. The span facility, and what a span costs when nobody is listening](0061-the-span-facility.md)
 - [0064. The two numbers the core does not report, and what a client gets instead](0064-the-numbers-the-core-does-not-report.md)
 - [0068. The data locality position](0068-the-data-locality-position.md)
