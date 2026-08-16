@@ -15,6 +15,8 @@ allocated, and why a record is superseded rather than edited are in
 - [0027. The transport's timeouts, its connection limit, and connection reuse](0027-the-transports-timeouts-and-connections.md)
 - [0028. The address a person typed, and how every path is joined to it](0028-the-address-a-person-typed.md)
 - [0029. Certificate validation, and the server an operator signed themselves](0029-certificate-validation-and-the-self-signed-server.md)
+- [0030. The password route, and what the password is allowed to touch](0030-the-password-route.md)
+- [0032. A server that delegates sign-in, and the value that ties an attempt to its answer](0032-a-server-that-delegates-sign-in.md)
 - [0033. The secret store interface, and a core with no secret store](0033-the-secret-store-interface.md)
 - [0034. Renewal, and the token generation a rejection is answered against](0034-renewal-and-the-token-generation.md)
 - [0038. Retry and backoff](0038-retry-and-backoff.md)
