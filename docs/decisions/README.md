@@ -19,6 +19,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0032. A server that delegates sign-in, and the value that ties an attempt to its answer](0032-a-server-that-delegates-sign-in.md)
 - [0033. The secret store interface, and a core with no secret store](0033-the-secret-store-interface.md)
 - [0034. Renewal, and the token generation a rejection is answered against](0034-renewal-and-the-token-generation.md)
+- [0036. The device identity, and who supplies each part of it](0036-the-device-identity-and-who-supplies-it.md)
 - [0038. Retry and backoff](0038-retry-and-backoff.md)
 - [0040. The cache store interface, and a core with no store](0040-the-cache-store-interface.md)
 - [0041. How a cache key is built, and why a collision is a disclosure](0041-how-a-cache-key-is-built.md)
