@@ -32,6 +32,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0053. Announced tiles, the order they are started in, and the fetch two of them share](0053-announced-tiles-and-the-shared-fetch.md)
 - [0054. Artwork's own tier, the split, and what gives way](0054-artworks-own-tier.md)
 - [0055. The image formats the core decodes, and how the rest are refused](0055-the-image-formats-the-core-decodes.md)
+- [0056. The unit a playback position is expressed in, and its three edges](0056-the-unit-a-position-is-expressed-in.md)
 - [0057. The cadence a playback position is reported on](0057-the-progress-reporting-cadence.md)
 - [0058. Where playback resumes, the two ends of an item, and whose position wins](0058-where-playback-resumes.md)
 - [0060. What counts as watched, and who said so](0060-what-counts-as-watched.md)
