@@ -46,6 +46,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0101. What the core trusts, and what it is built to survive](0101-what-the-core-trusts.md)
 - [0102. The clocks every deadline is measured against](0102-the-clocks-every-deadline-is-measured-against.md)
 - [0105. An entry this version did not write, and one that was not finished](0105-an-entry-this-version-did-not-write.md)
+- [0111. Which source is played, and what the handover carries](0111-which-source-is-played-and-the-handover.md)
 - [0112. Where the platform decoder begins](0112-where-the-platform-decoder-begins.md)
 - [0114. Signing out, forgetting a server, and holding several sessions](0114-signing-out-and-forgetting-a-server.md)
 - [0115. Creating the core, stopping it, and a host that suspends it](0115-creating-and-stopping-the-core.md)
