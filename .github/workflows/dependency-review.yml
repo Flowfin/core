@@ -13,10 +13,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # No `name:` on this job: the "Protect main" ruleset's required status check
-  # matches the literal check-run name, which defaults to the job id
-  # ("dependency-review") when no `name:` is set. Overriding it here would
-  # rename the check run and silently break the required-status-check gate.
+  # No `name:` on this job. A required status check matches the literal check-run
+  # name, which defaults to the job id ("dependency-review") when no `name:` is
+  # set, so setting one here moves the name a rule would be written against. No
+  # ruleset on this repository requires a status check today; #26 is where the
+  # names are required on `main` once they exist, and a rename made before then
+  # is a rename nothing reports.
   dependency-review:
     runs-on: ubuntu-latest
     timeout-minutes: 10
