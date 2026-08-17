@@ -1,0 +1,27 @@
+# The text and line-ending policy (#99).
+#
+# A fixture exists to prove an exact sequence of bytes. Where the checkout
+# pipeline is free to translate line endings, the byte a fixture was written to
+# prove is deleted on the way into the tree or on the way out of it, and the test
+# resting on it still passes. That is a guard that cannot fail, which is worse
+# than no guard, because somebody is relying on it.
+#
+# It is written before the first fixture on purpose. Once sources and fixtures
+# have landed under no policy, adding one rewrites them, and a rewrite that
+# changes a fixture byte cannot be told apart from a fixture that was wrong.
+#
+# What this file covers is the tree as it stands. Every tracked path today is
+# text and none is a fixture, so the fixture rule #99 also asks for is absent
+# here rather than guessed: where a fixture lives is the layout in #13, and a
+# path rule written for a directory nobody has created yet is a rule nothing
+# holds. #99 stays open on it.
+
+# Every path is text, and it is checked out with a line feed whatever a clone's
+# own translation setting says. `text=auto` alone would leave the working tree to
+# `core.autocrlf`, so two clones of one commit would still differ; `eol=lf` is
+# what makes the byte the same on every machine.
+#
+# Written as one rule over every path rather than as a list of extensions,
+# because a list is a thing a new kind of file is added without, and the file
+# added without it is the one whose bytes nobody checked.
+* text=auto eol=lf
