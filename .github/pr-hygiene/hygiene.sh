@@ -79,12 +79,46 @@ strip_comments() {
 # The template's `Closes #` with nothing after it carries no number and is
 # therefore no reference, which is the mistake this rule is really for. A heading
 # is not one either: `## What changed` has no digits after the hash.
+#
+# A number qualified with another repository is not a reference here either, and
+# that one is the case the check below fails closed on rather than passes over.
+# `owner/repo#123` names an issue somewhere else, so looking it up here asks a
+# question nobody asked and gets a 404 for it. The qualifier is read and compared:
+# equal to the repository being judged, the number is ours; different, it is not;
+# absent, the reference is bare and is read exactly as before. A qualifier with no
+# slash in it is not a repository, so `issue#12` in a sentence stays what it was.
+#
+# What that buys is a body able to paste the output of a command verbatim. The
+# rule this repository puts first is that a claim carries the command that
+# produced it, and a grep over a file naming another repository's issue could not
+# be pasted while every hash-then-digits in a body was a question about this one.
+#
+# The qualifier is walked out character by character against a literal set rather
+# than cut off with a regular expression. `sub(/^.*[^set]/, "", s)` is the obvious
+# way to write it and one of the two awks does not match it at all, which is the
+# trap the header of this file already names for character classes and interval
+# expressions, arriving through a third construct.
 issue_refs() {
-  strip_comments | awk '
+  local self="${1:-${GH_REPO:-}}"
+  strip_comments | awk -v self="$self" \
+    -v allowed="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._/-" '
     {
       line = $0
+      prefix = ""
       while (match(line, /#[0-9]+/)) {
-        print substr(line, RSTART + 1, RLENGTH - 1)
+        head = prefix substr(line, 1, RSTART - 1)
+        qualifier = ""
+        i = length(head)
+        while (i >= 1) {
+          c = substr(head, i, 1)
+          if (index(allowed, c) == 0) break
+          qualifier = c qualifier
+          i = i - 1
+        }
+        if (index(qualifier, "/") == 0 || qualifier == self) {
+          print substr(line, RSTART + 1, RLENGTH - 1)
+        }
+        prefix = head substr(line, RSTART, RLENGTH)
         line = substr(line, RSTART + RLENGTH)
       }
     }
@@ -215,6 +249,16 @@ selftest() {
     "" "$(printf '## What changed\n\nIt adds the check.\n' | issue_refs)"
   assert_out "passes: several issues, deduplicated and in order" \
     "$(printf '55\n57\n105')" "$(printf 'Three, and none of them closes here: #105, #55 and #57.\n' | issue_refs)"
+  assert_out "bites: a number qualified with another repository" \
+    "" "$(printf 'The argument was made in Flowfin/jellyfin-plugin-sso#263.\n' | issue_refs Flowfin/core)"
+  assert_out "passes: the same number qualified with the repository being judged" \
+    "151" "$(printf 'Flowfin/core#151 is the one this belongs to.\n' | issue_refs Flowfin/core)"
+  assert_out "passes: a bare reference beside a qualified one, which is what pasted evidence looks like" \
+    "$(printf '83\n151')" "$(printf 'Closes #151, quoting Flowfin/jellyfin-plugin-sso#263 and #83.\n' | issue_refs Flowfin/core)"
+  assert_out "bites: an address whose fragment is digits" \
+    "" "$(printf 'See https://example.com/x#12 for the rest.\n' | issue_refs Flowfin/core)"
+  assert_out "passes: a word before the hash that is not a repository" \
+    "12" "$(printf 'issue#12 in an ordinary sentence.\n' | issue_refs Flowfin/core)"
 
   echo "== body-not-empty =="
   assert_out "bites: the template with the issue number filled in and nothing written" \
@@ -283,7 +327,7 @@ check() {
 
   echo "-- names-an-issue"
   if [ -z "$refs" ]; then
-    echo "::error::This pull request names no issue. Write the issue it belongs to in the body as #<number>. A reference inside an HTML comment is not one, and the template's 'Closes #' carries no number."
+    echo "::error::This pull request names no issue. Write the issue it belongs to in the body as #<number>. A reference inside an HTML comment is not one, the template's 'Closes #' carries no number, and a number written as owner/repo#<number> names an issue on that repository rather than one here."
     failures=$((failures + 1))
   else
     echo "ok    names: $(printf '%s' "$refs" | tr '\n' ' ')"
