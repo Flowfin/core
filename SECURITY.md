@@ -33,15 +33,20 @@ than describe a private channel that is not there.
 ## What this repository is
 
 Read the tree before deciding what to look for. The description calls this the
-shared core every Flowfin client uses. What the tree holds is 69 tracked files:
-49 decision records under `docs/decisions` and the index that lists them, seven
-GitHub Actions workflows, two shell scripts those workflows run, a gate-parity
-document, the licence, a DCO, a notice, a README, two issue templates with the
-config beside them, a pull-request template, and a `.gitattributes` that fixes
-the line ending. The language field on this repository is empty, there are no
-releases and no tags, and there is one branch. The core is not written yet.
-What exists is the argument it will be built from, written before the code so
-that the boundary is not whatever the code turned out to do.
+shared core every Flowfin client uses. What it holds is decision records under
+`docs/decisions` and the index that lists them, GitHub Actions workflows and the
+two shell scripts those workflows run, a gate-parity document, this file, the
+licence, a DCO, a notice, a README, two issue templates with the config beside
+them, a pull-request template, and a `.gitattributes` that fixes the line
+ending. How many paths that comes to moves whenever any of it lands, so take
+the number from the tree rather than from this paragraph:
+
+    git ls-tree -r --name-only origin/main | wc -l
+
+The language field on this repository is empty, there are no releases and no
+tags, and there is one branch. The core is not written yet. What exists is the
+argument it will be built from, written before the code so that the boundary is
+not whatever the code turned out to do.
 
 ## Why a defect here is wider than one repository
 
