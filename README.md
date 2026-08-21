@@ -8,6 +8,9 @@ that depends on it exists.
 
 See [NOTICE.md](NOTICE.md) for the intended-use notice.
 
+See [SECURITY.md](SECURITY.md) for how to report a security problem, what
+this repository treats as one, and what a reporter gets back.
+
 ## License
 
 AGPL-3.0, copyright 2026 Nils Lehnen.
