@@ -11,6 +11,9 @@
 # Every run executes those fixtures before it judges anything, so a run that
 # reports a pass is a run whose direction was proven in the same minute.
 #
+# The rules this gate does not refuse are in .github/shell-analysis/excluded-rules
+# with the reason for each, printed on every run beside the verdict.
+#
 # This covers the shell and nothing else. The analysis over the core's own language
 # is the other half of #81 and waits on #11, because there is no code in this tree
 # and no language chosen.
