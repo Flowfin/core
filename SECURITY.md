@@ -96,16 +96,18 @@ by interpolation:
 Those last two answer with the same number while that sentence holds, and stop
 doing so on the day a checkout arrives without it.
 
-Every job a pull request triggers here declares read scopes only, except
-`.github/workflows/zizmor.yml`, which grants its job `security-events: write` so
-it can upload its SARIF. That is the widest scope any pull-request-triggered job
-here declares and the first one to read:
+Most jobs a pull request triggers here declare read scopes only. The ones that do
+not grant `security-events: write`, which is what an upload to the code-scanning
+tab costs, and it is the widest scope any pull-request-triggered job here
+declares. Which files those are moves whenever a leg starts or stops uploading,
+so read it rather than taking a name from this paragraph:
 
     git grep -n ': write' origin/main -- .github/workflows/
 
-The other file that reading returns is `.github/workflows/scorecard.yml`, which
-is the one no pull request triggers, named above. A hole in any of that, present
-now or introduced later, is the thing to send.
+One of the files that reading returns is `.github/workflows/scorecard.yml`, which
+is the one no pull request triggers, named above, and it is also the only job here
+holding anything beyond that one scope. A hole in any of that, present now or
+introduced later, is the thing to send.
 
 An action pinned to a tag or a moving reference instead of a commit, or a pin
 whose version comment does not match the commit it names.
