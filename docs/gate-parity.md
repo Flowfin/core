@@ -108,14 +108,17 @@ What this repository runs today, which is what a `satisfied` row points at:
     doc-paths.yml
     pr-hygiene.yml
     scorecard.yml
+    shell-analysis.yml
     unicode-guard.yml
     zizmor.yml
 
-Read at `b412218c1c1a8ed32e415c34f11f652ea8cf4864` on this repository's default
+Read at `7a8b187e8e1fb61ee769f57ba2d6bf8389ee2fb3` on this repository's default
 branch. #80 named four of these as already satisfied and the sign-off gate as a
 fifth. The hygiene check and the document check landed after the first version of
 this table was written, through #83 and #110, so each of their rows moved from
-naming a plan to naming a run. This is the drift the table is most exposed to: a
+naming a plan to naming a run. The shell analysis under #81 is the third, and its
+row was written as a run in the change that added it while this paste could not
+be, for the reason the next paragraph gives. This is the drift the table is most exposed to: a
 row is written while a check is still an issue, the check lands, and the row goes
 on describing the plan. It has happened twice now, and both repairs came after
 the merge rather than inside it, because the paste above can only be read once
