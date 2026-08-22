@@ -1,7 +1,11 @@
 # Static analysis of the GitHub Actions workflows themselves (zizmor). The
-# workflow YAML is executable configuration that runs on pull requests, and it is
-# the only executable thing this repository carries today, so it is audited like
-# any other code.
+# workflow YAML is executable configuration that runs on pull requests, so it is
+# audited like any other code.
+#
+# It is not everything this repository executes, and this audit does not reach the
+# rest. Two tracked shell scripts carry the rules of the document check and the
+# hygiene check, a workflow runs each of them on a pull request, and no analyser
+# for their language is configured anywhere in this tree. #81 holds that gap.
 #
 # The gate runs zizmor's regular persona at --min-severity=low: it fails the
 # build on any actionable (low/medium/high/critical) security finding -
