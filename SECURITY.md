@@ -35,7 +35,7 @@ than describe a private channel that is not there.
 Read the tree before deciding what to look for. The description calls this the
 shared core every Flowfin client uses. What it holds is decision records under
 `docs/decisions` and the index that lists them, GitHub Actions workflows and the
-two shell scripts those workflows run, a gate-parity document, this file, the
+shell scripts those workflows run, a gate-parity document, this file, the
 licence, a DCO, a notice, a README, two issue templates with the config beside
 them, a pull-request template, and a `.gitattributes` that fixes the line
 ending. How many paths that comes to moves whenever any of it lands, so take
@@ -65,20 +65,47 @@ that executes yet. All of it is already decided.
 
 ## What somebody could actually report
 
-The workflows and the two scripts they run are the only executable things in
-this tree. Six of the seven workflows trigger on `pull_request`, so they run
-against a branch and a pull request body a stranger controls; the seventh,
-`.github/workflows/scorecard.yml`, does not. A way to make one of them run with
-more than its declared permission, run against a fork's branch, or execute
-something a pull request supplied is a real report. Today none of the seven
-uses `pull_request_target`, every checkout runs with
+The workflows and the shell scripts they run are the only executable things in
+this tree. How many of each there are moves whenever one lands, and a paragraph
+that counts them is wrong the next time one does, which is what happened to this
+one. Take both from the tree rather than from here:
+
+    git ls-tree -r --name-only origin/main -- .github/workflows | wc -l
+    git ls-tree -r --name-only origin/main | grep -E '\.sh$'
+
+All but one of those workflows trigger on `pull_request`, so they run against a
+branch and a pull request body a stranger controls. Which one does not is read
+rather than named a second time:
+
+    git grep -L 'pull_request:' origin/main -- .github/workflows/
+    origin/main:.github/workflows/scorecard.yml
+
+A way to make one of them run with more than its declared permission, run
+against a fork's branch, or execute something a pull request supplied is a real
+report. Today none of them uses `pull_request_target`, every checkout runs with
 `persist-credentials: false`, and the pull request body reaches
 `.github/pr-hygiene/hygiene.sh` through the environment and a file rather than
-by interpolation. Five of the six declare read scopes only;
-`.github/workflows/zizmor.yml` grants its job `security-events: write` so it
-can upload its SARIF, which is the widest scope any pull-request-triggered job
-here declares and the first one to read. A hole in any of that, present now or
-introduced later, is the thing to send.
+by interpolation:
+
+    git grep -c 'pull_request_target' origin/main -- .github/workflows/ ; echo "exit=$?"
+    exit=1
+
+    git grep -l 'actions/checkout' origin/main -- .github/workflows/ | wc -l
+    git grep -l 'persist-credentials: false' origin/main -- .github/workflows/ | wc -l
+
+Those last two answer with the same number while that sentence holds, and stop
+doing so on the day a checkout arrives without it.
+
+Every job a pull request triggers here declares read scopes only, except
+`.github/workflows/zizmor.yml`, which grants its job `security-events: write` so
+it can upload its SARIF. That is the widest scope any pull-request-triggered job
+here declares and the first one to read:
+
+    git grep -n ': write' origin/main -- .github/workflows/
+
+The other file that reading returns is `.github/workflows/scorecard.yml`, which
+is the one no pull request triggers, named above. A hole in any of that, present
+now or introduced later, is the thing to send.
 
 An action pinned to a tag or a moving reference instead of a commit, or a pin
 whose version comment does not match the commit it names.
@@ -102,7 +129,7 @@ The absence of an implementation. The core has no parser, no socket, no
 allocation and no byte written to a disk, because none of it is written, so a
 report that the core fails to validate its input has measured the state of the
 tree rather than found a defect in it. Code that has not been written is a plan,
-not a hole. The two scripts are the exception, and they are in scope above.
+not a hole. The scripts are the exception, and they are in scope above.
 
 Disagreeing with a decision. Every record states the alternatives it rejected
 and what each would have cost. Preferring one of them is a good issue and is not
