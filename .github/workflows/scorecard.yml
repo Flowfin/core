@@ -3,9 +3,11 @@
 # Scorecard scores the repository against the OpenSSF supply-chain best-practice
 # checks (Branch-Protection, Token-Permissions, Pinned-Dependencies,
 # Dangerous-Workflow, etc.) and uploads the findings as SARIF to the
-# code-scanning tab. The score is treated as a checklist, not a guarantee. No
-# check here is triaged yet: the alerts sit as Scorecard raised them, and #89 is
-# where a written statement about one that is not going to be fixed will live.
+# code-scanning tab. The score is treated as a checklist, not a guarantee. Some
+# of what it raises here is dismissed rather than fixed, and the reasoning for a
+# dismissal lives in the dismissal itself: nothing in this tree holds it, and a
+# reader who cannot list the alerts cannot reach it. #89 is where a written
+# statement about a finding that is not going to be fixed will live.
 #
 # Runs where publishing is valid: on push to the default branch, on a weekly
 # schedule (keeps the Maintained check fresh and re-scores on upstream changes),
