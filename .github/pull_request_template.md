@@ -1,8 +1,16 @@
 <!--
-Nothing reads this template. No check parses it, no check requires a section to be
-filled in, and a pull request that deletes the whole thing and says nothing passes
-every check on this repository. It is a prompt for a person, not a gate, and it is
-written down here so nobody mistakes a filled-in form for a verified one.
+This template is a prompt for a person. No check parses it, no heading below is
+required, and nothing on this repository judges whether what you write is true.
+
+Two things about the body are refused rather than prompted, and neither of them is
+this template's doing. A pull request that names no issue is refused, and so is one
+whose body says nothing the template did not. Both come from the hygiene check in
+.github/pr-hygiene/hygiene.sh. A reference inside an HTML comment is not a name,
+and neither is the 'Closes #' below with no number after it. Where an issue you
+name declares a scope, the paths you changed are compared against it.
+
+Everything else here is a prompt, so do not mistake a filled-in form for a verified
+one.
 
 Delete these comments and the guidance under each heading as you fill it in.
 -->
