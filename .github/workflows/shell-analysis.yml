@@ -1,0 +1,57 @@
+# The shell this gate runs is analysed (#81). Two of this gate's legs are shell
+# scripts, they read paths and pull-request bodies, and until this landed nothing
+# read them for defects. The workflow YAML has an analyser in
+# .github/workflows/zizmor.yml and the repository's own configuration has one in
+# .github/workflows/scorecard.yml, so the analysed set and the executed set had
+# come apart in the language the checks are written in.
+#
+# The settings are in .github/shell-analysis/shell-analysis.sh rather than in this
+# file, because the check owes a fixture proving the analyser refuses the defect it
+# names and a fixture run against a second copy of the settings proves the copy.
+# Every run executes those fixtures before it judges anything, so a run that
+# reports a pass is a run whose direction was proven in the same minute.
+#
+# The rules this gate does not refuse are in .github/shell-analysis/excluded-rules
+# with the reason for each, printed on every run beside the verdict.
+#
+# This covers the shell and nothing else. The analysis over the core's own language
+# is the other half of #81 and waits on #11, because there is no code in this tree
+# and no language chosen.
+name: shell-analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Read-only. The check reads the tree it was handed, refuses in place, and writes
+# nothing anywhere. Nothing here reaches the code-scanning surface, so no
+# security-events scope is asked for.
+permissions:
+  contents: read
+
+concurrency:
+  group: shell-analysis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shell:
+    name: Analyse the shell the gate runs (shellcheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      # Printed rather than assumed. The analyser is the runner image's, so which
+      # build judged a run is a fact of the image on the day and belongs in the log
+      # beside the verdict.
+      - name: Say which analyser judged this run
+        run: shellcheck --version
+
+      - name: Prove the fixtures, then analyse every tracked shell file
+        run: bash .github/shell-analysis/shell-analysis.sh check

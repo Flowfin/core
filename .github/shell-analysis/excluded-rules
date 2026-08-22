@@ -1,0 +1,14 @@
+# Rules this gate does not refuse, one per line, as the rule identifier followed
+# by the reason it is not refused. A line carrying an identifier and no reason is
+# refused by .github/shell-analysis/shell-analysis.sh, because a bare identifier
+# is a rule somebody turned off and nobody argued with.
+#
+# Every run prints this file with its reasons, so an exclusion is read at the
+# moment somebody reads a verdict rather than found later by somebody auditing.
+#
+# A line here is a debt rather than a dispensation. Each reason below says what
+# would retire it.
+
+SC2016 Every rule in this gate is an awk or sed program held in single quotes, and every fixture is a piece of markdown holding backticks, so an unexpanded expression inside single quotes is the ordinary case here rather than a mistake. It retires on the day the checks stop carrying another language's source as literal data.
+
+SC2094 Raised twice on one line of .github/doc-paths/doc-paths.sh, where a document's path is passed as an argument and redirected as standard input on the same command. Nothing in that pipeline writes the file it reads, and the analyser cannot see that the argument is a label rather than a destination. It retires the moment a command in this tree does read and write one file in one pipeline, and it would then have to be argued rather than kept.
