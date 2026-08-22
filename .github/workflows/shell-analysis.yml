@@ -14,6 +14,12 @@
 # The rules this gate does not refuse are in .github/shell-analysis/excluded-rules
 # with the reason for each, printed on every run beside the verdict.
 #
+# The findings reach the code-scanning surface as well as the job log. The script
+# writes them as SARIF and the step below uploads that file, so an alert carries
+# the same set the gate refused, at the same severity and with the same rules
+# excused. A pull request from a fork runs with a token that cannot write there, so
+# the upload is skipped on one and the gate still refuses.
+#
 # This covers the shell and nothing else. The analysis over the core's own language
 # is the other half of #81 and waits on #11, because there is no code in this tree
 # and no language chosen.
@@ -25,11 +31,9 @@ on:
   push:
     branches: [main]
 
-# Read-only. The check reads the tree it was handed, refuses in place, and writes
-# nothing anywhere. Nothing here reaches the code-scanning surface, so no
-# security-events scope is asked for.
-permissions:
-  contents: read
+# Deny at the workflow level, and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
 
 concurrency:
   group: shell-analysis-${{ github.ref }}
@@ -40,6 +44,15 @@ jobs:
     name: Analyse the shell the gate runs (shellcheck)
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read # check out the tree the analyser reads
+      security-events: write # upload the findings into the code-scanning tab
+    env:
+      # Named once so the step that writes the file and the step that uploads it
+      # cannot drift onto two paths. Relative to the workspace, which is where the
+      # upload action resolves a relative name, and untracked, so nothing that reads
+      # this repository through git ls-files sees it.
+      SARIF: shellcheck.sarif
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,11 +60,36 @@ jobs:
           # Nothing here pushes, so do not leave the token in .git/config.
           persist-credentials: false
 
-      # Printed rather than assumed. The analyser is the runner image's, so which
-      # build judged a run is a fact of the image on the day and belongs in the log
-      # beside the verdict.
+      # Printed rather than assumed. Both tools are the runner image's, so which
+      # builds judged a run and wrote its file are facts of the image on the day and
+      # belong in the log beside the verdict.
       - name: Say which analyser judged this run
-        run: shellcheck --version
+        run: |
+          shellcheck --version
+          jq --version
 
-      - name: Prove the fixtures, then analyse every tracked shell file
+      - name: Prove the fixtures, analyse every tracked shell file, write the findings
         run: bash .github/shell-analysis/shell-analysis.sh check
+        env:
+          SHELL_ANALYSIS_SARIF: ${{ env.SARIF }}
+
+      # After the step above rather than before it, so the verdict is already made
+      # when this runs and an upload cannot stand in front of a refusal. always() is
+      # what carries the findings of a run that refused something, which is the run
+      # whose findings are worth having on the surface.
+      #
+      # Only where the token can write security events: a push to main and a pull
+      # request from a branch on this repository. A fork's pull request and a
+      # Dependabot one run read-only, and the upload is skipped rather than failed.
+      #
+      # No continue-on-error here, unlike .github/workflows/zizmor.yml, and the
+      # reason is the ordering above: there the upload runs before the gating step
+      # and a transient failure would skip it, and here the gate has already spoken,
+      # so a red upload step names an upload that did not happen and hides no
+      # finding.
+      - name: Upload the findings to the code-scanning tab
+        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]'))
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          sarif_file: ${{ env.SARIF }}
+          category: shellcheck

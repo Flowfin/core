@@ -9,10 +9,11 @@
 # leg rather than a setting here: putting a second analyser over the workflow YAML
 # this one already reads is an argument nobody has made.
 #
-# What #81 still holds is the analysis over the core's own language, which waits on
-# #11 because no code is in this tree, and an upload of the shell findings to the
-# code-scanning tab, which that leg does not do. How many shell scripts there are
-# moves whenever one lands, so it is not counted here.
+# That leg uploads its own findings to the code-scanning tab now, under its own
+# category, so the two sets sit beside each other there rather than one of them
+# being readable only in a job log. What #81 still holds is the analysis over the
+# core's own language, which waits on #11 because no code is in this tree. How many
+# shell scripts there are moves whenever one lands, so it is not counted here.
 #
 # The gate runs zizmor's regular persona at --min-severity=low: it fails the
 # build on any actionable (low/medium/high/critical) security finding -

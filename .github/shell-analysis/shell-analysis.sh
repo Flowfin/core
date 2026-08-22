@@ -25,13 +25,26 @@
 # on whitespace and refused valid work for it. Both scripts here read paths and
 # pull-request bodies, which are exactly the inputs that carry a space.
 #
+# Where a finding is read: the job log, and the code-scanning surface. A run writes
+# the findings as SARIF when `SHELL_ANALYSIS_SARIF` names a path, and the workflow
+# is what uploads that file. A run with the variable unset writes nothing anywhere,
+# which is what a run on somebody's own machine does, and it says which of the two
+# it was on its own last lines rather than leaving a reader to assume.
+#
+# The surface and the gate read one setting. The SARIF is produced by the same
+# function the gate is, with the same severity and the same exclusions, so an alert
+# that is filed is a finding that was refused and a rule this register excuses
+# reaches neither.
+#
 # Verbs:
 #   selftest   prove the analyser refuses that defect, that the same fixture with
-#              the quotation marks added is not refused, and that a rule excluded
-#              with no reason after it is refused while the same line answered is
-#              not
-#   check      run the fixtures, judge the exclusion register, print it, then
-#              analyse every tracked shell file and refuse
+#              the quotation marks added is not refused, that a rule excluded with
+#              no reason after it is refused while the same line answered is not,
+#              and that the SARIF a run writes carries the refused finding, carries
+#              nothing for the neighbour, and carries nothing for an excused rule
+#   check      run the fixtures, judge the exclusion register, print it, analyse
+#              every tracked shell file, write the SARIF where one is asked for,
+#              and refuse
 #
 # `check` reads the repository through `git ls-files`, so the authority for what is
 # analysed is the tracked set. A file present on disk and not added is not a file
@@ -49,6 +62,17 @@ SEVERITY=style
 # The file is beside this one rather than inside it so that a person deciding
 # whether to add an exclusion edits a register instead of a script.
 EXCLUSIONS_FILE="$(dirname "$0")/excluded-rules"
+
+# Where a run writes its findings for the code-scanning surface. Empty means it
+# writes nothing anywhere. It is read from the environment rather than taken as an
+# argument so that the verb a person runs by hand and the verb the workflow runs
+# are the same verb, and the difference between them is one variable a reader can
+# see in the workflow file.
+SARIF_OUT="${SHELL_ANALYSIS_SARIF:-}"
+
+# The schema the written file declares. SARIF 2.1.0 is the version the
+# code-scanning surface accepts.
+SARIF_SCHEMA="https://json.schemastore.org/sarif-2.1.0.json"
 
 # Every tracked shell file.
 shell_files() {
@@ -100,13 +124,95 @@ judge_register() {
 # file's shebang: forcing one here would read a file declaring another dialect as
 # if it had declared this one, which is the finding rather than a setting.
 analyse() {
+  analyse_as gcc "$@"
+}
+
+# The one place shellcheck is invoked. The format is the only thing that varies
+# between the gate and the file written for the code-scanning surface, so the
+# severity and the exclusions cannot differ between what is refused and what is
+# filed as an alert.
+analyse_as() {
+  local format="$1"
+  shift
   local excluded
   excluded="$(excluded_ids "$EXCLUSIONS_FILE")"
   if [ -n "$excluded" ]; then
-    shellcheck --format=gcc --severity="$SEVERITY" --exclude="$excluded" "$@"
+    shellcheck --format="$format" --severity="$SEVERITY" --exclude="$excluded" "$@"
   else
-    shellcheck --format=gcc --severity="$SEVERITY" "$@"
+    shellcheck --format="$format" --severity="$SEVERITY" "$@"
   fi
+}
+
+# The build of the analyser that judged this run, so the written file says which
+# one produced its findings rather than leaving that to the runner image.
+analyser_version() {
+  shellcheck --version | awk -F': ' '/^version:/ { print $2; exit }'
+}
+
+# Writes the findings for the files given, as SARIF, to the path in $1.
+#
+# The conversion is from shellcheck's own `json1`, which carries the rule number,
+# the level, the message and both ends of the region, rather than from the line
+# format the gate prints: reconstructing JSON out of a message that may itself hold
+# a quotation mark is how a file that parses locally is refused by the surface.
+#
+# The level names differ between the two vocabularies and the mapping is written
+# out rather than passed through. shellcheck says error, warning, info and style;
+# SARIF has error, warning, note and none. info and style both become note, which
+# is the level this surface shows without gating, and nothing becomes none, because
+# a finding this gate refuses is not one to file as having no level at all.
+#
+# The region's end is written only where it is past the start. An end equal to the
+# start is a zero-width region, which is a shape the surface rejects on some
+# findings and renders as nothing on others.
+write_sarif() {
+  local out="$1"
+  shift
+  local found status=0
+  found="$(analyse_as json1 "$@")" || status=$?
+  if [ -z "$found" ]; then
+    echo "::error::The analyser wrote no JSON to convert, so there is nothing to hand the code-scanning surface. It exited ${status}."
+    return 1
+  fi
+  printf '%s\n' "$found" | jq \
+    --arg schema "$SARIF_SCHEMA" \
+    --arg analyser "$(analyser_version)" '
+    def sarif_level:
+      { "error": "error", "warning": "warning", "info": "note", "style": "note" }[.] // "note";
+    def region($c):
+      { startLine: $c.line, startColumn: $c.column }
+      + (if ($c.endLine > $c.line) or ($c.endColumn > $c.column)
+         then { endLine: $c.endLine, endColumn: $c.endColumn }
+         else {} end);
+    [ .comments[]? ] as $found
+    | { "$schema": $schema,
+        version: "2.1.0",
+        runs: [ {
+          tool: { driver: {
+            name: "shellcheck",
+            informationUri: "https://www.shellcheck.net/",
+            version: $analyser,
+            rules: ( $found
+                     | map({ id: ("SC" + (.code | tostring)) })
+                     | unique_by(.id)
+                     | map(. + { helpUri: ("https://www.shellcheck.net/wiki/" + .id) }) )
+          } },
+          results: ( $found | map({
+            ruleId: ("SC" + (.code | tostring)),
+            level: (.level | sarif_level),
+            message: { text: .message },
+            locations: [ { physicalLocation: {
+              artifactLocation: { uri: .file, uriBaseId: "%SRCROOT%" },
+              region: region(.)
+            } } ]
+          }) )
+        } ] }
+  ' > "$out"
+}
+
+# How many findings the written file carries.
+sarif_results() {
+  jq '.runs[0].results | length' "$1"
 }
 
 # --------------------------------------------------------------------------
@@ -230,6 +336,53 @@ selftest() {
   echo "ok    not refused"
   echo
 
+  # The three below are about the file a run hands the code-scanning surface. The
+  # four above prove what is refused; these prove that what is refused is what is
+  # filed, that the neighbour files nothing, and that a rule the register excuses
+  # reaches the surface no more than it reaches the gate.
+  local wanted_line ruleid uri line results
+  wanted_line="$(awk '/wc -l </ { print NR; exit }' "$dir/refused.sh")"
+
+  echo "-- the refused finding is written for the code-scanning surface"
+  write_sarif "$dir/refused.sarif" "$dir/refused.sh" || return 1
+  results="$(sarif_results "$dir/refused.sarif")"
+  if [ "$results" -ne 1 ]; then
+    echo "::error::The written file carries ${results} finding(s) where the fixture raises one. What is filed and what is refused have come apart."
+    return 1
+  fi
+  ruleid="$(jq -r '.runs[0].results[0].ruleId' "$dir/refused.sarif")"
+  uri="$(jq -r '.runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri' "$dir/refused.sarif")"
+  line="$(jq -r '.runs[0].results[0].locations[0].physicalLocation.region.startLine' "$dir/refused.sarif")"
+  if [ "$ruleid" != "SC2086" ] || [ "${uri##*/}" != "refused.sh" ] || [ "$line" != "$wanted_line" ]; then
+    echo "::error::The written finding does not name the rule, the file and the line the analyser refused. It says ${ruleid} at ${uri}:${line}, and the fixture carries SC2086 at line ${wanted_line}."
+    return 1
+  fi
+  echo "ok    one finding, SC2086, at ${uri##*/} line ${line}"
+  echo
+
+  echo "-- the same fixture with the expansion quoted files nothing"
+  write_sarif "$dir/kept.sarif" "$dir/kept.sh" || return 1
+  results="$(sarif_results "$dir/kept.sarif")"
+  if [ "$results" -ne 0 ]; then
+    echo "::error::The neighbouring fixture, which differs by two quotation marks, produced ${results} finding(s) for the surface. An alert on honest work is worse than none, because somebody has to close it."
+    return 1
+  fi
+  echo "ok    no finding written"
+  echo
+
+  echo "-- a rule the register excuses is not written either"
+  local register_was="$EXCLUSIONS_FILE"
+  EXCLUSIONS_FILE="$dir/register-answered"
+  write_sarif "$dir/excused.sarif" "$dir/refused.sh" || { EXCLUSIONS_FILE="$register_was"; return 1; }
+  EXCLUSIONS_FILE="$register_was"
+  results="$(sarif_results "$dir/excused.sarif")"
+  if [ "$results" -ne 0 ]; then
+    echo "::error::A register excusing SC2086 still produced ${results} finding(s) for the surface. The gate and the surface are reading different settings, so an alert could name a rule this repository has argued is not a defect here."
+    return 1
+  fi
+  echo "ok    no finding written, from the same fixture the first of these three refused"
+  echo
+
   echo "Every fixture behaved as this check claims, at severity ${SEVERITY}."
 }
 
@@ -273,11 +426,24 @@ check() {
   # through the same function the fixtures used.
   analyse "${files[@]}" || status=$?
 
+  # Written before the refusal below, so a run that refuses something still hands
+  # the surface what it refused. A run that could only file its findings when it
+  # had none would be filing exactly the set nobody needs.
+  if [ -n "$SARIF_OUT" ]; then
+    echo
+    write_sarif "$SARIF_OUT" "${files[@]}" || return 1
+    echo "Written for the code-scanning surface: ${SARIF_OUT}, carrying $(sarif_results "$SARIF_OUT") finding(s)."
+  fi
+
   echo
   echo "-- what this run did not read"
   echo "NOT READ HERE: the core's own language. None is chosen, no code is in this tree, and #11 is where that is decided. This leg covers the shell the gate runs and nothing else."
   echo "NOT READ HERE: the workflow YAML. .github/workflows/zizmor.yml analyses that, and a second analyser over one subject is a separate argument rather than a setting here."
-  echo "NOT UPLOADED: nothing here reaches the code-scanning surface. This run refuses in place rather than filing an alert, so a finding is read in the job log and nowhere else."
+  if [ -n "$SARIF_OUT" ]; then
+    echo "NOT UPLOADED FROM HERE: this run writes the file named above and uploads nothing. The workflow step that uploads it is what reaches the code-scanning surface, and it is skipped where the token cannot write there, which is every pull request from a fork."
+  else
+    echo "NOT WRITTEN HERE: nothing was written for the code-scanning surface, because SHELL_ANALYSIS_SARIF names no path. This run refuses in place, so a finding is read in the job log and nowhere else."
+  fi
   echo
 
   if [ "$status" -ne 0 ]; then
