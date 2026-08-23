@@ -1,0 +1,74 @@
+# The shared half of the pull request hygiene rules, called rather than copied
+# (#178).
+#
+# WHY THIS FILE EXISTS. `iderex/wache` holds one implementation of the rules
+# every board in this fleet shares, and the argument for calling it instead of
+# growing another copy is iderex/operations#1556: nineteen boards carried
+# nineteen implementations of the same three or four rules, in four languages,
+# no two alike, so a two line change to a shared rule cost nineteen edits and
+# failed in nineteen different ways.
+#
+# WHAT IT ADDS HERE. Two things this board does not read today: a placeholder
+# title such as `wip`, and a closing keyword sitting inside a paragraph instead
+# of on a line of its own.
+#
+# WHAT IT DOES NOT REPLACE. Nothing beside it changes. Four rules in
+# .github/pr-hygiene/hygiene.sh have no equivalent in the shared check at all:
+# the comparison of changed paths against the `Scope:` line of every issue the
+# body names, the qualifier aware reading that lets `owner/repo#N` be pasted as
+# evidence without becoming a question about this board, the rule that a body
+# names an issue rather than closing one, and the emptiness rule as this board
+# means it, where the template skeleton with a number filled in is refused. A
+# local rule goes only once the shared check is shown to cover it, one rule at a
+# time, in its own change. Standardising by deleting coverage would be worse
+# than the duplication.
+#
+# THE SUBJECT RULE IS OFF. The shared check wants the issue in the commit
+# subject in square brackets. Of the 52 authored subjects the first page of this
+# board's default branch returns, none carries that shape and the twelve most
+# recent carry no reference in the subject at all, because this board puts the
+# reference in the body on purpose and its own check reads the body. Switching
+# this one rule off says the board does not meet that rule yet, which is a
+# statement somebody can act on. Calling the check with the rule on would refuse
+# every pull request here on day one. Not calling the check at all would say
+# nothing.
+#
+# PINNED BY HASH, NOT BY BRANCH. A moving reference would let the called
+# repository change what executes here without anybody reviewing the change, and
+# zizmor on this board refuses an unpinned reference anyway. The hash below is
+# the one every other caller in the fleet carries, and the file it resolves to is
+# byte for byte the file the newer tag carries, so this board executes the same
+# bytes as the rest.
+#
+# THIS FILE DECLARES ITS OWN CONCURRENCY GROUP AND THAT IS NOT DECORATION. The
+# called workflow declares `pr-hygiene-<pull request number>` with
+# `cancel-in-progress`, and that is the same string
+# .github/workflows/pr-hygiene.yml on this board already uses. A caller that
+# declares no group of its own is left in that group, and then the two runs
+# cancel each other: on another board carrying the identical local group, the
+# local run was cancelled on the very commit that added the shared call, and the
+# grey check has stood there since. The group below cannot collide with it.
+name: Shared hygiene
+
+on:
+  pull_request:
+
+# Deny everything at the workflow level and grant the called job the one scope
+# it needs, which is the shape every other workflow in this directory uses.
+permissions: {}
+
+# Cancel a superseded run on the same pull request. Reading an older body tells
+# nobody anything, and the name is this file's own so that the local hygiene run
+# is not swept up with it.
+concurrency:
+  group: shared-hygiene-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    name: Shared PR hygiene
+    permissions:
+      contents: read
+    uses: iderex/wache/.github/workflows/pr-hygiene.yml@9b311243c2d0d0ced7feb957a20bc178acce6a5d # v1.0.0
+    with:
+      subject_names_issue: false
