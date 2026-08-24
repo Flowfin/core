@@ -1,0 +1,52 @@
+# The shared half of the hygiene rules, called rather than copied (#178).
+#
+# WHY THIS SITS BESIDE .github/pr-hygiene/hygiene.sh AND DOES NOT REPLACE IT.
+# What the two have in common is that a pull request body has to say something
+# and name the issue it belongs to; what this board has on top is its own. The
+# scope comparison has no equivalent in the shared check at all: the issues a
+# body names are read, the `Scope:` line each one declares at column zero is
+# taken as a set of path prefixes, and the changed paths are compared against
+# their union by whole path segment. Neither has the shared check the qualifier
+# aware reading that lets a body paste evidence quoting another repository
+# without turning it into a question about this one. Removing either would be
+# standardising by losing coverage, so the local gate loses a rule only once the
+# shared one is shown to cover it, one rule at a time.
+#
+# THE SUBJECT RULE IS OFF. This board writes the issue number in the body rather
+# than in the subject, which is what its own gate reads: of the last fifty-two
+# authored subjects here not one is in the square brackets the fleet rule wants,
+# and the twelve most recent carry no reference at all. Switching that one rule
+# off says the board does not meet it yet. Not calling the check at all would
+# say nothing.
+#
+# PINNED BY HASH, NOT BY BRANCH. A moving reference would let the called
+# repository change what executes here without anybody reviewing it, and the
+# boards' own action-pin guards refuse it for that reason.
+#
+# THE PIN IS THE SECOND ONE, AND THE FIRST IS WHY THE COMMENT IS THIS LONG. At
+# v1.0.0 the called workflow declared `pr-hygiene-<pull request number>` as its
+# concurrency group and .github/workflows/pr-hygiene.yml on this board declares
+# that same string. Both cancel in progress, so whichever run was created second
+# cancelled the other, and the board's own gate was the one that died: cancelled
+# one second after creation, no steps, no verdict. Declaring a group here did
+# not help, at workflow level or on the calling job, because the called workflow
+# claims its group independently of its caller. iderex/wache#4 namespaced it, so
+# at the pin below the shared run sits in `wache-pr-hygiene-<number>` while this
+# board's own gate keeps `pr-hygiene-<number>` and the two no longer meet. A
+# later pin is checked against that name before it is moved: a shared group that
+# went back to the bare pattern would cancel this board's gate again, and a
+# cancelled gate blocks nothing here, because no status check is required on
+# main yet (#26).
+name: Shared hygiene
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    uses: iderex/wache/.github/workflows/pr-hygiene.yml@113085b269d3437a3f96ff9e7060b64b0af88ab1 # v1.2.0
+    with:
+      subject_names_issue: false
