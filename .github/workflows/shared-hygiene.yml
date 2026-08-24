@@ -23,16 +23,20 @@
 # repository change what executes here without anybody reviewing it, and the
 # boards' own action-pin guards refuse it for that reason.
 #
-# THIS FILE IS NOT MERGEABLE AS IT STANDS, AND THE REASON IS NOT IN IT. The
-# called workflow declares `pr-hygiene-<pull request number>` as its concurrency
-# group; .github/workflows/pr-hygiene.yml on this board declares that same
-# string. Both cancel in progress, so whichever run is created second cancels
-# the other, and the board's own gate is the one that dies: cancelled one second
-# after creation, no steps, no verdict. Declaring a group of my own here does
-# not help, at workflow level or on the calling job, because the called
-# workflow's claim on the group is made independently of the caller. The fix
-# belongs in iderex/wache, where the group has to be namespaced, and it cannot
-# be made from this file.
+# THE PIN IS THE SECOND ONE, AND THE FIRST IS WHY THE COMMENT IS THIS LONG. At
+# v1.0.0 the called workflow declared `pr-hygiene-<pull request number>` as its
+# concurrency group and .github/workflows/pr-hygiene.yml on this board declares
+# that same string. Both cancel in progress, so whichever run was created second
+# cancelled the other, and the board's own gate was the one that died: cancelled
+# one second after creation, no steps, no verdict. Declaring a group here did
+# not help, at workflow level or on the calling job, because the called workflow
+# claims its group independently of its caller. iderex/wache#4 namespaced it, so
+# at the pin below the shared run sits in `wache-pr-hygiene-<number>` while this
+# board's own gate keeps `pr-hygiene-<number>` and the two no longer meet. A
+# later pin is checked against that name before it is moved: a shared group that
+# went back to the bare pattern would cancel this board's gate again, and a
+# cancelled gate blocks nothing here, because no status check is required on
+# main yet (#26).
 name: Shared hygiene
 
 on:
@@ -43,6 +47,6 @@ permissions:
 
 jobs:
   hygiene:
-    uses: iderex/wache/.github/workflows/pr-hygiene.yml@9b311243c2d0d0ced7feb957a20bc178acce6a5d # v1.0.0
+    uses: iderex/wache/.github/workflows/pr-hygiene.yml@113085b269d3437a3f96ff9e7060b64b0af88ab1 # v1.2.0
     with:
       subject_names_issue: false
