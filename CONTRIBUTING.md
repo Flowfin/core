@@ -75,6 +75,13 @@ number rather than letting it arrive as a compile error.
 `.github/toolchain/toolchain.sh` holds that comparison and the fixtures that
 prove it. `.github/workflows/build.yml`.
 
+**`test`** runs the suite with the second command above and refuses a run that
+collected nothing. A harness that ran no test exits zero and prints a page that
+reads like a clean run, so the count is read out of the run, printed, and refused
+when it is zero; a non-zero filtered-out total is refused for the same reason.
+The number of tests executed is written to the step summary.
+`.github/test/test.sh` holds the counting and the fixtures that prove it.
+
 **`lint`** runs the analyser the language ships, denying its default, pedantic and
 manifest sets, with every remaining warning an error. The lints it does not refuse
 are in `.github/lint/excluded-lints`, one per line with the reason, and a line
@@ -168,10 +175,13 @@ dialog on Windows. The dialog is answered by an administrator, and its subject i
 the executable's full path, so answering it settles nothing for the next build
 directory. A test that needs that bind belongs in the separate harness in #22.
 
-Nothing enforces any of this today. #20's other condition is that the `test` check
-runs on a runner with no display server, as a non-elevated user, and with no
-network access to anything but a loopback address, and that check does not exist
-yet: it is #16.
+Nothing enforces any of this today, and the `test` check arriving did not change
+that. #20's other condition is that the check runs on a runner with no display
+server, as a non-elevated user, and with no network access to anything but a
+loopback address. That check exists now, from #16, and it does none of the three:
+it runs the suite and counts what the suite collected. A test that opened a
+display, requested elevation or bound to a non-loopback address passes it. #20 is
+where those three land.
 
 **Nothing reads the prose of an issue, a commit message or a pull request body.**
 `Scope:` at column zero is the only line any route takes out of an issue. Whether
@@ -206,9 +216,9 @@ line leaves the index wrong and nothing here refuses that.
 Where a check needs logic rather than one command, the logic goes in a script
 beside the workflow rather than in steps inside it, and the script carries
 fixtures proving each rule bites. `.github/lint/lint.sh`,
-`.github/format/format.sh`, `.github/toolchain/toolchain.sh`,
-`.github/doc-paths/doc-paths.sh` and `.github/shell-analysis/shell-analysis.sh`
-are the ones that exist, and each runs its own fixtures before it judges
+`.github/format/format.sh`, `.github/test/test.sh`,
+`.github/toolchain/toolchain.sh`, `.github/doc-paths/doc-paths.sh` and
+`.github/shell-analysis/shell-analysis.sh` are the ones that exist, and each runs its own fixtures before it judges
 anything, so a rule cannot pass its fixture and refuse something else in the
 gate. The count is left out of that sentence on purpose, because a number in a
 document drifts against the directory it describes. Derive it:
