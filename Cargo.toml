@@ -24,3 +24,21 @@ name = "flowfin_core"
 # Empty on purpose, and judged by the same record: the relaxation there is on
 # what a dependency has to be worth, not on the licence set or the four
 # behaviours.
+
+# The harness for the paths a fake cannot prove (#22). `test = false` is what
+# keeps it out of `cargo test --locked`, which is the command the `test` check
+# runs, so nothing this target needs can make the headless suite in #20
+# conditional. It is still built by `cargo build --locked --all-targets`, so it
+# cannot rot in silence.
+#
+# `harness = false` so that an absent prerequisite and an empty case list are
+# refusals with an exit code rather than skipped test cases. The default harness
+# owns the process exit, and a skip under it reads as a case that was there.
+#
+# Running it is deliberate:
+#     cargo test --locked --test needs_a_real_server_or_real_hardware
+[[test]]
+name = "needs_a_real_server_or_real_hardware"
+path = "tests/needs_a_real_server_or_real_hardware.rs"
+harness = false
+test = false
