@@ -1,0 +1,31 @@
+# The toolchain this repository is built, analysed and formatted with (#14).
+#
+# One file, one version, read by the toolchain manager itself. Nothing in
+# `.github/workflows/` carries a version string, so there is no second
+# declaration for this one to disagree with at the first upgrade.
+#
+# WHY A VERSION AT ALL. A toolchain that is whatever the runner image happens to
+# ship is a build that changes without a commit. It had already diverged before
+# this file existed: on 2026-08-25 the `build` job compiled with
+# `rustc 1.98.0 (88d9e12ae 2026-08-18)` while the same gate run by hand on a
+# contributor machine used `rustc 1.97.0 (2d8144b78 2026-07-07)`, so a local
+# failure and a gate failure were not comparable and neither was a local success.
+#
+# THE COMPONENTS ARE COMPONENTS OF THIS TOOLCHAIN RATHER THAN SEPARATE INSTALLS,
+# which is why one pin covers three checks. `clippy` is what `lint` runs and
+# `rustfmt` is what `format` runs, and a build of either that did not come with
+# this compiler would judge against a different set of defaults.
+#
+# THE PROFILE IS MINIMAL ON PURPOSE. Nothing in this gate reads generated
+# documentation, so the default profile would download it on every fresh machine
+# for nothing.
+#
+# THIS FILE PINS ONE CHANNEL AND THE NIGHTLY LEG IS NOT IT. The detector in #117
+# is a nightly compiler flag, and a second channel written here would install a
+# nightly on every contributor's machine for a leg that does not gate anything.
+# That leg names the toolchain where it runs, and this file is the authority for
+# the one every other check uses.
+[toolchain]
+channel = "1.98.0"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

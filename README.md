@@ -12,8 +12,11 @@ A fresh clone needs a Rust toolchain and nothing else. `cargo`, the formatter an
 the analyser all arrive with it, and there is no dependency to fetch: the manifest
 declares none, and what may ever be added to it is
 [0103](docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md).
-Which version is pinned is not settled yet and is #14; until it is, a current
-stable toolchain builds this.
+The version is pinned in [rust-toolchain.toml](rust-toolchain.toml), which the
+toolchain manager reads by itself, so a fresh clone gets the right compiler
+without being told to install one. A compiler that arrived some other way is
+told which version this tree expects, by number, rather than meeting a compile
+error.
 
 Two commands, and they are the two the gate runs rather than variants of them:
 

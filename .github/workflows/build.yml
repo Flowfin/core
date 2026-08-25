@@ -60,13 +60,23 @@ jobs:
           # Nothing here pushes, so do not leave the token in .git/config.
           persist-credentials: false
 
-      # Printed rather than assumed. The toolchain is the runner image's until
-      # #14 pins one, so which compiler produced a verdict is a fact of the image
-      # on the day and belongs in the log beside the verdict.
-      - name: Say which toolchain built this run
-        run: |
-          rustc -vV
-          cargo --version
+      # Printed rather than assumed, and now compared as well as printed (#14).
+      # `rust-toolchain.toml` names the version, the toolchain manager on this
+      # runner reads that file itself, and no step here carries the number: a
+      # version string in this file would be the second declaration the pin
+      # exists to remove.
+      #
+      # The comparison is green here by construction, because the manager that
+      # reads the pin is the one that resolves `rustc`. It is not green for a
+      # contributor whose compiler came from somewhere else, and the message it
+      # prints for them names the file and both numbers instead of leaving them
+      # with a compile error. The same pin resolves `lint` and `format`, which
+      # run the analyser and the formatter that came with this compiler.
+      - name: Say which toolchain built this run, and refuse another one
+        run: bash .github/toolchain/toolchain.sh check
+
+      - name: Say which cargo built this run
+        run: cargo --version
 
       - name: Build everything
         run: cargo build --locked --all-targets
