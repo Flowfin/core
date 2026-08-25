@@ -1,0 +1,4 @@
+This fixture exists for its bytes rather than for its words.
+The line above ends with a carriage return and a line feed.
+This one ends with a line feed alone, so a rule that added a carriage
+return everywhere would be caught as surely as one that removed it.

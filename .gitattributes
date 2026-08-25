@@ -25,3 +25,21 @@
 # because a list is a thing a new kind of file is added without, and the file
 # added without it is the one whose bytes nobody checked.
 * text=auto eol=lf
+
+# The fixture directory, where the rule above is exactly wrong.
+#
+# `tests/fixtures/` holds bytes a test exists to prove. `text=auto eol=lf` above
+# would rewrite a carriage return out of one on the way into the index, and the
+# test resting on that byte would go on passing against a file that no longer has
+# it. That is the guard that cannot fail this whole file is against, so the rule
+# for these paths is the opposite of the rule for everything else: nothing under
+# them is examined and nothing is translated, in either direction.
+#
+# `-text` rather than `binary`, which is a macro for `-text -diff`. A fixture here
+# is readable and a reader wants to see what changed in one, so the diff is kept.
+#
+# The pattern names the directory and everything under it, so a fixture added in a
+# subdirectory tomorrow is covered without this file being edited. A rule that has
+# to be extended per fixture is a rule the fixture that needs it most is added
+# without.
+tests/fixtures/** -text
