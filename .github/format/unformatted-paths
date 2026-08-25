@@ -1,0 +1,21 @@
+# Tracked source files this gate does not ask the formatter about, one per line,
+# as the path followed by the reason it is not asked about. A line carrying a
+# path and no reason is refused by .github/format/format.sh, because a bare path
+# is a file somebody took out of the gate and nobody argued with.
+#
+# Every run prints this file with its reasons, so an exemption is read at the
+# moment somebody reads a verdict rather than found later by somebody auditing.
+#
+# A line here is a debt rather than a dispensation. Each reason says what would
+# retire it.
+#
+# THIS REGISTER IS EMPTY OF ENTRIES TODAY, AND THAT IS A FACT ABOUT THE TREE
+# RATHER THAN ABOUT THE RULE. Every tracked source file here is written by hand
+# and the formatter has nothing to disagree with. The refusals above are proven
+# by the fixtures in .github/format/format.sh rather than by anything in this
+# file, which is the only way a rule with no live subject can be proven at all.
+#
+# The path is written the way `git ls-files` writes it, from the repository root
+# with forward slashes, because that is the set each line is compared against. A
+# path written any other way matches nothing and is refused rather than ignored,
+# and so is a path the tree no longer carries.

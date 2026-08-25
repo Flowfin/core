@@ -70,6 +70,15 @@ are in `.github/lint/excluded-lints`, one per line with the reason, and a line
 carrying a name and no reason is itself refused. `.github/lint/lint.sh` holds the
 settings and the fixtures that prove them.
 
+**`format`** runs the formatter the language ships over every tracked source file,
+in `--check` mode, so a carriage return is refused rather than converted. The
+subject is `git ls-files` rather than the crate, because `cargo fmt` walks the
+module graph and never opens a tracked file no `mod` declares. The files it does
+not ask about are in `.github/format/unformatted-paths`, one per line with the
+reason, and a line carrying a path and no reason, or a path the tree no longer
+carries, is itself refused. `.github/format/format.sh` holds the settings and the
+fixtures that prove them.
+
 **`DCO sign-off`** refuses a commit whose trailer does not match its author.
 
 **`Deterministic PR-hygiene checks`** refuses a pull request that names no issue
@@ -120,9 +129,13 @@ the rule is that it does.
 against what this document and `README.md` say a contributor runs. The three are
 kept in step by whoever edits one of them.
 
-**Formatting is not checked at all.** `rustfmt.toml` fixes the line-ending style
-for the formatter, and #18 is the check that would run it. Run `cargo fmt` before
-pushing; nothing here will tell you that you did not.
+**Formatting is checked, and `cargo fmt` is not what checks it.** Run `cargo fmt`
+before pushing and the gate will agree with you for every file the module graph
+reaches. It reaches every source file in this tree today, and it is not what the
+`format` check runs: that reads `git ls-files`, so a source file added without a
+`mod` declaring it is judged here and would pass `cargo fmt --all --check`
+untouched. `bash .github/format/format.sh check` is the run the gate makes, and
+it needs no network.
 
 **A test that needs real hardware or a real server does not run here**, and the
 harness for one does not exist yet. #22 is where it lands. Until it does, a path
@@ -182,9 +195,14 @@ line leaves the index wrong and nothing here refuses that.
 Where a check needs logic rather than one command, the logic goes in a script
 beside the workflow rather than in steps inside it, and the script carries
 fixtures proving each rule bites. `.github/lint/lint.sh`,
-`.github/doc-paths/doc-paths.sh` and `.github/shell-analysis/shell-analysis.sh`
-are the three that exist, and each runs its own fixtures before it judges
-anything, so a rule cannot pass its fixture and refuse something else in the gate.
+`.github/format/format.sh`, `.github/doc-paths/doc-paths.sh` and
+`.github/shell-analysis/shell-analysis.sh` are the ones that exist, and each runs
+its own fixtures before it judges anything, so a rule cannot pass its fixture and
+refuse something else in the gate. The count is left out of that sentence on
+purpose: it was three until this one landed, and a number in a document drifts
+against the directory it describes. Derive it:
+
+    git ls-files -- '.github/**/*.sh'
 
 A rule that is turned off is turned off in a register beside the script, one entry
 per line with the reason on the same line, and the run refuses an entry that
