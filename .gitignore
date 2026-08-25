@@ -1,0 +1,6 @@
+# What a build leaves behind, and nothing else.
+#
+# One entry rather than a list of patterns somebody adds to: the build tool puts
+# every artefact under one directory, and a rule per artefact kind is a rule that
+# is missing the day a new kind appears.
+/target/
