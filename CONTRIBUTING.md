@@ -75,8 +75,8 @@ number rather than letting it arrive as a compile error.
 `.github/toolchain/toolchain.sh` holds that comparison and the fixtures that
 prove it. `.github/workflows/build.yml`.
 
-**`test`** runs the suite with the second command above and refuses a run that
-collected nothing. A harness that ran no test exits zero and prints a page that
+**`test`** runs the suite with the second command above, in the environment #20
+requires and described below, and refuses a run that collected nothing. A harness that ran no test exits zero and prints a page that
 reads like a clean run, so the count is read out of the run, printed, and refused
 when it is zero; a non-zero filtered-out total is refused for the same reason.
 The number of tests executed is written to the step summary.
@@ -193,13 +193,24 @@ dialog on Windows. The dialog is answered by an administrator, and its subject i
 the executable's full path, so answering it settles nothing for the next build
 directory. A test that needs that bind belongs in the separate harness above.
 
-Nothing enforces any of this today, and the `test` check arriving did not change
-that. #20's other condition is that the check runs on a runner with no display
-server, as a non-elevated user, and with no network access to anything but a
-loopback address. That check exists now, from #16, and it does none of the three:
-it runs the suite and counts what the suite collected. A test that opened a
-display, requested elevation or bound to a non-loopback address passes it. #20 is
-where those three land.
+The gate enforces the environment, and it does not enforce the rule. Those are
+two different things and the difference is worth reading.
+
+The `test` check runs the suite inside a network namespace carrying only
+loopback, under the runner's own unprivileged user, with new privileges refused
+by the kernel, and on an image with no display server.
+`.github/headless/enter.sh` creates that environment and
+`.github/headless/headless.sh` reads it back and refuses the run when any of the
+three is absent, because a sandbox nobody checks is a sandbox that silently stops
+being one. So a test that opens a display finds none, a test that asks for
+elevation is refused by the kernel rather than granted by a passwordless `sudo`,
+and a test that binds a socket to the machine's own interface address cannot,
+because that address does not exist in there.
+
+What is still not refused: a bind to the wildcard address. It succeeds, it
+reaches nothing from inside that namespace, and nothing here fails it. And none
+of this reaches your own machine - a test that needs a display passes on a laptop
+that has one, and the gate is where it stops.
 
 **Nothing reads the prose of an issue, a commit message or a pull request body.**
 `Scope:` at column zero is the only line any route takes out of an issue. Whether
@@ -235,8 +246,9 @@ Where a check needs logic rather than one command, the logic goes in a script
 beside the workflow rather than in steps inside it, and the script carries
 fixtures proving each rule bites. `.github/lint/lint.sh`,
 `.github/format/format.sh`, `.github/test/test.sh`,
-`.github/toolchain/toolchain.sh`, `.github/doc-paths/doc-paths.sh` and
-`.github/shell-analysis/shell-analysis.sh` are the ones that exist, and each runs its own fixtures before it judges
+`.github/headless/headless.sh`, `.github/toolchain/toolchain.sh`,
+`.github/doc-paths/doc-paths.sh` and `.github/shell-analysis/shell-analysis.sh`
+are the ones that exist, and each runs its own fixtures before it judges
 anything, so a rule cannot pass its fixture and refuse something else in the
 gate. The count is left out of that sentence on purpose, because a number in a
 document drifts against the directory it describes. Derive it:

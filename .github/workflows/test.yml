@@ -24,6 +24,12 @@
 # No toolchain is installed here. rust-toolchain.toml pins it and the toolchain
 # manager on this runner reads that file itself (#14), so this file carries no
 # version string.
+#
+# The suite runs inside a network namespace carrying only loopback, under the
+# runner's own unprivileged user with new privileges refused by the kernel
+# (#20). That is the one place `sudo` is used in this gate, it is used to enter
+# a namespace and to drop straight back out of it, and nothing compiles or runs
+# as root.
 name: test
 
 on:
@@ -59,5 +65,17 @@ jobs:
           # Nothing here pushes, so do not leave the token in .git/config.
           persist-credentials: false
 
-      - name: Prove the counting fixtures, then run the suite
-        run: bash .github/test/test.sh check
+      # The toolchain is resolved here, outside the sandbox below, because the
+      # manager needs the network the first time it meets the pin and the sandbox
+      # has none. This also puts the comparison from #14 on the log of the job
+      # that runs the suite rather than only on the one that compiles it.
+      - name: Say which toolchain runs the suite, and refuse another one
+        run: bash .github/toolchain/toolchain.sh check
+
+      # The suite runs headless, unprivileged and on loopback alone (#20).
+      # `.github/headless/enter.sh` creates those three, and
+      # `.github/headless/headless.sh` reads them back and refuses the run if any
+      # is absent, so a sandbox that stopped being one is caught rather than
+      # passed through.
+      - name: Enter the required environment, prove it, then run the suite
+        run: bash .github/headless/enter.sh
