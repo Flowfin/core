@@ -97,6 +97,14 @@ reason, and a line carrying a path and no reason, or a path the tree no longer
 carries, is itself refused. `.github/format/format.sh` holds the settings and the
 fixtures that prove them.
 
+**`invariants`** applies a rule set held as data in `.github/invariants/rules` to
+the tracked source, one extended regular expression per rule, and refuses a line
+that matches. Each rule carries the record it comes from and the failure it
+prevents, and the loader refuses a rule that carries neither. Each also carries a
+line that violates it and a line that nearly does, and every run judges both
+against the whole rule set before it judges the tree, so a rule proves it bites
+and proves it bites alone. `.github/invariants/invariants.sh` is the loader.
+
 **`DCO sign-off`** refuses a commit whose trailer does not match its author.
 
 **`Deterministic PR-hygiene checks`** refuses a pull request that names no issue
@@ -246,9 +254,9 @@ Where a check needs logic rather than one command, the logic goes in a script
 beside the workflow rather than in steps inside it, and the script carries
 fixtures proving each rule bites. `.github/lint/lint.sh`,
 `.github/format/format.sh`, `.github/test/test.sh`,
-`.github/headless/headless.sh`, `.github/toolchain/toolchain.sh`,
-`.github/doc-paths/doc-paths.sh` and `.github/shell-analysis/shell-analysis.sh`
-are the ones that exist, and each runs its own fixtures before it judges
+`.github/invariants/invariants.sh`, `.github/headless/headless.sh`,
+`.github/toolchain/toolchain.sh`, `.github/doc-paths/doc-paths.sh` and
+`.github/shell-analysis/shell-analysis.sh` are the ones that exist, and each runs its own fixtures before it judges
 anything, so a rule cannot pass its fixture and refuse something else in the
 gate. The count is left out of that sentence on purpose, because a number in a
 document drifts against the directory it describes. Derive it:
@@ -259,6 +267,14 @@ A rule that is turned off is turned off in a register beside the script, one ent
 per line with the reason on the same line, and the run refuses an entry that
 carries no reason. An exclusion is a debt rather than a dispensation, so the
 reason says what would retire it.
+
+A rule that is turned ON can live in a register too, and where the rules are the
+thing that changes rather than the logic that applies them, it should.
+`.github/invariants/rules` is the one that does: a rule there is a block of
+fields naming the record it comes from, the failure it prevents, a line that
+violates it and a line that nearly does, and the loader refuses a block missing
+any of them. Adding an invariant is then editing a register rather than editing a
+script, and the argument for the rule sits on the same block as the rule.
 
 The check-run name matters as much as the check. GitHub takes it from the job's
 `name:` and falls back to the job id, a ruleset matches that literal string, and a
