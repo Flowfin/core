@@ -1,0 +1,61 @@
+# The mistakes a compiler and a type system cannot see and a pattern can (#82).
+#
+# The check-run name is exactly `invariants`, on both the workflow and the job.
+# GitHub takes that name from the job's `name:` and falls back to the job id, and
+# a ruleset matches the literal, so having the two agree means a rename cannot
+# detach a requirement from the thing it was requiring without being visible in
+# this file. The gate this board takes as its target reports the same check as
+# `Enforce greppable invariants`; `docs/gate-parity.md` is where the two names
+# are put beside each other, and this board names its own checks the way it names
+# `build`, `test`, `lint` and `format`.
+#
+# The rules are DATA, in .github/invariants/rules, and .github/invariants/invariants.sh
+# is the loader that refuses a rule carrying no stated failure. Every run proves
+# every rule against its own violating line and its own near miss before it
+# judges the tree, so a rule cannot pass its fixture and refuse something else in
+# the gate.
+#
+# The job carries no `if:` and no path filter, for the reason
+# .github/workflows/build.yml already gives: GitHub creates a check run for a job
+# it started and then skipped, carrying the same name a job that did the work
+# would.
+#
+# Nothing here compiles. A pattern over source text needs no toolchain, so this
+# check has a verdict on a tree the compiler cannot build.
+name: invariants
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created second
+  # cancels the other, and the gate that dies that way leaves a green tick beside
+  # no verdict.
+  group: invariants-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invariants:
+    name: invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # check out the tree the patterns read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      - name: Prove every rule bites, then apply the rule set
+        run: bash .github/invariants/invariants.sh check

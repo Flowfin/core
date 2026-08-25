@@ -1,0 +1,66 @@
+# The invariants a compiler cannot see (#82).
+#
+# A rule set as data rather than as code. Each rule is a block of fields ending
+# at a blank line, and .github/invariants/invariants.sh is what loads it. A block
+# missing any field is refused, which is a condition of #82: a rule with no
+# stated failure it prevents is a rule somebody added and nobody argued with.
+#
+# The fields:
+#
+#   id        what the rule is called, in the verdict and in the refusal.
+#   pattern   an extended regular expression. A tracked line under `paths` that
+#             matches it is refused.
+#   paths     a prefix of a tracked path. The subject is git's set, so a file on
+#             disk that nobody added is not judged and is not reported clean.
+#   except    a prefix inside `paths` the rule does not reach. Optional, and the
+#             one rule that carries it says in its own `prevents` why.
+#   grounds   the landed record the rule comes from. A rule nobody can trace to a
+#             decision is a preference.
+#   prevents  the failure it prevents, in one line.
+#   fixture   a line of source that violates the rule. Every run judges this text
+#             against the WHOLE rule set and requires the verdict to be exactly
+#             this rule, so a rule proves it bites and proves it bites alone.
+#   clean     a line of source that nearly violates it and must not. The
+#             one-character mistake somebody actually makes is worth more than a
+#             violation that could not have passed.
+#
+# THE SEED LIST IN #82 IS NOT WHAT IS BELOW. Two of the four seeds do not survive
+# translation into a pattern and the reason is written on #82 itself rather than
+# here; a third does not either, because
+# docs/decisions/0003-what-the-core-does-not-do.md says in so many words that the
+# drawing boundary cannot be expressed as data. What replaces them are rules the
+# landed records do support, and the `grounds` line on each block is where that
+# is checkable.
+
+id: no-filesystem-access
+pattern: (^|[^A-Za-z_])(std::fs|fs::(read|write|create|remove|copy|rename|File|OpenOptions)|File::(open|create)|OpenOptions::new)
+paths: src/
+grounds: docs/decisions/0068-the-data-locality-position.md
+prevents: The core choosing where a byte is kept. Every byte goes through a store the client supplied, so a file opened here is a location the core chose on a platform it does not know.
+fixture: let f = std::fs::File::open("cache.bin")?;
+clean: /// The client supplies the store; nothing here opens a file.
+
+id: no-network-outside-the-transport
+pattern: (^|[^A-Za-z_])(std::net|TcpStream|TcpListener|UdpSocket|ToSocketAddrs)
+paths: src/
+except: src/server/
+grounds: docs/decisions/0027-the-transports-timeouts-and-connections.md
+prevents: A second way out to a server. Every request goes through one transport that bounds an attempt with timeouts and reuses connections, and a socket opened beside it has none of that. The exception is the transport itself, which is where the one socket is allowed to be.
+fixture: let s = std::net::TcpStream::connect(address)?;
+clean: /// The transport in src/server owns every request; nothing here connects.
+
+id: no-text-output
+pattern: (^|[^A-Za-z_!])(println!|eprintln!|print!|eprint!|dbg!)
+paths: src/
+grounds: docs/decisions/0003-what-the-core-does-not-do.md
+prevents: A core that logs. Diagnostics leave as events with fields, through the client's sink, and a line written here has chosen a destination on a platform the core does not know and on a shared device a place it cannot promise is private.
+fixture: println!("signed in as {user}");
+clean: /// A diagnostic event carries fields, and the client decides where it goes.
+
+id: no-platform-clock
+pattern: (^|[^A-Za-z_])(SystemTime::now|Instant::now)
+paths: src/
+grounds: docs/decisions/0102-the-clocks-every-deadline-is-measured-against.md
+prevents: A deadline measured against a clock no test can move. All three clocks reach the core through one injected source, which is what makes a timeout test take microseconds rather than seconds.
+fixture: let started = std::time::Instant::now();
+clean: /// The source supplies steady, elapsed and wall; nothing here reads one.
