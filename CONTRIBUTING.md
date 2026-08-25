@@ -14,9 +14,16 @@ manifest declares no dependencies, so `cargo build` fetches nothing. When that
 changes, `--locked` is what makes the restore refuse to rewrite `Cargo.lock`
 rather than doing it quietly, and it is already in both commands for that reason.
 
-Which toolchain version is pinned is not settled. #14 is where that lands. Until
-it does, a current stable toolchain builds this, and the gate prints the compiler
-it used on every run so a verdict can be read against a version.
+The toolchain version is pinned in `rust-toolchain.toml`, in one place, and no
+workflow carries a copy of the number. The toolchain manager reads that file
+itself, so a fresh clone compiles with the pinned version without being told to
+install anything. Where a compiler arrived some other way, the `build` check says
+which version this tree expects and which one ran, by number:
+
+    bash .github/toolchain/toolchain.sh check
+
+The gate still prints the compiler it used on every run, so a verdict can be read
+against a version rather than against a promise about one.
 
 `README.md` carries the same two commands and the arrangement of the tree. This
 document is the one that says what happens around them.
@@ -62,7 +69,11 @@ it:
     gh api repos/Flowfin/core/commits/main/check-runs --jq '.check_runs[].name' | sort
 
 **`build`** compiles the tree with every compiler warning an error, using the
-first command above. `.github/workflows/build.yml`.
+first command above. Before it compiles anything it compares the compiler that
+ran against the version `rust-toolchain.toml` pins, and refuses a mismatch by
+number rather than letting it arrive as a compile error.
+`.github/toolchain/toolchain.sh` holds that comparison and the fixtures that
+prove it. `.github/workflows/build.yml`.
 
 **`lint`** runs the analyser the language ships, denying its default, pedantic and
 manifest sets, with every remaining warning an error. The lints it does not refuse
@@ -195,12 +206,12 @@ line leaves the index wrong and nothing here refuses that.
 Where a check needs logic rather than one command, the logic goes in a script
 beside the workflow rather than in steps inside it, and the script carries
 fixtures proving each rule bites. `.github/lint/lint.sh`,
-`.github/format/format.sh`, `.github/doc-paths/doc-paths.sh` and
-`.github/shell-analysis/shell-analysis.sh` are the ones that exist, and each runs
-its own fixtures before it judges anything, so a rule cannot pass its fixture and
-refuse something else in the gate. The count is left out of that sentence on
-purpose: it was three until this one landed, and a number in a document drifts
-against the directory it describes. Derive it:
+`.github/format/format.sh`, `.github/toolchain/toolchain.sh`,
+`.github/doc-paths/doc-paths.sh` and `.github/shell-analysis/shell-analysis.sh`
+are the ones that exist, and each runs its own fixtures before it judges
+anything, so a rule cannot pass its fixture and refuse something else in the
+gate. The count is left out of that sentence on purpose, because a number in a
+document drifts against the directory it describes. Derive it:
 
     git ls-files -- '.github/**/*.sh'
 
