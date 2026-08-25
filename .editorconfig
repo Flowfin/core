@@ -1,0 +1,29 @@
+# The editor is told the same thing .gitattributes and rustfmt.toml are told
+# (#99).
+#
+# Three places state one rule, and that is a cost worth naming rather than hiding:
+# git decides what reaches the index, the formatter decides what it writes, and an
+# editor decides what a person types. None of the three reads either of the other
+# two, so a rule stated in one of them is undone by the other two on the first
+# save.
+#
+# Nothing checks that the three agree. That is a real gap and it is left open
+# rather than papered over: a check comparing them would need to parse three
+# formats, and what it would catch is a mistake this comment is the cheaper
+# defence against.
+
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+
+# The fixture directory is the exception here for the same reason it is the
+# exception in .gitattributes: an editor that trimmed a trailing byte or appended
+# a final newline would destroy exactly what a fixture exists to prove.
+[tests/fixtures/**]
+end_of_line = unset
+insert_final_newline = false
+trim_trailing_whitespace = false

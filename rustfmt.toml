@@ -1,0 +1,12 @@
+# The formatter is told the same thing .gitattributes tells git (#99).
+#
+# Without this the formatter uses the platform's own convention, which on Windows
+# is a carriage return and a line feed. It would then rewrite every source file
+# with a byte the tree's own rule takes straight back out, and a contributor's
+# tooling and the tree would spend every commit undoing each other. #18 records
+# that shape from the other end: a formatter reporting every tracked file as
+# failing buries a real formatting defect in noise.
+#
+# This file carries the line-ending statement and nothing else. Which rules the
+# formatter check enforces, and at what setting, is #18.
+newline_style = "Unix"
