@@ -1,0 +1,26 @@
+[package]
+# The package is not called `core`. That name is taken by the standard library's
+# own crate, and a local crate carrying it makes every path that means the
+# standard one ambiguous at the first `use`.
+name = "flowfin-core"
+version = "0.0.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "The shared core every Flowfin client uses: reaching a server, holding a session, caching, artwork, playback position and measurement."
+repository = "https://github.com/Flowfin/core"
+publish = false
+
+[lib]
+# The library target keeps the package name with the separator the language
+# requires, so a client writes `use flowfin_core::...`.
+name = "flowfin_core"
+
+[dependencies]
+# Empty on purpose. `docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md`
+# is the rule that admits an entry here, and every entry carries the clause that
+# admitted it and what would retire it on the line above it.
+
+[dev-dependencies]
+# Empty on purpose, and judged by the same record: the relaxation there is on
+# what a dependency has to be worth, not on the licence set or the four
+# behaviours.

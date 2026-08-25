@@ -1,10 +1,46 @@
 # core
 
-Every Flowfin client needs the same things and none of them should write those twice: talking to a Jellyfin server, holding a session, caching what was fetched, decoding artwork, tracking playback position, and measuring whether the speed budget was met. Eleven clients written independently drift in what they cache, in when they give up on a slow server, and in what they call fast. The speed budget is written as numbers a build can miss, and a number nothing measures is a wish, so this is where those numbers are instrumented. What shared means technically is the first maintainer decision and the plan states the options with their costs rather than choosing one. The core draws nothing: a core that knows about widgets stops being shared the first time two platforms disagree about a list.
+Every Flowfin client needs the same things and none of them should write those twice: talking to a Jellyfin server, holding a session, caching what was fetched, decoding artwork, tracking playback position, and measuring whether the speed budget was met. Eleven clients written independently drift in what they cache, in when they give up on a slow server, and in what they call fast. The speed budget is written as numbers a build can miss, and a number nothing measures is a wish, so this is where those numbers are instrumented. What shared means technically is decided: one Rust library reaching each client through a foreign function interface generated per platform, recorded with its costs in [0011](docs/decisions/0011-the-language-the-toolchain-and-the-binding-layer.md). The core draws nothing: a core that knows about widgets stops being shared the first time two platforms disagree about a list.
 
 Planning happens on the issue tracker first. Every decision that shapes
 the architecture is written down there with its reasons before the code
 that depends on it exists.
+
+## Building it
+
+A fresh clone needs a Rust toolchain and nothing else. `cargo`, the formatter and
+the analyser all arrive with it, and there is no dependency to fetch: the manifest
+declares none, and what may ever be added to it is
+[0103](docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md).
+Which version is pinned is not settled yet and is #14; until it is, a current
+stable toolchain builds this.
+
+Two commands, and they are the two the gate runs rather than variants of them:
+
+    cargo build --locked --all-targets
+    cargo test --locked
+
+`--locked` is there in both so that a build which would rewrite `Cargo.lock`
+fails instead of proceeding quietly. `--all-targets` is there so that the first
+command builds the tests as well as the library, which is what makes it a build
+of everything rather than of half of it.
+
+## How the tree is arranged
+
+One directory under `src/` per thing
+[0003](docs/decisions/0003-what-the-core-does-not-do.md) says the core owns, so
+that the boundary is visible in the tree and not only in a document:
+`src/server/`, `src/session/`, `src/cache/`, `src/artwork/`, `src/playback/` and
+`src/measurement/`.
+
+Two directories beside those six are not concerns from that record and say so in
+their own first paragraph. `src/failure/` holds the error vocabulary the six map
+onto, and `src/diagnostics/` holds the sink a client supplies.
+
+There is no behaviour in any of them yet. What each type is, and the statement
+about which thread a client may call it from, is written where a reader meets the
+type; `tests/thread_statements.rs` is what refuses a change that breaks one of
+those statements.
 
 See [NOTICE.md](NOTICE.md) for the intended-use notice.
 
