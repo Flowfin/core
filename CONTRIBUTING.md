@@ -155,10 +155,28 @@ reaches. It reaches every source file in this tree today, and it is not what the
 untouched. `bash .github/format/format.sh check` is the run the gate makes, and
 it needs no network.
 
-**A test that needs real hardware or a real server does not run here**, and the
-harness for one does not exist yet. #22 is where it lands. Until it does, a path
-that can only be exercised against a real server is untested rather than tested
-elsewhere, and a pull request touching one says so in its own body.
+**A test that needs real hardware or a real server does not run here.** It has a
+harness of its own, `tests/needs_a_real_server_or_real_hardware.rs`, declared in
+`Cargo.toml` with `test = false` so that `cargo test --locked` never invokes it
+and nothing it needs can make the headless suite conditional. Running it is
+deliberate:
+
+    cargo test --locked --test needs_a_real_server_or_real_hardware
+
+What it covers that the headless suite cannot: a genuine TLS handshake against a
+genuine certificate chain, a real server's behaviour under a real sign-in, and
+image decoding at real sizes on real hardware. A fake proves the core's reaction
+to a shape; it cannot prove that the shape is what a real server sends or that
+real hardware decodes what was handed to it.
+
+It refuses rather than skipping. An absent prerequisite prints every missing
+variable by name and exits non-zero, and so does a run that carries no case,
+because a skip exits zero and cannot be told from a run that proved something.
+
+**It carries no case today**, so every path in the list above is untested rather
+than tested elsewhere, and a pull request touching one says so in its own body.
+The first case needs behaviour that does not exist yet; #27 is where the earliest
+of it arrives.
 
 **Every test in this repository runs headless**, which is #20's rule. Every test
 runs with no display server present and as a non-elevated user. A test that needs
@@ -173,7 +191,7 @@ One concrete case, written here so nobody rediscovers it. Binding a socket to a
 machine's own interface address rather than to loopback raises a firewall consent
 dialog on Windows. The dialog is answered by an administrator, and its subject is
 the executable's full path, so answering it settles nothing for the next build
-directory. A test that needs that bind belongs in the separate harness in #22.
+directory. A test that needs that bind belongs in the separate harness above.
 
 Nothing enforces any of this today, and the `test` check arriving did not change
 that. #20's other condition is that the check runs on a runner with no display
