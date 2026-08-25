@@ -1,0 +1,72 @@
+# The tree is compiled on a pull request (#15). Nothing did until this landed:
+# the checks here read documents, workflows, shell and the dependency graph, and
+# none of them asked whether the code builds at all.
+#
+# The check-run name is exactly `build`, which is the string #26 will require on
+# main. GitHub takes that name from the job's `name:` and falls back to the job
+# id, and a ruleset matches the literal, so a rename here silently detaches the
+# requirement from the thing it was requiring. Both are `build` on purpose, so
+# neither can drift without the other.
+#
+# THE JOB HAS NO `if:` AND NO PATH FILTER, AND THAT IS THE POINT RATHER THAN AN
+# OMISSION. GitHub creates a check run for a job it started and then skipped, and
+# it carries the same name a job that did the work would, so the cheapest thing
+# that satisfies "the name appears in the list" is a workflow that compiles
+# nothing. This job runs on every pull request and on every push to main, and its
+# log carries the compiler it used.
+#
+# The command is the one README.md gives a contributor, not a variant of it. That
+# is #13's third condition, and a gate running something else is how the two come
+# apart.
+#
+# Warnings are errors from the first commit. A warning backlog is only ever paid
+# down once, and there is no backlog here yet.
+name: build
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than on `build` alone: a group string
+  # two workflows share means the run created second cancels the other, and the
+  # gate that dies that way leaves a green tick beside no verdict. This board has
+  # already paid for that once, on #178.
+  group: build-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # check out the tree that is compiled
+    env:
+      # Every warning is an error, for the whole job. Set here rather than on the
+      # step so that a second step added later cannot quietly compile without it.
+      RUSTFLAGS: -D warnings
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      # Printed rather than assumed. The toolchain is the runner image's until
+      # #14 pins one, so which compiler produced a verdict is a fact of the image
+      # on the day and belongs in the log beside the verdict.
+      - name: Say which toolchain built this run
+        run: |
+          rustc -vV
+          cargo --version
+
+      - name: Build everything
+        run: cargo build --locked --all-targets
