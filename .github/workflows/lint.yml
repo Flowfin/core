@@ -1,0 +1,58 @@
+# The analyser the language ships judges this tree on a pull request (#17).
+#
+# The check-run name is exactly `lint`, on both the workflow and the job, which is
+# one of the five strings #26 will require on main. GitHub takes that name from
+# the job's `name:` and falls back to the job id, and a ruleset matches the
+# literal, so having the two agree means a rename cannot detach the requirement
+# from the thing it was requiring without being visible in this file.
+#
+# The settings are in .github/lint/lint.sh rather than in this file, because the
+# check owes a fixture proving that a lint turned off with no reason is refused,
+# and a fixture run against a second copy of the settings proves the copy. Every
+# run executes those fixtures before it judges anything.
+#
+# The lints this gate does not refuse are in .github/lint/excluded-lints with the
+# reason for each, printed on every run beside the verdict. That register is empty
+# of entries today.
+#
+# The job carries no `if:` and no path filter, for the reason
+# .github/workflows/build.yml already gives: GitHub creates a check run for a job
+# it started and then skipped, carrying the same name a job that did the work
+# would.
+name: lint
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created second
+  # cancels the other, and the gate that dies that way leaves a green tick beside
+  # no verdict.
+  group: lint-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # check out the tree the analyser reads
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      - name: Prove the register fixtures, then analyse the tree
+        run: bash .github/lint/lint.sh check
