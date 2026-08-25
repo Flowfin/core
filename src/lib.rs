@@ -48,8 +48,6 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-use std::collections::HashMap;
-
 pub mod artwork;
 pub mod cache;
 pub mod diagnostics;
