@@ -28,8 +28,15 @@ name = "flowfin_core"
 # The harness for the paths a fake cannot prove (#22). `test = false` is what
 # keeps it out of `cargo test --locked`, which is the command the `test` check
 # runs, so nothing this target needs can make the headless suite in #20
-# conditional. It is still built by `cargo build --locked --all-targets`, so it
-# cannot rot in silence.
+# conditional.
+#
+# THIS COMMENT SAID IT WAS STILL BUILT BY `cargo build --locked --all-targets`,
+# AND IT WAS NOT. That command selects the test targets carrying `test = true`,
+# so it never reached this file, and a rename of a type this file names left the
+# whole gate green. What compiles it now is the second step of the `build` check,
+# `.github/excluded-targets/excluded-targets.sh`, which derives the set of
+# excluded targets from this manifest and builds each one without running it.
+# That is #201, and the measurement that found it is in the block below.
 #
 # `harness = false` so that an absent prerequisite and an empty case list are
 # refusals with an exit code rather than skipped test cases. The default harness
@@ -52,23 +59,21 @@ test = false
 # the run reads, and a test harness printing a pass beside a race report is two
 # verdicts where there should be one.
 #
-# NOTHING IN THE ORDINARY GATE COMPILES THIS FILE. `--all-targets` selects the
-# test targets carrying `test = true`, so neither of the two blocks here is
-# reached by `cargo build --locked --all-targets`, and a file that stops
-# compiling stays green on every check that command stands behind. Measured
-# rather than supposed, at the commit this landed on:
+# `cargo build --locked --all-targets` DOES NOT COMPILE THIS FILE EITHER. That
+# command selects the test targets carrying `test = true`, so neither of the two
+# blocks here is reached by it. Measured rather than supposed:
 #
-#     printf '\nthis is not rust and will not compile;\n' >> tests/needs_a_real_server_or_real_hardware.rs
+#     printf 'this is not rust and will not compile;' >> tests/needs_a_real_server_or_real_hardware.rs
 #     cargo build --locked --all-targets ; echo "exit=$?"
 #     exit=0
 #     cargo build --locked --test needs_a_real_server_or_real_hardware ; echo "exit=$?"
 #     exit=101
 #
-# What keeps THIS target from rotting is the leg that runs it:
-# `.github/workflows/thread-detector.yml` builds and runs it on every pull
-# request and refuses a run of it that reports no race, so a file that stopped
-# compiling here reddens that check. The target above has no such leg, and #22 is
-# where that sits.
+# Two things reach this target instead, and both run on every pull request.
+# `.github/workflows/thread-detector.yml` builds it and runs it, and refuses a run
+# of it that reports no race. The second step of the `build` check compiles it and
+# every other excluded target without running any of them, off a set derived from
+# this manifest, which is what covers the target above as well.
 #
 # Running it by hand is deliberate, and it is only meaningful under the detector:
 #     cargo test --locked --test a_race_the_detector_must_catch

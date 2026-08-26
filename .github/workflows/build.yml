@@ -21,6 +21,13 @@
 #
 # Warnings are errors from the first commit. A warning backlog is only ever paid
 # down once, and there is no backlog here yet.
+#
+# THE JOB COMPILES MORE THAN THE ONE COMMAND, WHICH IS #201 AND IS DELIBERATE.
+# The command README.md gives a contributor is unchanged and is still run
+# character for character. What follows it compiles the targets that command
+# leaves out, because `--all-targets` does not select a target declared with
+# `test = false` and a file in one that stops compiling would otherwise leave
+# every check here green.
 name: build
 
 on:
@@ -80,3 +87,22 @@ jobs:
 
       - name: Build everything
         run: cargo build --locked --all-targets
+
+      # THE STEP ABOVE IS NOT EVERYTHING, WHICH IS #201. `--all-targets` selects
+      # the test targets carrying `test = true`, so a target the manifest declares
+      # with `test = false` is not compiled by it and a file in one that stops
+      # compiling leaves this check green. The script derives that set from
+      # `Cargo.toml` rather than holding a copy of it, refuses a disagreement
+      # between the names it read and the occurrences of the setting they came
+      # from, and compiles each one without running it.
+      #
+      # It is a step in this job rather than a check of its own on purpose. What
+      # both steps answer is the same question - does the tree compile - and a
+      # second check-run name for half of that answer is one more string for #26
+      # to require and one more place for a rename to detach a requirement.
+      #
+      # `RUSTFLAGS` is set on the job above, so this step compiles with warnings
+      # as errors exactly as the one before it does. That was written into this
+      # file before there was a second step, for this case.
+      - name: Prove the fixtures, then build the targets that step leaves out
+        run: bash .github/excluded-targets/excluded-targets.sh check
