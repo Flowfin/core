@@ -100,5 +100,7 @@ const _: () = {
     any_thread::<session::Session>();
     any_thread::<measurement::Measurement<'static>>();
     any_thread::<server::QueryResult>();
+    any_thread::<server::address::BaseAddress>();
+    any_thread::<server::address::AddressNotUsable>();
     any_thread::<artwork::DecodedImage>();
 };

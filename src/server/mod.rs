@@ -9,6 +9,12 @@
 //! The mapping point 0037 requires is one place, and the type it produces lives
 //! in [`crate::failure`] rather than here, so that a value of the failure set
 //! cannot be built anywhere else.
+//!
+//! [`address`] holds the first of them. 0028's rules are applied where an address
+//! enters the core and nowhere else, and every request path is appended to the
+//! result by the one routine that module carries.
+
+pub mod address;
 
 /// An answer the core has already received and handed back.
 ///
