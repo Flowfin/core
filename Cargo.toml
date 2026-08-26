@@ -42,3 +42,38 @@ name = "needs_a_real_server_or_real_hardware"
 path = "tests/needs_a_real_server_or_real_hardware.rs"
 harness = false
 test = false
+
+# The deliberate race the detector in #117 has to report. `test = false` keeps it
+# out of `cargo test --locked`, which matters more here than for the target above:
+# the body of that file is undefined behaviour on purpose and a contributor
+# running the ordinary suite must not execute it.
+#
+# `harness = false` so the file owns its own exit. The detector's report is what
+# the run reads, and a test harness printing a pass beside a race report is two
+# verdicts where there should be one.
+#
+# NOTHING IN THE ORDINARY GATE COMPILES THIS FILE. `--all-targets` selects the
+# test targets carrying `test = true`, so neither of the two blocks here is
+# reached by `cargo build --locked --all-targets`, and a file that stops
+# compiling stays green on every check that command stands behind. Measured
+# rather than supposed, at the commit this landed on:
+#
+#     printf '\nthis is not rust and will not compile;\n' >> tests/needs_a_real_server_or_real_hardware.rs
+#     cargo build --locked --all-targets ; echo "exit=$?"
+#     exit=0
+#     cargo build --locked --test needs_a_real_server_or_real_hardware ; echo "exit=$?"
+#     exit=101
+#
+# What keeps THIS target from rotting is the leg that runs it:
+# `.github/workflows/thread-detector.yml` builds and runs it on every pull
+# request and refuses a run of it that reports no race, so a file that stopped
+# compiling here reddens that check. The target above has no such leg, and #22 is
+# where that sits.
+#
+# Running it by hand is deliberate, and it is only meaningful under the detector:
+#     cargo test --locked --test a_race_the_detector_must_catch
+[[test]]
+name = "a_race_the_detector_must_catch"
+path = "tests/a_race_the_detector_must_catch.rs"
+harness = false
+test = false

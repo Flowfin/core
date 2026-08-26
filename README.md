@@ -25,8 +25,23 @@ Two commands, and they are the two the gate runs rather than variants of them:
 
 `--locked` is there in both so that a build which would rewrite `Cargo.lock`
 fails instead of proceeding quietly. `--all-targets` is there so that the first
-command builds the tests as well as the library, which is what makes it a build
-of everything rather than of half of it.
+command builds the tests as well as the library.
+
+THIS PARAGRAPH SAID THAT MADE IT A BUILD OF EVERYTHING RATHER THAN OF HALF OF
+IT, AND IT IS NOT. `--all-targets` selects the test targets carrying
+`test = true`, so the two targets `Cargo.toml` declares with `test = false` are
+not compiled by it, and a file in either of them that stops compiling leaves this
+command green. Measured rather than reasoned about:
+
+    printf '\nthis is not rust and will not compile;\n' >> tests/needs_a_real_server_or_real_hardware.rs
+    cargo build --locked --all-targets ; echo "exit=$?"
+    exit=0
+    cargo build --locked --test needs_a_real_server_or_real_hardware ; echo "exit=$?"
+    exit=101
+
+One of the two has a leg that builds and runs it on every pull request, which is
+`.github/workflows/thread-detector.yml`. The other has none, and `Cargo.toml`
+says so beside it.
 
 ## How the tree is arranged
 
