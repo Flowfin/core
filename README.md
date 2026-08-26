@@ -64,6 +64,40 @@ about which thread a client may call it from, is written where a reader meets th
 type; `tests/thread_statements.rs` is what refuses a change that breaks one of
 those statements.
 
+## What the gate builds for, and what nothing here covers
+
+Read this before assuming a green tick covers the platform you are writing a
+client for.
+
+The library is compiled for one target triple per client platform family on every
+pull request. The set is data rather than prose, so it is read rather than quoted:
+
+    grep -v '^#' .github/targets/targets | grep .
+
+Each line carries the reason that platform is there, and a line carrying a triple
+and no reason is refused by the check itself. Why the set is shaped that way, and
+why the whole leg reports under one check-run name instead of one per platform, is
+[0113](docs/decisions/0113-the-target-triples-the-gate-compiles-for.md).
+
+**What that leg proves is that the core compiles, and nothing else.** Not one line
+of the suite runs on any of those triples. The suite runs on the runner's own host
+and nowhere else, which is
+[0011](docs/decisions/0011-the-language-the-toolchain-and-the-binding-layer.md)'s
+sentence that the core's own tests test the library rather than the binding.
+
+**Four things no run here touches, named rather than left as silence.** A platform
+outside that register, including a television running webOS or Tizen and a desktop
+on Windows on ARM. The second architecture of a family that has one entry, so
+macOS on Intel, Linux on ARM and 32-bit Windows are not compiled. The binding
+layer, which does not exist in this tree, so a green run says nothing about the
+interface a client actually calls. And the optimised build, since each triple is
+compiled once, unoptimised.
+
+**One more, from a different leg.** The thread detector reaches neither the
+Windows nor the Android target, so a race that appears only on one of those is
+outside every run this repository makes. Compiling for both here is not the
+detector reaching either.
+
 ## What this core sends, and to whom
 
 Nothing, other than to the server an operator configured. There is no telemetry,

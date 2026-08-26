@@ -85,6 +85,22 @@ reports an empty set and reads exactly like a manifest with nothing to compile.
 `.github/excluded-targets/excluded-targets.sh` holds the rules and the fixtures
 that prove them.
 
+It is also a build for one triple, which is the runner's, and that is what
+`targets` is beside it rather than inside it.
+
+**`targets`** compiles the library once for every target triple a client links it
+on, which is 0113's set. It is a compile and never a run: nothing in the suite
+executes on any of those triples, and the check prints that bound beside its own
+verdict on every run. The set is data in `.github/targets/targets`, one triple per
+line with the reason it is there, so adding a platform is editing a register and
+the argument for the platform sits on the same line as the platform. An entry
+carrying a triple and no reason is itself refused, so is a triple this compiler
+does not know, and so is a register naming nothing, because an empty register
+compiles nothing, exits zero and prints a page indistinguishable from a run that
+compiled every platform. The derived set is counted against the raw lines it came
+from for the same reason the manifest reader above is.
+`.github/targets/targets.sh` holds the rules and the fixtures that prove them.
+
 **`test`** runs the suite with the second command above, in the environment #20
 requires and described below, and refuses a run that collected nothing. A harness that ran no test exits zero and prints a page that
 reads like a clean run, so the count is read out of the run, printed, and refused
