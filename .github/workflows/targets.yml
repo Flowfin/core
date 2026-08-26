@@ -1,0 +1,93 @@
+# The library is compiled for every target triple a client links it on (#113).
+#
+# WHAT THIS ADDS THAT `build` DOES NOT. `build` compiles the tree once, for the
+# runner's own triple, and 0011 says the cost of this means is one build leg per
+# target triple. A defect that only appears on another platform leaves that check
+# green. Measured on a real shape rather than supposed, by writing one line into
+# `src/lib.rs` and running the three commands:
+#
+#     const _: () = assert!(size_of::<usize>() == 8);
+#
+#     cargo build --locked --all-targets ; echo "exit=$?"
+#     exit=0
+#     cargo test --locked ; echo "exit=$?"
+#     exit=0
+#     bash .github/targets/targets.sh check ; echo "exit=$?"
+#     ::error::the library did not compile for armv7-linux-androideabi.
+#     exit=1
+#
+# So the two commands a contributor runs both pass a pointer-width assumption
+# that stops an Android build, and this leg is what says so.
+#
+# The check-run name is exactly `targets`, on both the workflow and the job. It is
+# a name #26 may require, and GitHub takes it from the job's `name:` and falls
+# back to the job id, so a ruleset matches the literal and a rename here would
+# silently detach the requirement. Both are `targets` on purpose.
+#
+# ONE NAME RATHER THAN ONE PER TRIPLE, WHICH IS 0113's ANSWER TO THE NAMING
+# QUESTION #113 ASKS. A matrix would produce `targets (aarch64-linux-android)` and
+# so on, and every platform added or removed would then be a ruleset edit that
+# nobody making the register change has any reason to think of. What catches a
+# triple that vanished instead is the run itself: the set is derived from
+# `.github/targets/targets`, the derived count is compared against the raw lines
+# it came from, and an empty register is refused rather than passed. That guard is
+# inside the check, where the person editing the register meets it.
+#
+# The job carries no `if:` and no path filter, for the reason
+# `.github/workflows/build.yml` already gives: GitHub creates a check run for a
+# job it started and then skipped, carrying the same name a job that did the work
+# would.
+#
+# No toolchain is installed here. `rust-toolchain.toml` pins it and the toolchain
+# manager on this runner reads that file itself (#14), so this file carries no
+# version string. The standard library for each triple is fetched by the check,
+# because which triples exist is the register's answer rather than this file's.
+name: targets
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: targets-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  targets:
+    name: targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # check out the tree that is compiled
+    env:
+      # Every warning is an error, for the whole job, exactly as the `build` job
+      # sets it. A warning that only appears on one platform is one of the things
+      # this leg exists to find, and it cannot find it if warnings pass.
+      RUSTFLAGS: -D warnings
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      # Printed rather than assumed, and compared as well as printed (#14). The
+      # comparison is on the log of this job rather than only on the log of
+      # `build`, because a verdict about seven platforms should be readable
+      # against a compiler version without opening another job.
+      - name: Say which toolchain compiled this run, and refuse another one
+        run: bash .github/toolchain/toolchain.sh check
+
+      - name: Prove the fixtures, then compile for every triple the register names
+        run: bash .github/targets/targets.sh check
