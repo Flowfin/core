@@ -1,0 +1,101 @@
+# The suite runs a second time under a thread detector, and a broken concurrency
+# claim reddens the run (#117).
+#
+# The check-run name is exactly `thread-detector`, on both the workflow and the
+# job, which is one of the strings #26 may require on main. GitHub takes that name
+# from the job's `name:` and falls back to the job id, and a ruleset matches the
+# literal, so having the two agree means a rename cannot detach a requirement from
+# the thing it was requiring without being visible in this file.
+#
+# The logic is in .github/thread-detector/thread-detector.sh rather than in this
+# file, because the check owes fixtures proving each of its rules bites, and a
+# fixture run against a second copy of the logic proves the copy. Every run
+# executes those fixtures before it judges anything.
+#
+# THIS RUNS ON A PULL REQUEST RATHER THAN ON A SCHEDULE, which is one of the two
+# shapes #117 allows and the one that needs no named reader. A scheduled red that
+# nobody is named for is a red that stays. The cost is what decides whether it can
+# stay here, the script publishes that cost on every run, and moving this leg onto
+# a schedule is a change to this file with the measured number as its argument.
+#
+# THE COMPILER HERE IS NOT THE ONE rust-toolchain.toml PINS, and that file says so
+# in its own comments. The detector is a flag on a nightly compiler, a second
+# channel written into the pin would install a nightly on every contributor's
+# machine for a leg none of their commands run, and this leg names its own
+# toolchain in the script beside it. Nothing here carries a version string: the
+# script prints the exact build that judged the run, so a verdict is read against
+# a version rather than against a promise about one.
+#
+# `.github/toolchain/toolchain.sh` is deliberately not run here. It compares the
+# compiler that ran against the pin, and the compiler that runs this leg is
+# meant to be a different one, so the comparison would either be about a toolchain
+# this job does not use or would refuse the job for doing what it exists to do.
+#
+# THE RUNNER IS A LINUX ONE AND THAT IS A CONDITION RATHER THAN A DEFAULT. The
+# readings on #117 name Windows and Android as targets whose specifications carry
+# no thread sanitizer, so this leg on a Windows runner would report nothing and
+# read exactly like a clean tree. The script names the target it runs against and
+# prints what that leaves uncovered on every run.
+#
+# The job carries no `if:` and no path filter, for the reason
+# .github/workflows/build.yml already gives: GitHub creates a check run for a job
+# it started and then skipped, carrying the same name a job that did the work
+# would.
+#
+# The suite here does not run inside the network namespace #20 requires. That
+# environment is created by `.github/headless/enter.sh` for the `test` check, and
+# entering it here would put the detector's own runtime setup inside a sandbox it
+# was not built for. What that costs is written on the pull request that landed
+# this file rather than left to be discovered: this leg is a second reading of the
+# same suite under a different compiler, `test` is the run that judges the
+# environment, and a test needing a display or an elevated user is refused there
+# and on every commit.
+
+name: thread-detector
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created second
+  # cancels the other, and the gate that dies that way leaves a green tick beside
+  # no verdict.
+  group: thread-detector-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  thread-detector:
+    name: thread-detector
+    runs-on: ubuntu-latest
+    # The standard library is rebuilt with the instrumentation on the first leg,
+    # and both legs then run under it. This is the slowest leg in this gate by
+    # construction, and the script prints what it actually cost on every run.
+    timeout-minutes: 45
+    permissions:
+      contents: read # check out the tree the suite runs against
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      # The source of the standard library is a component rather than a download,
+      # because the detector needs that library rebuilt with the instrumentation.
+      # A library compiled without it is a body of synchronisation the detector
+      # cannot see, and what it reports then is that library's own locking rather
+      # than a defect in this tree.
+      - name: Install the toolchain this leg runs on
+        run: rustup toolchain install nightly --profile minimal --component rust-src
+
+      - name: Prove the fixtures, then run both legs under the detector
+        run: bash .github/thread-detector/thread-detector.sh check

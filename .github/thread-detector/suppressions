@@ -1,0 +1,24 @@
+# Findings the thread detector reports that this gate does not refuse, one per
+# line, as the detector's own suppression expression followed by the reason it is
+# not refused. A line carrying an expression and no reason is refused by
+# .github/thread-detector/thread-detector.sh, because a bare suppression is a
+# finding somebody turned off and nobody argued with.
+#
+# Every run prints this file with its reasons, so a suppression is read at the
+# moment somebody reads a verdict rather than found later by somebody auditing.
+#
+# A line here is a debt rather than a dispensation. Each reason says what would
+# retire it.
+#
+# The expression is written the way the detector reads one, which is a kind
+# followed by a colon and a pattern, as in `race:some::function`. The run derives
+# the detector's own suppression file from the entries here, so this register is
+# the only place an expression is written and there is no second file to keep in
+# step with it.
+#
+# THIS REGISTER IS EMPTY OF ENTRIES TODAY, AND THAT IS A FACT ABOUT THE TREE
+# RATHER THAN ABOUT THE RULE. The suite this leg runs holds no code that takes a
+# lock or shares a value across threads yet, so nothing has had a chance to need
+# an entry. The refusal above is proven by the fixtures in
+# .github/thread-detector/thread-detector.sh rather than by anything in this
+# file, which is the only way a rule with no live subject can be proven at all.
