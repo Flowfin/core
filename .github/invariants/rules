@@ -104,3 +104,11 @@ grounds: docs/decisions/0003-what-the-core-does-not-do.md
 prevents: A type of this core carrying its own wording. 0003 places the wording of anything a person reads outside, error text included, and this trait is the language's own name for a value written out for a person to read. The sibling trait for a programmer is untouched, which is the one-character difference the near miss beside this rule holds.
 fixture: impl core::fmt::Display for SecretStoreUnavailable {
 clean: impl core::fmt::Debug for Measurement<'_> {
+
+id: no-reporting-dependency
+pattern: ^name = "(sentry|opentelemetry|opentelemetry_sdk|tracing-opentelemetry|datadog|dogstatsd|statsd|cadence|prometheus|metrics-exporter|bugsnag|rollbar|honeycomb|libhoney|segment-analytics|amplitude|mixpanel|posthog|google-analytics|appcenter|crashlytics|breakpad|minidump|crash-handler|sadness-generator)([-_][a-z0-9_-]*)?"
+paths: Cargo.lock
+grounds: docs/decisions/0068-the-data-locality-position.md
+prevents: A telemetry, analytics or crash-reporting package arriving in the graph, which 0068 rules out and which is normally added as a dependency rather than as a decision, so the decision never gets made. The subject is the committed lockfile, so a reporter pulled in by something else is judged the same way one written by hand is. It is a name list rather than a purpose test: a reporter published under a name nobody has written here is not refused.
+fixture: name = "sentry"
+clean: name = "metrics"

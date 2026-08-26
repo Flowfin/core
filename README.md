@@ -60,6 +60,47 @@ about which thread a client may call it from, is written where a reader meets th
 type; `tests/thread_statements.rs` is what refuses a change that breaks one of
 those statements.
 
+## What this core sends, and to whom
+
+Nothing, other than to the server an operator configured. There is no telemetry,
+no analytics and no crash reporting here: no data about a person, a device or a
+failure leaves for anybody but that server, and there is no setting that turns
+such a route on, because there is no route to turn on.
+
+That is the position in
+[0068](docs/decisions/0068-the-data-locality-position.md) and it is checked
+rather than promised. The `invariants` check refuses a telemetry, analytics or
+crash-reporting package in the resolved dependency graph, which is the way one
+of them usually arrives - as a dependency rather than as a decision, so that the
+decision never gets made. The refused names are data rather than code:
+
+    git grep -A1 '^id: no-reporting-dependency' -- .github/invariants/rules
+
+**Two bounds on that, stated rather than left to be discovered.** The check is a
+name list and not a purpose test, so a reporter published under a name nobody has
+written there is not refused by it. And it reads the dependency graph, so it
+cannot see a few lines written directly in this tree that kept something and sent
+it; what stands against that is `no-network-outside-the-transport` in the same
+register, which refuses a socket opened anywhere in `src/` outside the one
+transport, and the review.
+
+### Sending a crash report by hand
+
+The position is that nothing is sent automatically, not that nothing may ever be
+sent. If you want me to see a crash, open an issue with it. Strip it first: the
+server address, the account name, the token, the device identity, and any title
+or identifier out of a library are the fields
+[0068](docs/decisions/0068-the-data-locality-position.md) lists as personal, and
+an issue here is public from the moment it is submitted.
+
+Where the crash is a security problem, [SECURITY.md](SECURITY.md) is the route
+instead, and it says plainly whether that route is open today.
+
+**There is no private destination for an ordinary crash report.** Which address
+this repository publishes, for a vulnerability or for anything else, is entry 5
+of #1 and is undecided, so a public issue with the fields above removed is the
+whole of the by-hand route today.
+
 See [NOTICE.md](NOTICE.md) for the intended-use notice.
 
 See [SECURITY.md](SECURITY.md) for how to report a security problem, what

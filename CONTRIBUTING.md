@@ -105,15 +105,19 @@ carries a line that violates it and a line that nearly does, and every run judge
 both against the whole rule set before it judges the tree, so a rule proves it
 bites and proves it bites alone. `.github/invariants/invariants.sh` is the loader.
 
-Three of the rules are #77's and are grounded in the boundary record, and what
-they are is worth reading before treating a green run as that boundary held. One
-refuses a windowing, drawing or user-interface package in the committed lockfile,
-which is the resolved dependency graph rather than the manifest. One refuses the
-words a view layer thinks in. One refuses a type of this core carrying its own
-wording for a person. Each holds a list of what somebody has named, so a crossing
-written in a name nobody listed passes all three, and the boundary record's own
-sentence that the forbidden side cannot be expressed as data is unchanged by them.
-The run prints that bound beside its verdict.
+Four of the rules read a list of names somebody wrote down, and what they are is
+worth reading before treating a green run as the property held. Three are #77's,
+grounded in the boundary record: one refuses a windowing, drawing or
+user-interface package in the committed lockfile, which is the resolved
+dependency graph rather than the manifest; one refuses the words a view layer
+thinks in; one refuses a type of this core carrying its own wording for a person.
+The fourth is #73's, grounded in the data-locality record, and refuses a
+telemetry, analytics or crash-reporting package in the same lockfile.
+
+Each of the four holds what somebody has named rather than a purpose test, so a
+crossing written in a name nobody listed passes all of them. The boundary record's
+own sentence that the forbidden side cannot be expressed as data is unchanged by
+the three, and the run prints that bound beside its verdict.
 
 **`DCO sign-off`** refuses a commit whose trailer does not match its author.
 
