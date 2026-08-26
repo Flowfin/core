@@ -33,20 +33,49 @@ than describe a private channel that is not there.
 ## What this repository is
 
 Read the tree before deciding what to look for. The description calls this the
-shared core every Flowfin client uses. What it holds is decision records under
-`docs/decisions` and the index that lists them, GitHub Actions workflows and the
-shell scripts those workflows run, a gate-parity document, this file, the
-licence, a DCO, a notice, a README, two issue templates with the config beside
-them, a pull-request template, and a `.gitattributes` that fixes the line
-ending. How many paths that comes to moves whenever any of it lands, so take
-the number from the tree rather than from this paragraph:
+shared core every Flowfin client uses. What it holds is a Rust crate under `src/`
+and its suite under `tests/`, decision records under `docs/decisions` and the
+index that lists them, GitHub Actions workflows and the shell scripts those
+workflows run, a gate-parity document, this file, the licence, a DCO, a notice, a
+README, two issue templates with the config beside them, a pull-request template,
+a manifest, a lockfile, a toolchain pin, and a `.gitattributes` that fixes the
+line ending.
+
+THIS PARAGRAPH NAMED NEITHER THE CRATE NOR THE SUITE, AND THE ONE AFTER IT SAID
+THE CORE WAS NOT WRITTEN. Both were true when they were written and had stopped
+being true. A reporter who believed either would not have opened the code,
+because the file told them there was none. Read at
+`5d67a074202de4d8069eee55d44812bf7fa9e201`:
+
+    git rev-parse origin/main
+    5d67a074202de4d8069eee55d44812bf7fa9e201
+    git ls-tree -r --name-only origin/main | grep -c '^src/'
+    10
+    git ls-tree -r --name-only origin/main | grep -c '^tests/'
+    6
+    gh api repos/Flowfin/core --jq .language
+    Rust
+
+The inventory above is a list, and a list drifts, which is what happened. The
+count beside it always said to derive it and still does:
 
     git ls-tree -r --name-only origin/main | wc -l
 
-The language field on this repository is empty, there are no releases and no
-tags, and there is one branch. The core is not written yet. What exists is the
-argument it will be built from, written before the code so that the boundary is
-not whatever the code turned out to do.
+There are no releases and no tags. How many branches there are moves with every
+change in flight, so it is derived here rather than counted:
+
+    gh api repos/Flowfin/core/releases --jq length
+    0
+    gh api repos/Flowfin/core/tags --jq length
+    0
+    gh api repos/Flowfin/core/branches --jq length
+
+WHAT IS ABSENT IS BEHAVIOUR RATHER THAN CODE, and that distinction is the one a
+reporter needs. The crate compiles, a suite runs against it, and what the types
+in it hold today is a name, a statement about which thread a caller may use it
+from, and the measurement facility. There is no request, no cache, no decode and
+no sign-in. `README.md` says the same thing in its own words, and the section
+below on what is not a vulnerability here says what follows from it.
 
 ## Why a defect here is wider than one repository
 
@@ -127,11 +156,26 @@ belonged to when the paragraph was written.
 
 ## What is not a vulnerability here
 
-The absence of an implementation. The core has no parser, no socket, no
-allocation and no byte written to a disk, because none of it is written, so a
-report that the core fails to validate its input has measured the state of the
-tree rather than found a defect in it. Code that has not been written is a plan,
-not a hole. The scripts are the exception, and they are in scope above.
+The absence of an implementation. The core opens no socket, writes no byte to a
+disk and parses nothing that came off a network, so a report that it fails to
+validate its input has measured the state of the tree rather than found a defect
+in it. Behaviour that has not been written is a plan, not a hole. The scripts are
+the exception, and they are in scope above.
+
+THIS PARAGRAPH SAID THAT WAS SO BECAUSE NONE OF IT WAS WRITTEN, AND THAT IS NO
+LONGER THE WHOLE REASON. Some of the crate is written. What keeps a socket and a
+file out of it now is a refusal as well as an absence: the `invariants` check
+refuses a network call anywhere under `src/` outside the one transport, and a
+filesystem call anywhere under `src/` at all. Neither is a claim in this file:
+
+    git grep -n '^id: no-network-outside-the-transport' -- .github/invariants/rules
+    git grep -n '^id: no-filesystem-access' -- .github/invariants/rules
+    git grep -c 'std::net|TcpStream|std::fs' -- src/ ; echo "exit=$?"
+    exit=1
+
+The first two return the rules, the third selects nothing and says so with its
+exit code. A rule that stopped biting is itself a report, and it is a better one
+than the absence it replaced.
 
 Disagreeing with a decision. Every record states the alternatives it rejected
 and what each would have cost. Preferring one of them is a good issue and is not
