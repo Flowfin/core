@@ -109,6 +109,7 @@ jobs:
           jq --version
           jq -r '[ .runs[]? | .tool.driver | "\(.name) \(.semanticVersion // .version // "(no version)")" ] | .[]' \
             "${SARIF_DIR}/rust.sarif"
+          jq -r '[ .runs[]? | (.tool.driver.rules // []), (.tool.extensions[]?.rules // []) ] | flatten | .[].id'             "${SARIF_DIR}/rust.sarif"
 
       - name: Prove the fixtures, then judge what the analysis found
         run: bash .github/codeql/codeql.sh check "${SARIF_DIR}/rust.sarif"
