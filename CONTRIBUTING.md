@@ -149,6 +149,22 @@ gate still refuses.
 **`Reject Trojan Source Unicode`** refuses bidirectional and invisible Unicode
 control characters in tracked text.
 
+**`thread-detector`** runs the suite a second time under a thread detector and
+refuses a report against it, which is a claim about a schedule rather than about
+a shape and is the one that `tests/thread_statements.rs` cannot make. It then
+runs `tests/a_race_the_detector_must_catch.rs`, which holds a data race written
+on purpose, and refuses a run of that target which reports nothing: a detector
+that was never switched on reports nothing and prints a page indistinguishable
+from a clean tree. The verdict is read out of the detector's report and never out
+of an exit code. A finding it does not refuse is written in
+`.github/thread-detector/suppressions` with the reason, an entry there carrying no
+reason is itself refused, and the run derives the detector's own suppression file
+from that register so there is no second file to keep in step.
+`.github/thread-detector/thread-detector.sh` holds the rules and the fixtures that
+prove them. It is the one leg whose compiler is not the pinned one, for the reason
+`rust-toolchain.toml` gives, and it names its own toolchain and target and prints
+both on every run.
+
 **`dependencies`** restores in locked mode, so a restore that would rewrite
 `Cargo.lock` fails rather than proceeding quietly, and scans the graph the
 committed lockfile declares against the advisory database. It reads back how many
@@ -220,6 +236,17 @@ than tested elsewhere, and a pull request touching one says so in its own body.
 The first case needs behaviour that does not exist yet; #27 is where the earliest
 of it arrives.
 
+**A second target sits outside `cargo test --locked` for a different reason.**
+`tests/a_race_the_detector_must_catch.rs` holds a data race written on purpose,
+so that the `thread-detector` leg has something it can be seen reporting. What
+keeps it out of the ordinary command is not a prerequisite it needs but what its
+body is: a contributor running the suite must not execute undefined behaviour.
+The leg that reads it builds and runs it on every pull request and refuses a run
+of it that reports no race, so unlike the harness above it cannot rot unnoticed.
+It is the one place in this repository that writes unsound code, `src/lib.rs`
+forbids unsafe code and this file is outside it, and the file says both at the
+top of itself.
+
 **Every test in this repository runs headless**, which is #20's rule. Every test
 runs with no display server present and as a non-elevated user. A test that needs
 either is a defect in the test rather than a step to document.
@@ -286,15 +313,18 @@ line leaves the index wrong and nothing here refuses that.
 
 Where a check needs logic rather than one command, the logic goes in a script
 beside the workflow rather than in steps inside it, and the script carries
-fixtures proving each rule bites. `.github/lint/lint.sh`,
-`.github/format/format.sh`, `.github/test/test.sh`,
-`.github/invariants/invariants.sh`, `.github/headless/headless.sh`,
-`.github/toolchain/toolchain.sh`, `.github/doc-paths/doc-paths.sh` and
-`.github/shell-analysis/shell-analysis.sh` are the ones that exist, and each runs its own fixtures before it judges
-anything, so a rule cannot pass its fixture and refuse something else in the
-gate. The count is left out of that sentence on purpose, because a number in a
-document drifts against the directory it describes. Derive it:
+fixtures proving each rule bites. Each of those scripts runs its own fixtures
+before it judges anything, so a rule cannot pass its fixture and refuse something
+else in the gate.
 
+WHICH SCRIPTS THOSE ARE IS DERIVED RATHER THAN LISTED, AND THIS PARAGRAPH USED TO
+LIST THEM. The list named eight, and the tree it described carried twelve at
+`a22c8bd027e47eba9a732a1ad51c81589cb534b1`, so a reader taking it for the set was
+four short. The sentence beside it already told them to derive the count, and now
+the set goes the same way:
+
+    git ls-tree -r --name-only origin/main -- .github | grep '\.sh$' | wc -l
+    12
     git ls-files -- '.github/**/*.sh'
 
 A rule that is turned off is turned off in a register beside the script, one entry
