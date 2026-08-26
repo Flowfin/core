@@ -39,9 +39,13 @@ command green. Measured rather than reasoned about:
     cargo build --locked --test needs_a_real_server_or_real_hardware ; echo "exit=$?"
     exit=101
 
-One of the two has a leg that builds and runs it on every pull request, which is
-`.github/workflows/thread-detector.yml`. The other has none, and `Cargo.toml`
-says so beside it.
+Both are compiled anyway, by the second step of the `build` check, which derives
+the excluded set from `Cargo.toml` and builds each one without running it. One of
+the two is also run, by `.github/workflows/thread-detector.yml`. So the paragraph
+above is about what that command reaches rather than about what is left uncovered:
+
+    bash .github/excluded-targets/excluded-targets.sh check | tail -1
+    Every target the ordinary command leaves out compiles.
 
 ## How the tree is arranged
 

@@ -75,6 +75,16 @@ number rather than letting it arrive as a compile error.
 `.github/toolchain/toolchain.sh` holds that comparison and the fixtures that
 prove it. `.github/workflows/build.yml`.
 
+That command is not a build of everything, so the check does not stop there.
+`--all-targets` selects the test targets carrying `test = true`, and a second
+step compiles the ones this manifest declares with `test = false`, without
+running any of them. The set is derived from `Cargo.toml` rather than written
+down, and a disagreement between the names read and the occurrences of the
+setting they came from is refused, because a block reader that stopped matching
+reports an empty set and reads exactly like a manifest with nothing to compile.
+`.github/excluded-targets/excluded-targets.sh` holds the rules and the fixtures
+that prove them.
+
 **`test`** runs the suite with the second command above, in the environment #20
 requires and described below, and refuses a run that collected nothing. A harness that ran no test exits zero and prints a page that
 reads like a clean run, so the count is read out of the run, printed, and refused
