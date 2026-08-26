@@ -20,7 +20,7 @@
 
 use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
-use flowfin_core::cache::ByteStore;
+use flowfin_core::cache::{ByteStore, EntryKey};
 use flowfin_core::clock::Clocks;
 use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
 use flowfin_core::measurement::{Measurement, MeasurementSink};
@@ -73,6 +73,11 @@ fn a_decoded_image_is_safe_from_any_thread() {
 #[test]
 fn the_byte_store_a_client_supplies_is_safe_from_any_thread() {
     const _: () = any_thread::<dyn ByteStore>();
+}
+
+#[test]
+fn a_cache_entry_key_is_safe_from_any_thread() {
+    const _: () = any_thread::<EntryKey>();
 }
 
 #[test]
