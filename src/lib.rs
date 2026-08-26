@@ -99,6 +99,7 @@ const _: () = {
     any_thread::<Core>();
     any_thread::<session::Session>();
     any_thread::<measurement::Measurement<'static>>();
+    any_thread::<diagnostics::Diagnostics<'static>>();
     any_thread::<server::QueryResult>();
     any_thread::<server::address::BaseAddress>();
     any_thread::<server::address::AddressNotUsable>();
