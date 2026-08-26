@@ -21,7 +21,9 @@
 use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
 use flowfin_core::cache::ByteStore;
+use flowfin_core::clock::Clocks;
 use flowfin_core::diagnostics::DiagnosticsSink;
+use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
 use flowfin_core::session::{SecretStore, Session};
 
@@ -65,4 +67,19 @@ fn the_secret_store_a_client_supplies_is_safe_from_any_thread() {
 #[test]
 fn the_diagnostics_sink_a_client_supplies_is_safe_from_any_thread() {
     const _: () = any_thread::<dyn DiagnosticsSink>();
+}
+
+#[test]
+fn the_clock_source_a_client_supplies_is_safe_from_any_thread() {
+    const _: () = any_thread::<dyn Clocks>();
+}
+
+#[test]
+fn the_measurement_sink_a_client_supplies_is_safe_from_any_thread() {
+    const _: () = any_thread::<dyn MeasurementSink>();
+}
+
+#[test]
+fn the_measurement_facility_is_safe_from_any_thread() {
+    const _: () = any_thread::<Measurement<'static>>();
 }

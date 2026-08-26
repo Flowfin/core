@@ -17,20 +17,34 @@
 //! | [`playback`]      | tracking playback position                    |
 //! | [`measurement`]   | producing measurements                        |
 //!
-//! Two more modules are here and neither is one of the six. [`failure`] holds
+//! Three more modules are here and none of them is one of the six. [`failure`] holds
 //! the error vocabulary the other six map onto, which 0003 places inside
 //! "reaching a server" and which every one of them uses; splitting it out is a
 //! layout choice rather than a boundary claim. [`diagnostics`] holds the sink a
 //! client supplies, because
 //! `docs/decisions/0009-the-concurrency-model.md` states a thread rule for that
-//! sink and the rule has to be attached to a name a reader meets.
+//! sink and the rule has to be attached to a name a reader meets. [`clock`] holds
+//! the one source all three clocks reach the core through, for the same reason:
+//! `docs/decisions/0102-the-clocks-every-deadline-is-measured-against.md` states
+//! a rule per clock, and a reading taken anywhere else would be a deadline no
+//! test can move.
 //!
 //! # What is deliberately not here
 //!
-//! Behaviour. Every type below is a name with the statement 0009 makes about its
-//! kind, and nothing else. The interfaces, the fields and what any of it does
-//! belong to the issues named beside each one, and a layout that decided them
-//! would be deciding them in the file that was supposed to hold them.
+//! THIS SECTION SAID THAT EVERY TYPE BELOW IS A NAME WITH THE STATEMENT 0009
+//! MAKES ABOUT ITS KIND AND NOTHING ELSE, AND THAT HAS STOPPED BEING TRUE. It
+//! was written when the tree held no behaviour at all. `session` carries the
+//! interface #33 defines and `measurement` carries the span facility #61 does,
+//! and both were landed by the issue that owned them rather than by a layout
+//! deciding anything. It was found while adding the second of the two, by
+//! reading this file to place a module rather than by anything reporting it, and
+//! nothing here reads it.
+//!
+//! What the sentence was for still holds where nothing has landed yet. A type
+//! below whose issue has not been worked is a name with 0009's statement on it
+//! and nothing else, and what it does belongs to the issue named beside it: a
+//! layout that decided them would be deciding them in the file that was supposed
+//! to hold them.
 //!
 //! # The thread statements are checked rather than written
 //!
@@ -41,15 +55,20 @@
 //! `Send + Sync` here, and a field that is not thread-safe stops the crate
 //! compiling rather than being caught in review.
 //!
-//! What that bound is worth today is stated rather than implied: the types below
-//! hold nothing, so no assertion can fail on the bytes in this tree. It bites on
-//! the first field, which is the change these assertions exist for.
+//! What that bound is worth is stated rather than implied, and it has moved. THIS
+//! PARAGRAPH SAID THE TYPES BELOW HOLD NOTHING, SO NO ASSERTION COULD FAIL ON THE
+//! BYTES IN THIS TREE. One of them holds something now: `measurement::Measurement`
+//! carries a reference to a client's clock source, a reference to a client's
+//! subscriber and a counter, and the assertion on it is what refuses a facility
+//! that stopped being safe from any thread. The other four still hold nothing,
+//! and for those the sentence is unchanged.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
 pub mod artwork;
 pub mod cache;
+pub mod clock;
 pub mod diagnostics;
 pub mod failure;
 pub mod measurement;
@@ -79,6 +98,7 @@ const fn any_thread<T: Send + Sync>() {}
 const _: () = {
     any_thread::<Core>();
     any_thread::<session::Session>();
+    any_thread::<measurement::Measurement<'static>>();
     any_thread::<server::QueryResult>();
     any_thread::<artwork::DecodedImage>();
 };
