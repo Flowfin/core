@@ -1,0 +1,31 @@
+# The target triples this gate compiles the library for, one per line, as the
+# triple followed by the reason it is here. A line carrying a triple and no
+# reason is refused by .github/targets/targets.sh, because a triple somebody
+# added and nobody argued for is a leg that runs forever without anybody knowing
+# what it is protecting.
+#
+# Every run prints this file with its reasons, so the set is read at the moment
+# somebody reads a verdict rather than found later by somebody auditing.
+#
+# THE SET IS A SET OF CLIENT PLATFORMS AND NOT A SET OF RUNNERS. 0113 decides it
+# and says why the two are different: a runner is where a compiler happens to be
+# available, and a triple is what a client links. Adding a line here is a change
+# to that record's set, so the reason says which client platform it is for.
+#
+# WHAT A LINE BUYS IS A COMPILE AND NEVER A RUN. Nothing here executes on any of
+# these targets, and 0113 says so at length rather than leaving a green tick to
+# be read as one.
+
+aarch64-linux-android Android phones and tablets, and the Android-based televisions and set-top boxes that carry the same ABI. It is the widest single entry here.
+
+armv7-linux-androideabi The second ABI the Android platform builds for, and the only 32-bit entry in this set. Every other line is 64-bit, so a pointer-width or alignment assumption written into the core compiles cleanly on all of them and is caught here or nowhere.
+
+aarch64-apple-ios iOS and iPadOS, where the core is statically linked into a signed application binary.
+
+aarch64-apple-tvos Apple's television platform. It is the entry a reader will question, and it is here because the alternative is a fourth client family whose first compile happens in somebody else's repository.
+
+aarch64-apple-darwin The macOS desktop client on Apple silicon.
+
+x86_64-pc-windows-msvc The Windows desktop client. It is the one entry whose toolchain differs from every other in this set, so a construct the other five accept can still stop here.
+
+x86_64-unknown-linux-gnu The Linux desktop client, and the host the suite itself runs on.
