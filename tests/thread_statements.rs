@@ -25,6 +25,7 @@ use flowfin_core::clock::Clocks;
 use flowfin_core::diagnostics::DiagnosticsSink;
 use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
+use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::session::{SecretStore, Session};
 
 /// Compiles only for a type that is safe to use from any thread.
@@ -47,6 +48,16 @@ fn a_session_handle_is_safe_from_any_thread() {
 #[test]
 fn a_query_result_is_safe_from_any_thread() {
     const _: () = any_thread::<QueryResult>();
+}
+
+#[test]
+fn a_base_address_is_safe_from_any_thread() {
+    const _: () = any_thread::<BaseAddress>();
+}
+
+#[test]
+fn an_unusable_address_is_safe_from_any_thread() {
+    const _: () = any_thread::<AddressNotUsable>();
 }
 
 #[test]
