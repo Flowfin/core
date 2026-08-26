@@ -1,0 +1,87 @@
+# The graph the build resolves is the graph that was committed, and it carries no
+# known advisory (#19).
+#
+# The check-run name is exactly `dependencies`, on both the workflow and the job,
+# which is one of the strings #26 will require on main. GitHub takes that name
+# from the job's `name:` and falls back to the job id, and a ruleset matches the
+# literal, so having the two agree means a rename cannot detach the requirement
+# from the thing it was requiring without being visible in this file.
+#
+# THIS IS NOT THE DEPENDENCY REVIEW BESIDE IT. `.github/workflows/dependency-review.yml`
+# reads the diff of the graph against an advisory database, which is a question
+# about what a pull request adds. This one asks whether the graph the build
+# resolves is the graph the tree carries, and then scans the whole of it rather
+# than the diff. Both names appear in the check list and neither replaces the
+# other.
+#
+# The logic is in .github/dependencies/dependencies.sh rather than in this file,
+# because every rule owes a fixture proving it bites and a fixture run against a
+# second copy of the logic proves the copy. Every run executes those fixtures
+# before it judges anything.
+#
+# The job carries no `if:` and no path filter, for the reason
+# .github/workflows/build.yml already gives: GitHub creates a check run for a job
+# it started and then skipped, and it carries the same name a job that did the
+# work would.
+#
+# No toolchain is installed here. rust-toolchain.toml pins it and the toolchain
+# manager on this runner reads that file itself (#14), so this file carries no
+# version string for the compiler.
+#
+# THE SCANNER'S OWN VERSION IS PINNED HERE AND IS A DIFFERENT KIND OF NUMBER. It
+# is not a dependency of the core, it never enters Cargo.lock, and
+# `docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md` is
+# therefore not the rule that admits it. It is a tool this gate runs, and it is
+# pinned for the reason every action below is pinned: a gate whose verdict comes
+# from whatever version resolved today is a gate that changes without a commit.
+name: dependencies
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: dependencies-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependencies:
+    name: dependencies
+    runs-on: ubuntu-latest
+    # The scanner is built from source on a cold runner, which is the whole of
+    # the time this job spends. The bound is generous rather than tight because a
+    # timeout here reads as a red gate and means nothing about the graph.
+    timeout-minutes: 30
+    permissions:
+      contents: read # check out the tree whose lockfile is judged
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      - name: Say which toolchain judged this run, and refuse another one
+        run: bash .github/toolchain/toolchain.sh check
+
+      # `--locked` on the install as well, so the scanner is built from its own
+      # committed graph rather than from whatever resolves on the day.
+      - name: Install the advisory scanner, at the version this gate pins
+        run: cargo install cargo-audit --locked --version 0.22.2
+
+      - name: Say which scanner ran
+        run: cargo audit --version
+
+      - name: Run the fixtures, then judge the committed graph
+        run: bash .github/dependencies/dependencies.sh check

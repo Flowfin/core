@@ -1,0 +1,27 @@
+# A fixture lockfile, and the second one-change neighbour of
+# carries-a-known-advisory.lock: the same affected release with its `source` line
+# removed.
+#
+# THE SCAN PASSES THIS FILE, AND THAT IS WHAT THE FIXTURE RECORDS. An entry with
+# no source is not a registry package as far as the scanner is concerned, so no
+# advisory is matched against it and the run exits zero and prints a page that
+# reads exactly like a clean scan. It was found by writing the fixture above
+# without the line and watching it pass.
+#
+# This is why the check reports how many of a lockfile's packages carry a source
+# rather than only how many it declares.
+#
+# WHAT RETIRES THIS FIXTURE: the scanner beginning to match an entry with no
+# source. The assertion then fails, which is the report that the bound has moved.
+version = 4
+
+[[package]]
+name = "flowfin-core"
+version = "0.0.0"
+dependencies = [
+ "time",
+]
+
+[[package]]
+name = "time"
+version = "0.1.44"

@@ -1,0 +1,27 @@
+# A fixture lockfile. Not this repository's graph, and never restored.
+#
+# It exists so that the advisory scan in .github/dependencies/dependencies.sh is
+# proven to refuse rather than described as refusing. The release named below has
+# an advisory published against it, and the fixture beside it names the release
+# that carries the fix, so the two differ by one field.
+#
+# No checksum line, on purpose: the scanner matches a name and a version against
+# the database and never verifies bytes, so a checksum here would be a fabricated
+# fact this tree would then be carrying.
+#
+# WHAT RETIRES THIS FIXTURE: the advisory being withdrawn from the database. The
+# fixture then stops biting and the selftest goes red, which is the direction that
+# reports it rather than hiding it.
+version = 4
+
+[[package]]
+name = "flowfin-core"
+version = "0.0.0"
+dependencies = [
+ "time",
+]
+
+[[package]]
+name = "time"
+version = "0.1.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
