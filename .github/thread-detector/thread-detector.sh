@@ -89,7 +89,32 @@ DETECTOR_STD="-Zbuild-std"
 
 # The two commands, written out so the log carries them rather than a description
 # of them.
-SUITE_COMMAND="cargo +${DETECTOR_CHANNEL} test --locked ${DETECTOR_STD} --target ${DETECTOR_TARGET}"
+#
+# `--all-targets` ON THE SUITE LEG IS WHAT LEAVES THE DOCUMENTATION TESTS OUT, and
+# it is there because they cannot be run under this flag rather than because they
+# were not wanted. Without it the run reached them and the compiler refused, by
+# name, on the first attempt at this leg:
+#
+#     error: mixing `-Zsanitizer` will cause an ABI mismatch in crate `flowfin_core`
+#       = note: `-Zsanitizer` is unset in this crate which is incompatible with
+#               `-Zsanitizer=thread` in dependency `std`
+#
+# The documentation tests are compiled by a second driver that is not handed this
+# flag, so they link a crate built without the instrumentation against a standard
+# library built with it. The escape hatch the compiler offers for that mismatch
+# says in its own name that it is unsafe, and taking it here would make every
+# verdict on this leg rest on an ABI the compiler has just said does not match.
+#
+# What that costs is measured rather than assumed. This crate carries no
+# documentation test:
+#
+#     cargo test --locked --doc
+#        Doc-tests flowfin_core
+#        running 0 tests
+#
+# So nothing is excluded from this leg today, and the day one is written it is
+# outside the detector rather than inside it. The run prints that bound.
+SUITE_COMMAND="cargo +${DETECTOR_CHANNEL} test --locked --all-targets ${DETECTOR_STD} --target ${DETECTOR_TARGET}"
 RACE_COMMAND="cargo +${DETECTOR_CHANNEL} test --locked ${DETECTOR_STD} --target ${DETECTOR_TARGET} --test a_race_the_detector_must_catch"
 
 # The register of findings this run does not refuse, beside this script rather
@@ -477,6 +502,7 @@ ACCOUNTING
   echo "-- what this run did not read"
   echo "NOT COVERED HERE: a race that manifests only on a target this detector does not reach. It runs on ${DETECTOR_TARGET}, and the readings on #117 name Windows and Android as targets whose specifications do not carry this sanitizer, so a defect that appears only there is outside every run this leg makes."
   echo "NOT COVERED HERE: an interleaving the suite never produced. This detector reports a race it observed rather than one that is possible, so a promise in 0009 that no test exercises is unwatched here."
+  echo "NOT COVERED HERE: a documentation test. The suite command above carries --all-targets, which leaves them out, because the driver that compiles them is not handed the detector's flag and the compiler refuses the resulting ABI mismatch by name. This crate carries none today, so nothing is left out of this run, and one written later is outside this leg rather than inside it."
   echo "NOT MADE HERE: whether the promises in 0009 are the right promises. This leg watches the ones the suite exercises being kept."
   echo "NOT MADE HERE: a merge condition. No check is required to merge on this board today and #26 is where a name is written into the ruleset."
   echo
