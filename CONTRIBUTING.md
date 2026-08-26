@@ -121,6 +121,19 @@ carries what it reads and, on every run, the list of what it does not.
 file. The rules it does not refuse are in `.github/shell-analysis/excluded-rules`
 with the reason for each.
 
+**`Analyze (rust)`** runs the code-scanning surface's own semantic analysis over
+`src/`, which asks a question a pattern cannot: whether a value that arrived from
+outside reaches a place that trusts it, across the calls in between. The verdict
+is this repository's rather than the action's, since the action uploads findings
+and fails no build on one: `.github/codeql/codeql.sh` reads the file the analysis
+wrote and refuses a finding the register in `.github/codeql/excluded-rules` does
+not excuse, an identifier written there with no reason is itself refused, and a
+file carrying no analysis run or no loaded rule is refused too, because a query
+set that never loaded reports nothing and reads exactly like a clean tree. The
+findings reach the code-scanning tab as well as the job log, and the upload is
+skipped on a pull request from a fork, where the token cannot write there and the
+gate still refuses.
+
 **`Audit workflows (zizmor)`** audits the workflow files themselves.
 
 **`Reject Trojan Source Unicode`** refuses bidirectional and invisible Unicode

@@ -1,0 +1,20 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "CodeQL",
+          "rules": []
+        },
+        "extensions": [
+          {
+            "name": "a-fixture-pack",
+            "rules": []
+          }
+        ]
+      },
+      "results": []
+    }
+  ]
+}
