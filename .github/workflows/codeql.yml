@@ -1,0 +1,132 @@
+# Semantic analysis over the core's own language, and a finding fails the run
+# (#81).
+#
+# THIS IS THE HALF OF #81 THAT WAITED ON A LANGUAGE. The shell this gate is
+# written in is read by .github/workflows/shell-analysis.yml, the workflow files
+# are read by .github/workflows/zizmor.yml, and until
+# docs/decisions/0011-the-language-the-toolchain-and-the-binding-layer.md landed
+# there was no third body of code to point an analyser at. There is now, in
+# `src/`, and this is the leg that reads it.
+#
+# WHAT IT IS FOR, AND IT IS NOT WHAT THE ANALYSER ALREADY BESIDE IT DOES.
+# `.github/workflows/lint.yml` runs the language's own analyser, which judges one
+# function at a time against a rule set about how the language is written. This
+# one asks a question a pattern cannot: whether a value that arrived from outside
+# reaches a place that trusts it, across the calls in between. Neither replaces
+# the other, and a repository that has one and calls it code scanning has the
+# smaller of the two.
+#
+# The check-run name is `Analyze (rust)`, in the shape the gate this milestone is
+# measured against uses for the same analysis, so `docs/gate-parity.md` compares
+# names rather than descriptions. GitHub takes it from the job's `name:`, and a
+# ruleset matches the literal, so a rename here silently detaches a requirement
+# from the thing it was requiring. #26 is where the names are written into the
+# ruleset on `main`.
+#
+# THE VERDICT IS THIS REPOSITORY'S RATHER THAN THE ACTION'S. The analysis uploads
+# findings to the code-scanning tab and does not fail a build on one, so a
+# repository that stops at the upload has alerts nobody is required to answer.
+# The gating step below reads the file the analysis wrote and refuses a finding
+# the register does not excuse by name, and it also refuses a file carrying no run
+# or no loaded rule, because a query set that never loaded reports zero findings
+# and reads exactly like a clean tree. Those rules and their fixtures are in
+# .github/codeql/codeql.sh, which runs the fixtures before it judges anything.
+#
+# NO VERSION OF THE ANALYSER IS NAMED IN THIS FILE. The action is pinned by
+# commit, and the bundle it resolves is the one that pin ships with, so what runs
+# moves when the pin moves and not otherwise. The job prints which bundle ran.
+name: codeql
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: codeql-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (rust)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read # check out the tree the analysis reads
+      security-events: write # upload the findings into the code-scanning tab
+
+    env:
+      # Named once so the step that writes the file, the step that judges it and
+      # the step that uploads it cannot drift onto three paths. Relative to the
+      # workspace, and untracked, so nothing that reads this repository through
+      # git ls-files sees it.
+      SARIF_DIR: codeql-results
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      # The toolchain the analysis reads this tree with is the one the tree pins,
+      # and the comparison is the same one every other leg makes (#14).
+      - name: Say which toolchain this run analysed against, and refuse another one
+        run: bash .github/toolchain/toolchain.sh check
+
+      # `build-mode: none` because the extractor for this language reads source
+      # rather than watching a compiler. Written here rather than left to a
+      # default so that a change of default is a change to this file.
+      - name: Initialise the analysis
+        uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          languages: rust
+          build-mode: none
+
+      # `upload: never` here, and a separate upload step below, for the reason
+      # .github/workflows/shell-analysis.yml already gives: a pull request from a
+      # fork and a Dependabot one run with a token that cannot write security
+      # events, and the gate has to refuse on those runs whatever the surface can
+      # accept. Splitting the two lets the upload be skipped without the verdict
+      # being skipped with it.
+      - name: Analyse
+        uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          output: ${{ env.SARIF_DIR }}
+          upload: never
+
+      # The rule identifiers as well as the versions, because the count the
+      # verdict prints says how many rules loaded and not which, and which ones
+      # they are is what tells a reader whether a defect they care about is in
+      # the set at all. It is the list rather than a number, so nothing here goes
+      # stale against the bundle.
+      - name: Say which analyser judged this run, which reader read it, and which rules loaded
+        run: |
+          jq --version
+          jq -r '[ .runs[]? | .tool.driver | "\(.name) \(.semanticVersion // .version // "(no version)")" ] | .[]' \
+            "${SARIF_DIR}/rust.sarif"
+          jq -r '[ .runs[]? | (.tool.driver.rules // []), (.tool.extensions[]?.rules // []) ] | flatten | .[].id' \
+            "${SARIF_DIR}/rust.sarif"
+
+      - name: Prove the fixtures, then judge what the analysis found
+        run: bash .github/codeql/codeql.sh check "${SARIF_DIR}/rust.sarif"
+
+      # After the judging step rather than before it, so the verdict is already
+      # made when this runs and an upload cannot stand in front of a refusal.
+      # always() is what carries the findings of a run that refused something,
+      # which is the run whose findings are worth having on the surface.
+      - name: Upload the findings to the code-scanning tab
+        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]'))
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          sarif_file: ${{ env.SARIF_DIR }}/rust.sarif
+          category: /language:rust

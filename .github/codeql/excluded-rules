@@ -1,0 +1,23 @@
+# Rules this gate does not refuse, one per line, as the rule identifier followed
+# by the reason it is not refused. A line carrying an identifier and no reason is
+# refused by .github/codeql/codeql.sh, because a bare identifier is a rule
+# somebody turned off and nobody argued with.
+#
+# Every run prints this file with its reasons, so an exclusion is read at the
+# moment somebody reads a verdict rather than found later by somebody auditing.
+#
+# A line here is a debt rather than a dispensation. Each reason says what would
+# retire it.
+#
+# THIS REGISTER IS EMPTY OF ENTRIES TODAY, AND THAT IS A FACT ABOUT THE TREE
+# RATHER THAN ABOUT THE RULE. The analysis reports nothing against this tree at
+# the commit this landed on, so nothing has had a chance to need an exclusion.
+# The refusal above is proven by the fixtures in .github/codeql/codeql.sh rather
+# than by anything in this file, which is the only way a rule with no live
+# subject can be proven at all.
+#
+# The identifier is written the way the analysis writes it in its own findings,
+# because that is the string a finding is compared against and a second spelling
+# would be a second thing to keep in step. Every run prints the identifier of
+# every finding it refused, so the string to write here is one the run already
+# handed the reader.
