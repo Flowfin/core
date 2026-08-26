@@ -13,8 +13,14 @@
 //! [`address`] holds the first of them. 0028's rules are applied where an address
 //! enters the core and nowhere else, and every request path is appended to the
 //! result by the one routine that module carries.
+//!
+//! [`federation`] holds what 0072 decides: a second host becomes reachable only
+//! through an act a person performed, against one server, naming what it shares,
+//! and revocable without the network. Which hosts may be contacted at all is
+//! 0069 and #69, and this is the register that would add one to that list.
 
 pub mod address;
+pub mod federation;
 
 /// An answer the core has already received and handed back.
 ///

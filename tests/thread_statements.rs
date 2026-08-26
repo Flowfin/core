@@ -26,6 +26,7 @@ use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
 use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
+use flowfin_core::server::federation::Federation;
 use flowfin_core::session::{SecretStore, Session};
 
 /// Compiles only for a type that is safe to use from any thread.
@@ -58,6 +59,11 @@ fn a_base_address_is_safe_from_any_thread() {
 #[test]
 fn an_unusable_address_is_safe_from_any_thread() {
     const _: () = any_thread::<AddressNotUsable>();
+}
+
+#[test]
+fn the_federation_register_is_safe_from_any_thread() {
+    const _: () = any_thread::<Federation<'static>>();
 }
 
 #[test]
