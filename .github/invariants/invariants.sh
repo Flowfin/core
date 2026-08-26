@@ -18,6 +18,12 @@
 # seeds could not be, and why, is on #82 and in the register's own header rather
 # than restated here.
 #
+# THE SUBJECT IS NO LONGER SOURCE TEXT ALONE. #77's rule over the dependency graph
+# reads the committed lockfile, which is the resolved graph as a tracked file, so
+# `paths` names a file there rather than a directory. Nothing in the loader or the
+# judge changed for it: the subject was always git's set, and a rule naming one
+# tracked file is the same rule as one naming a prefix.
+#
 # Verbs:
 #   selftest   prove every rule bites its own fixture, alone, and passes the near miss
 #   check      load the rule set, print it, and judge the tracked subject
@@ -318,7 +324,8 @@ HITS
   fi
 
   echo "-- what this run did not read"
-  echo "NOT MADE HERE: anything whose forbidden side cannot be written as a pattern. docs/decisions/0003-what-the-core-does-not-do.md says of the drawing boundary in so many words that it cannot be expressed as data, so no rule here is about it."
+  echo "NOT MADE HERE: anything whose forbidden side cannot be written as a pattern. docs/decisions/0003-what-the-core-does-not-do.md says of the drawing boundary in so many words that it cannot be expressed as data, and that is unchanged."
+  echo "NOT MADE HERE: that boundary itself, although three rules above are grounded in the record that draws it. Each holds a list of what has been named - a set of dependency names, a set of view words, one trait - so a crossing written in a name nobody listed walks past all three, and a green run here is not a run that found the boundary uncrossed."
   echo "NOT MADE HERE: whether a rule is a good rule. The register requires a record and a stated failure, which is decidable; whether the rule follows from the record is what the review is for."
   echo "NOT MADE HERE: a file the tree does not track, and a prefix nothing is tracked under. A rule with no subject says so above rather than passing quietly."
   echo
