@@ -126,6 +126,17 @@ with the reason for each.
 **`Reject Trojan Source Unicode`** refuses bidirectional and invisible Unicode
 control characters in tracked text.
 
+**`dependencies`** restores in locked mode, so a restore that would rewrite
+`Cargo.lock` fails rather than proceeding quietly, and scans the graph the
+committed lockfile declares against the advisory database. It reads back how many
+packages the scanner says it examined and refuses a disagreement with what the
+lockfile declares, because a scanner pointed at a moved file exits zero and prints
+a page that reads exactly like a clean scan. An entry carrying no `source` line is
+not matched by that scanner, so the run also reports how many of the packages
+carry one. `.github/dependencies/dependencies.sh` holds the rules and the fixtures
+that prove them, and the fixture lockfiles beside it are one-change neighbours of
+each other.
+
 **`dependency-review`** reads the dependency diff of a pull request against the
 advisory database.
 

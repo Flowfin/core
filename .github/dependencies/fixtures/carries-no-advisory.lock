@@ -1,0 +1,19 @@
+# A fixture lockfile, and the one-change neighbour of
+# carries-a-known-advisory.lock: the same graph with the release moved to the one
+# the advisory names as the fix.
+#
+# A neighbour rather than an empty file, because a scan that passes an empty graph
+# proves that a scan of nothing finds nothing.
+version = 4
+
+[[package]]
+name = "flowfin-core"
+version = "0.0.0"
+dependencies = [
+ "time",
+]
+
+[[package]]
+name = "time"
+version = "0.2.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
