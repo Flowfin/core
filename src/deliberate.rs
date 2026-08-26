@@ -3,26 +3,20 @@
 //! TEMPORARY. This file exists for one run of `Analyze (rust)` and is removed in
 //! the next commit on this branch. Nothing depends on it.
 
-/// Allocates a buffer whose size came from outside the process.
+/// Hands back an address the analysis is meant to object to.
+#[must_use]
+pub fn a_non_https_url() -> String {
+    let endpoint = "http://media.example.com/Items";
+    let mut address = String::from(endpoint);
+    address.push_str("/Latest");
+    address
+}
+
+/// Allocates a buffer whose size arrived on the process input.
 #[must_use]
 pub fn an_uncontrolled_allocation() -> Vec<u8> {
-    let asked: usize = std::env::args()
-        .nth(1)
-        .unwrap_or_default()
-        .parse()
-        .unwrap_or(0);
-    Vec::with_capacity(asked)
-}
-
-/// Hands back a credential written into the source.
-#[must_use]
-pub fn a_hard_coded_credential() -> &'static str {
-    const PASSWORD: &str = "correct-horse-battery-staple";
-    PASSWORD
-}
-
-/// Writes a value that arrived from outside into the process output.
-pub fn a_cleartext_log() {
-    let password = std::env::args().nth(1).unwrap_or_default();
-    println!("signing in with {password}");
+    let mut asked = String::new();
+    let _ = std::io::stdin().read_line(&mut asked);
+    let size: usize = asked.trim().parse().unwrap_or(0);
+    Vec::with_capacity(size)
 }
