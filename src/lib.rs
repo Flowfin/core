@@ -50,7 +50,6 @@
 
 pub mod artwork;
 pub mod cache;
-pub mod deliberate;
 pub mod diagnostics;
 pub mod failure;
 pub mod measurement;

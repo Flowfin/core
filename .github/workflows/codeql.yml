@@ -104,12 +104,18 @@ jobs:
           output: ${{ env.SARIF_DIR }}
           upload: never
 
-      - name: Say which analyser and which reader judged this run
+      # The rule identifiers as well as the versions, because the count the
+      # verdict prints says how many rules loaded and not which, and which ones
+      # they are is what tells a reader whether a defect they care about is in
+      # the set at all. It is the list rather than a number, so nothing here goes
+      # stale against the bundle.
+      - name: Say which analyser judged this run, which reader read it, and which rules loaded
         run: |
           jq --version
           jq -r '[ .runs[]? | .tool.driver | "\(.name) \(.semanticVersion // .version // "(no version)")" ] | .[]' \
             "${SARIF_DIR}/rust.sarif"
-          jq -r '[ .runs[]? | (.tool.driver.rules // []), (.tool.extensions[]?.rules // []) ] | flatten | .[].id'             "${SARIF_DIR}/rust.sarif"
+          jq -r '[ .runs[]? | (.tool.driver.rules // []), (.tool.extensions[]?.rules // []) ] | flatten | .[].id' \
+            "${SARIF_DIR}/rust.sarif"
 
       - name: Prove the fixtures, then judge what the analysis found
         run: bash .github/codeql/codeql.sh check "${SARIF_DIR}/rust.sarif"

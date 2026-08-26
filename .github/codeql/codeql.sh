@@ -292,7 +292,7 @@ FINDINGS
   fi
 
   echo "-- what this run did not read"
-  echo "NOT MADE HERE: which queries the analysis ran. The query set belongs to the code-scanning surface rather than to this repository, and the count above says how many rules loaded and not which."
+  echo "NOT MADE HERE: the choice of queries. The set belongs to the code-scanning surface rather than to this repository, and the count above says how many of its rules loaded rather than which. The step before this one in .github/workflows/codeql.yml prints their identifiers."
   echo "NOT MADE HERE: whether a query exists for a defect this tree could carry. A clean run is a run in which the loaded set found nothing, not a tree in which there is nothing to find."
   echo "NOT MADE HERE: the shell this gate runs, which is .github/shell-analysis/shell-analysis.sh, and the workflow files, which are .github/workflows/zizmor.yml. This leg reads the core's own language and nothing else."
   echo
