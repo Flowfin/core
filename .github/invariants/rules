@@ -32,6 +32,22 @@
 # landed records do support, and the `grounds` line on each block is where that
 # is checkable.
 
+# THE LAST THREE BLOCKS ARE #77's AND THEY ARE A FLOOR RATHER THAN THAT BOUNDARY.
+# The sentence above still holds: 0003 says the forbidden side cannot be written
+# down, its own reversal condition rests on that, and nothing here contradicts it.
+# What #77 asks for is narrower than the boundary and is expressible: a check that
+# fails on A name from the forbidden side, on a dependency whose purpose is
+# drawing, and on a sentence written for a person. Each of the three below holds
+# what has been named rather than what exists, so a crossing written in words
+# nobody listed walks past all three. That is why they are three rules in a
+# register and not a boundary in code: adding a name is editing this file.
+#
+# THEY LIVE HERE RATHER THAN IN A SECOND READER, which is what #77's own first
+# comment asked about. Two of the three properties are described by more than one
+# issue on this board, and a rule somebody adds later would otherwise go into
+# whichever reader they met first. One register with one loader means #73 adds
+# entries beside these rather than a second mechanism behind a second promise.
+
 id: no-filesystem-access
 pattern: (^|[^A-Za-z_])(std::fs|fs::(read|write|create|remove|copy|rename|File|OpenOptions)|File::(open|create)|OpenOptions::new)
 paths: src/
@@ -64,3 +80,27 @@ grounds: docs/decisions/0102-the-clocks-every-deadline-is-measured-against.md
 prevents: A deadline measured against a clock no test can move. All three clocks reach the core through one injected source, which is what makes a timeout test take microseconds rather than seconds.
 fixture: let started = std::time::Instant::now();
 clean: /// The source supplies steady, elapsed and wall; nothing here reads one.
+
+id: no-user-interface-dependency
+pattern: ^name = "(winit|glutin|softbuffer|sdl2|gtk|gtk4|gdk|gdk4|glib|egui|eframe|iced|slint|druid|dioxus|tauri|fltk|conrod_core|qmetaobject|cocoa|cacao|core-graphics|skia-safe|femtovg|raqote|tiny-skia|piet|wgpu|vello|glium|kiss3d|nannou)"
+paths: Cargo.lock
+grounds: docs/decisions/0003-what-the-core-does-not-do.md
+prevents: A windowing, drawing or user-interface library arriving in the graph, which is the third of the four steps 0003 names as the way the boundary is crossed by accident. The subject is the committed lockfile rather than the manifest, so a package pulled in by something else is judged the same way one written by hand is.
+fixture: name = "winit"
+clean: name = "winnow"
+
+id: no-view-vocabulary
+pattern: (^|[^A-Za-z_])([Ss]croll|SCROLL|[Ff]ocus|FOCUS|[Ww]idget|WIDGET|[Vv]iewport|VIEWPORT|[Cc]anvas|CANVAS|[Rr]ender|RENDER|[Pp]aint|PAINT)
+paths: src/
+grounds: docs/decisions/0003-what-the-core-does-not-do.md
+prevents: The core learning the words a view layer thinks in. 0003 places focus and a scroll offset outside by name and says a core that learns any of them has learned the shape of one client's screen. The vocabulary is what is refused rather than the boundary, so a crossing written in a word nobody listed is not caught here.
+fixture: pub fn scroll_offset(&self) -> u32 {
+clean: pub fn preview_bytes(&self) -> &[u8] {
+
+id: no-sentence-for-a-person
+pattern: ^[[:space:]]*impl[[:space:]<].*[^A-Za-z_]Display[[:space:]]+for[[:space:]]
+paths: src/
+grounds: docs/decisions/0003-what-the-core-does-not-do.md
+prevents: A type of this core carrying its own wording. 0003 places the wording of anything a person reads outside, error text included, and this trait is the language's own name for a value written out for a person to read. The sibling trait for a programmer is untouched, which is the one-character difference the near miss beside this rule holds.
+fixture: impl core::fmt::Display for SecretStoreUnavailable {
+clean: impl core::fmt::Debug for Measurement<'_> {
