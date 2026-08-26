@@ -216,7 +216,7 @@ say() {
 }
 
 check() {
-  local sarif="${1:-}" register acct runs rules results refused=0 excused=0 line
+  local sarif="${1:-}" register acct runs rules results refused=0 excused=0
 
   if [ -z "$sarif" ]; then
     echo "usage: $0 check <sarif-file>" >&2
