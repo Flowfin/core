@@ -22,7 +22,7 @@ use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
 use flowfin_core::cache::ByteStore;
 use flowfin_core::clock::Clocks;
-use flowfin_core::diagnostics::DiagnosticsSink;
+use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
 use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
@@ -58,6 +58,11 @@ fn a_base_address_is_safe_from_any_thread() {
 #[test]
 fn an_unusable_address_is_safe_from_any_thread() {
     const _: () = any_thread::<AddressNotUsable>();
+}
+
+#[test]
+fn the_diagnostics_facility_is_safe_from_any_thread() {
+    const _: () = any_thread::<Diagnostics<'static>>();
 }
 
 #[test]
