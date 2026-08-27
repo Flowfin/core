@@ -28,6 +28,7 @@ use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::server::federation::Federation;
+use flowfin_core::session::device::{Capabilities, DeviceIdentity, PartNotUsable};
 use flowfin_core::session::{SecretStore, Session};
 
 /// Compiles only for a type that is safe to use from any thread.
@@ -45,6 +46,21 @@ fn the_core_handle_is_safe_from_any_thread() {
 #[test]
 fn a_session_handle_is_safe_from_any_thread() {
     const _: () = any_thread::<Session>();
+}
+
+#[test]
+fn a_device_identity_is_safe_from_any_thread() {
+    const _: () = any_thread::<DeviceIdentity>();
+}
+
+#[test]
+fn a_capability_description_is_safe_from_any_thread() {
+    const _: () = any_thread::<Capabilities>();
+}
+
+#[test]
+fn a_refused_part_of_an_identity_is_safe_from_any_thread() {
+    const _: () = any_thread::<PartNotUsable>();
 }
 
 #[test]
