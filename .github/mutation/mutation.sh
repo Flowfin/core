@@ -56,7 +56,8 @@
 #              that a run which tested no mutant is refused rather than scored,
 #              that an area naming nothing tracked is refused, and that the
 #              directory a run writes into is made under a parent that is not
-#              there
+#              there, that a run answering none of its own mutants is refused,
+#              and that a completed run is one of three exit codes
 #   check      derive the scope from the register, run the analyser, publish the
 #              score with the command that produced it, and list the survivors
 #
@@ -87,11 +88,23 @@ MUTANTS_VERSION=27.1.0
 # removes it and nothing that reads this repository through git sees it.
 OUTPUT_DIR=target/mutation
 
-# The two exit codes a completed run produces: nothing survived, and something
-# did. Any other code is a run that did not complete, and this leg refuses one
-# rather than reading its absent survivors as none.
+# The exit codes a COMPLETED run produces. Any other code is a run that did not
+# complete, and this leg refuses one rather than reading its absent survivors as
+# none.
+#
+# THIS LIST HELD TWO OF THE THREE UNTIL THE FIRST RUN OVER THIS REPOSITORY. That
+# run tested all 219 mutants, wrote its accounting, and exited 3, which is the
+# code for a run in which something timed out. The leg refused it. Refusing was
+# the right shape and the list was wrong: a timeout is an outcome this score
+# already counts outside itself and prints on its own line, so a run carrying one
+# is a run with a number rather than a run that did not happen.
+#
+# WHAT THE THIRD CODE DOES NOT BUY IS A RUN WHOSE VIABLE SET COLLAPSED, and that
+# is refused below rather than here. A run in which every mutant timed out also
+# exits 3, and its score would be over nothing.
 EXIT_NOTHING_SURVIVED=0
 EXIT_SOMETHING_SURVIVED=2
+EXIT_SOMETHING_TIMED_OUT=3
 
 # The areas the register names, one per line. Only the `area` lines are read
 # here. The `module` lines are the coverage bar's subject and this leg does not
@@ -193,7 +206,7 @@ prepare_output() {
 # and neither may be published as a score.
 judge_outcomes() {
   local outcomes="$1"
-  local total
+  local total viable
   if [ ! -f "$outcomes" ]; then
     echo "::error::The run wrote no accounting at ${outcomes}, which is what the analyser does when the scope it was given matched nothing. A run over an empty set exits zero and reads exactly like a run that caught everything."
     return 1
@@ -203,17 +216,24 @@ judge_outcomes() {
     echo "::error::The run tested no mutant, so there is no score to publish. The accounting says total_mutants is zero, which is what a suite failing before any mutant is applied leaves behind."
     return 1
   fi
+  viable="$(jq -r '(.caught // 0) + (.missed // 0)' "$outcomes")"
+  if [ "$viable" -eq 0 ]; then
+    echo "::error::The run generated ${total} mutant(s) and not one of them was a question the suite could answer: every one either failed to compile or timed out. There is no score over that, and a percentage of nothing is not a clean run."
+    return 1
+  fi
   return 0
 }
 
 # Refuses an exit code that is neither of the two a completed run produces.
 judge_exit() {
   local status="$1"
-  if [ "$status" -ne "$EXIT_NOTHING_SURVIVED" ] && [ "$status" -ne "$EXIT_SOMETHING_SURVIVED" ]; then
-    echo "::error::The analyser exited ${status}, which is neither ${EXIT_NOTHING_SURVIVED} for a run where nothing survived nor ${EXIT_SOMETHING_SURVIVED} for one where something did. A run that did not complete has no survivors to report, and reporting none would be wrong in the direction nobody checks."
-    return 1
-  fi
-  return 0
+  case "$status" in
+    "$EXIT_NOTHING_SURVIVED" | "$EXIT_SOMETHING_SURVIVED" | "$EXIT_SOMETHING_TIMED_OUT") return 0 ;;
+    *)
+      echo "::error::The analyser exited ${status}, which is none of ${EXIT_NOTHING_SURVIVED} for a run where nothing survived, ${EXIT_SOMETHING_SURVIVED} for one where something did, or ${EXIT_SOMETHING_TIMED_OUT} for one where something timed out. A run that did not complete has no survivors to report, and reporting none would be wrong in the direction nobody checks."
+      return 1
+      ;;
+  esac
 }
 
 # The score, in per cent of viable mutants caught, to two decimal places.
@@ -343,6 +363,18 @@ REGISTER
 area    src/session/    the reason this one carries
 area    src/server/     the reason this one carries
 REGISTER
+
+  # An accounting from a run that generated mutants and answered none of them:
+  # every one either failed to compile or timed out. Written rather than produced,
+  # because arranging a real one costs a crate whose every mutant hangs.
+  cat > "${dir}/outcomes-nothing-viable.json" <<'ACCOUNTING'
+{ "outcomes": [], "total_mutants": 12, "caught": 0, "missed": 0, "unviable": 7, "timeout": 5 }
+ACCOUNTING
+
+  # The same accounting with one mutant answered, and nothing else changed.
+  cat > "${dir}/outcomes-one-viable.json" <<'ACCOUNTING'
+{ "outcomes": [], "total_mutants": 12, "caught": 1, "missed": 0, "unviable": 6, "timeout": 5 }
+ACCOUNTING
 }
 
 # Runs the analyser over one fixture crate and prints its exit code, so the
@@ -355,7 +387,8 @@ run_fixture() {
 }
 
 selftest() {
-  local dir status score_asserted score_unasserted missed findings
+  local dir status score_asserted score_unasserted missed findings exit_status
+  local exit_status
   FIXTURE_DIR="$(mktemp -d)"
   dir="$FIXTURE_DIR"
   trap remove_fixtures EXIT
@@ -425,6 +458,38 @@ selftest() {
     return 1
   fi
   echo "ok    not refused"
+  echo
+
+  echo "-- a run that answered none of the mutants it generated is refused"
+  if judge_outcomes "${dir}/outcomes-nothing-viable.json" > /dev/null 2>&1; then
+    echo "::error::An accounting with no viable mutant at all was accepted. The score is over caught plus missed, so publishing that one is publishing a percentage of nothing."
+    return 1
+  fi
+  echo "ok    refused"
+  echo
+
+  echo "-- the same accounting with one mutant answered is not refused"
+  if ! judge_outcomes "${dir}/outcomes-one-viable.json" > /dev/null 2>&1; then
+    echo "::error::The neighbouring accounting, which differs by one caught mutant, was refused. A guard that refuses its own near miss refuses honest work."
+    return 1
+  fi
+  echo "ok    not refused, and it scores $(score "${dir}/outcomes-one-viable.json")"
+  echo
+
+  echo "-- a completed run is one of three exit codes, and nothing else is"
+  for exit_status in "$EXIT_NOTHING_SURVIVED" "$EXIT_SOMETHING_SURVIVED" "$EXIT_SOMETHING_TIMED_OUT"; do
+    if ! judge_exit "$exit_status" > /dev/null 2>&1; then
+      echo "::error::Exit code ${exit_status} was refused. That is a run that completed, wrote its accounting, and has a score to publish."
+      return 1
+    fi
+  done
+  for exit_status in 1 4; do
+    if judge_exit "$exit_status" > /dev/null 2>&1; then
+      echo "::error::Exit code ${exit_status} was accepted. That is a run that did not complete, and its absent survivors would be published as none."
+      return 1
+    fi
+  done
+  echo "ok    ${EXIT_NOTHING_SURVIVED}, ${EXIT_SOMETHING_SURVIVED} and ${EXIT_SOMETHING_TIMED_OUT} accepted; 1 and 4 refused"
   echo
 
   # A run rather than a refusal, and it is here because the failure it prevents
