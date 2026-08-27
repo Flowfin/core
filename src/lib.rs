@@ -124,6 +124,8 @@ const _: () = {
     any_thread::<playback::AdmittedPosition>();
     any_thread::<playback::resume::Resume>();
     any_thread::<playback::resume::PositionInForce>();
+    any_thread::<playback::watched::Marked>();
+    any_thread::<playback::watched::MarkedBy>();
     any_thread::<cache::bound::TieredCache<'static>>();
     any_thread::<cache::bound::CacheBounds>();
     any_thread::<cache::bound::Tier>();

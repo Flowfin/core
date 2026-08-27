@@ -18,8 +18,10 @@
 //!
 //! [`Ticks`] is 0056's type and [`AdmittedPosition`] is the one act that applies
 //! 0056's two bounds. [`resume`] carries 0058's three thresholds and its rule
-//! for whose position wins, expressed in that unit. 0057's cadence and 0060's
-//! watched rule are still names in records and neither is built.
+//! for whose position wins, expressed in that unit, and [`watched`] carries
+//! 0060's completion rule, which takes [`resume`]'s boundary rather than
+//! stating a second one. 0057's cadence is still a name in a record and is not
+//! built.
 //!
 //! # Why the type is named for the unit
 //!
@@ -49,6 +51,7 @@
 //! sentence.
 
 pub mod resume;
+pub mod watched;
 
 /// A whole number of ticks of one hundred nanoseconds, which is what a playback
 /// position and a stated duration are both expressed in.
