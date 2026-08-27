@@ -122,6 +122,8 @@ const _: () = {
     any_thread::<artwork::DecodedImage>();
     any_thread::<playback::Ticks>();
     any_thread::<playback::AdmittedPosition>();
+    any_thread::<playback::resume::Resume>();
+    any_thread::<playback::resume::PositionInForce>();
     any_thread::<cache::bound::TieredCache<'static>>();
     any_thread::<cache::bound::CacheBounds>();
     any_thread::<cache::bound::Tier>();

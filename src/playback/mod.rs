@@ -17,9 +17,9 @@
 //! # What is here now
 //!
 //! [`Ticks`] is 0056's type and [`AdmittedPosition`] is the one act that applies
-//! 0056's two bounds. Everything else in the list above is still a name in a
-//! record: 0057's cadence, 0058's resume rule and 0060's watched rule are all
-//! expressed in this unit and none of them is built.
+//! 0056's two bounds. [`resume`] carries 0058's three thresholds and its rule
+//! for whose position wins, expressed in that unit. 0057's cadence and 0060's
+//! watched rule are still names in records and neither is built.
 //!
 //! # Why the type is named for the unit
 //!
@@ -47,6 +47,8 @@
 //! against, and there is no item in this tree, so a value here that emitted would
 //! emit once per call instead, which is a different rule wearing the same
 //! sentence.
+
+pub mod resume;
 
 /// A whole number of ticks of one hundred nanoseconds, which is what a playback
 /// position and a stated duration are both expressed in.
