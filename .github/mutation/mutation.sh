@@ -54,7 +54,9 @@
 #   selftest   prove that a suite asserting nothing is reported as a suite
 #              asserting nothing, that its neighbour one assertion away is not,
 #              that a run which tested no mutant is refused rather than scored,
-#              and that an area naming nothing tracked is refused
+#              that an area naming nothing tracked is refused, and that the
+#              directory a run writes into is made under a parent that is not
+#              there
 #   check      derive the scope from the register, run the analyser, publish the
 #              score with the command that produced it, and list the survivors
 #
@@ -166,6 +168,19 @@ scope_files() {
     [ -n "$area" ] || continue
     files_under "$area"
   done < <(register_areas "$register") | sort -u
+}
+
+# Makes the directory the run writes into, including every parent of it.
+#
+# THE ANALYSER MAKES ITS OWN OUTPUT DIRECTORY AND NOT THE PARENT OF ONE, AND THE
+# DIFFERENCE ONLY SHOWS ON A MACHINE THAT HAS NOT BUILT YET. `target/` is there
+# on any machine that has run `cargo build` once, so the absence is invisible
+# where this was written and certain on a fresh runner, which is exactly where
+# this leg runs. The first real run of it exited 1 with `create output parent
+# directory "target/mutation"` and refused, rather than publishing a score it did
+# not have.
+prepare_output() {
+  mkdir -p "$1"
 }
 
 # Refuses a run that tested no mutant, whether it wrote an accounting or not.
@@ -412,6 +427,17 @@ selftest() {
   echo "ok    not refused"
   echo
 
+  # A run rather than a refusal, and it is here because the failure it prevents
+  # cannot happen on a machine that has built once. See `prepare_output`.
+  echo "-- the directory the run writes into is made, parents and all"
+  prepare_output "${dir}/absent-parent/output"
+  if [ ! -d "${dir}/absent-parent/output" ]; then
+    echo "::error::The output directory was not created under a parent that did not exist. On a fresh runner that is every run, and the analyser refuses to make a parent of its own output directory."
+    return 1
+  fi
+  echo "ok    made under a parent that did not exist"
+  echo
+
   echo "Every fixture behaved as this check claims. The analyser this leg is written against is cargo-mutants ${MUTANTS_VERSION}."
 }
 
@@ -453,6 +479,7 @@ check() {
   echo "The command the score below is published with:"
   echo "      ${command_line}"
   echo
+  prepare_output "$OUTPUT_DIR"
   "${argv[@]}" || status=$?
 
   judge_exit "$status" || return 1
