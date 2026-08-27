@@ -20,6 +20,19 @@
 # documentation, so the default profile would download it on every fresh machine
 # for nothing.
 #
+# THE THIRD COMPONENT IS NOT A LINT OR A FORMATTER AND IS DECLARED FOR THE SAME
+# REASON. `llvm-tools` carries the two programs that read what
+# `-C instrument-coverage` writes, and the coverage check in #84 finds them
+# inside the sysroot this pin reports rather than on the path, where a system
+# LLVM of another version would answer and would read counters a different
+# compiler wrote. It is a component of this toolchain rather than a dependency:
+# `Cargo.toml` is unchanged and the crate graph is still empty.
+#
+# WHAT IT COSTS IS A DOWNLOAD ON EVERY FRESH CLONE, and the profile below is
+# minimal on purpose, so that cost is stated rather than hidden. What retires it
+# is the coverage check going away or the tools arriving some other way; neither
+# has happened.
+#
 # THIS FILE PINS ONE CHANNEL AND THE NIGHTLY LEG IS NOT IT. The detector in #117
 # is a nightly compiler flag, and a second channel written here would install a
 # nightly on every contributor's machine for a leg that does not gate anything.
@@ -27,5 +40,5 @@
 # the one every other check uses.
 [toolchain]
 channel = "1.98.0"
-components = ["clippy", "rustfmt"]
+components = ["clippy", "llvm-tools", "rustfmt"]
 profile = "minimal"

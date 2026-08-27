@@ -1,0 +1,81 @@
+# Line coverage, measured over the whole tree and pinned on the surface that
+# decides security outcomes (#84).
+#
+# WHAT THIS ADDS THAT `test` DOES NOT. `test` refuses a run that collected no
+# tests. It cannot ask which lines those tests reached, so a module nobody ever
+# calls leaves that check exactly as green as one every path runs through. This
+# leg is what says so, and it says it about the modules
+# `.github/coverage/pinned-surface` names rather than about the whole tree,
+# because a whole-codebase percentage is met by covering the easy half.
+#
+# The check-run name is exactly `coverage`, on both the workflow and the job. It
+# is a name #26 may require, and GitHub takes it from the job's `name:` and falls
+# back to the job id, so a ruleset matches the literal and a rename here would
+# silently detach the requirement. Both are `coverage` on purpose.
+#
+# The logic is in `.github/coverage/coverage.sh` rather than in this file,
+# because each rule owes a fixture proving it bites, and a fixture run against a
+# second copy of the logic proves the copy. Every run executes those fixtures
+# before it judges anything.
+#
+# The job carries no `if:` and no path filter, for the reason
+# `.github/workflows/build.yml` already gives: GitHub creates a check run for a
+# job it started and then skipped, carrying the same name a job that did the work
+# would.
+#
+# No toolchain is installed here. `rust-toolchain.toml` pins it and the toolchain
+# manager on this runner reads that file itself (#14), so this file carries no
+# version string. That file is also where `llvm-tools` is declared, which is what
+# puts the two tools this check reads the counters with inside the sysroot rather
+# than on the path, where a system LLVM of another version would answer.
+#
+# THIS RUN IS NOT SANDBOXED THE WAY `test` IS, AND THAT IS A DIFFERENCE WORTH
+# READING. `.github/workflows/test.yml` runs the suite inside a network namespace
+# carrying only loopback (#20). The instrumented run here is the same suite
+# compiled with counters, so what it executes is the same code, but it executes
+# it outside that namespace. A test that reached the network would be caught by
+# the `test` job and not by this one, and this leg is not a second reading of
+# that property.
+name: coverage
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: coverage-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # check out the tree that is measured
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      # Printed rather than assumed, and compared as well as printed (#14). A
+      # coverage number is a number about a compiler's instrumentation, so the
+      # compiler that produced it belongs on the log of the job that reports it.
+      - name: Say which toolchain measured this run, and refuse another one
+        run: bash .github/toolchain/toolchain.sh check
+
+      - name: Prove the fixtures, then measure and judge
+        run: bash .github/coverage/coverage.sh check

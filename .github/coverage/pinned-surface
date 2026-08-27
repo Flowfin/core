@@ -1,0 +1,69 @@
+# The surface a coverage bar is pinned to, and the modules on it (#84).
+#
+# A register as data rather than a list inside a script, for the reason
+# .github/invariants/rules is one: the thing that changes here is which modules
+# are on the surface, not the logic that measures them, so adding one is editing
+# this file and the argument for it sits on the same line.
+#
+# Every line is a kind, a path, and the reason, separated by whitespace, and
+# .github/coverage/coverage.sh refuses a line missing any of the three. A bare
+# path is a module somebody added and nobody argued with.
+#
+# Two kinds:
+#
+#   area     a directory, written the way git writes one and ending in a slash.
+#            Every tracked .rs file under it IS on the pinned surface, and the
+#            run refuses one that is not listed as a module below. That is what
+#            makes this register hold: a surface list maintained by memory is a
+#            list that is wrong within a month, and a new file in one of these
+#            directories arrives on the surface whether or not anybody remembers
+#            to add it here.
+#
+#   module   a tracked .rs file the bar is measured over. It has to lie under
+#            one of the areas, because a module on no area is a module the check
+#            above could never notice going missing.
+#
+# WHERE THE BAR ITSELF IS. In .github/coverage/coverage.sh, beside the logic that
+# applies it, with the argument for the number on the same lines. It is not in
+# this file because what changes here is which modules are measured and what
+# changes there is what they have to reach.
+#
+# WHY THE BAR IS NOT OVER THE WHOLE REPOSITORY. A whole-codebase percentage can
+# be met by covering the easy half, and it can be missed by adding a large,
+# trivial, well understood module. Keying the gate to the surface that decides
+# outcomes means a thin non-critical path cannot trip it and a regression on the
+# path that matters cannot slip through it. The whole-repository number is
+# reported and tracked beside it rather than gating.
+#
+# WHY THESE AREAS AND NOT THE ONES THE TARGET GATE PINS. The gate this board is
+# measured against pins the authentication decision surface of a sign-on plugin,
+# and this repository has no such surface of its own. What is here instead is the
+# session and the token, reaching a server and deciding which one is reached, the
+# error mapping, the cache keying, and the image format refusal, because those
+# are the paths where a defect is exploitable or silently wrong.
+#
+# WHAT IS DELIBERATELY NOT ON IT, and this is a negative statement that stays
+# negative. src/clock/, src/diagnostics/, src/measurement/, src/playback/ and
+# src/lib.rs are not areas here. The clock is three value types over an injected
+# source. The measurement facility and the diagnostics facility are what the core
+# reports THROUGH rather than what it decides with, and a defect in either
+# produces a wrong number or a missing event rather than a wrong outcome. What
+# would move the diagnostics sink onto this surface is #71, which decides what
+# may leave through a diagnostic event at all, and that has not been built.
+# Nothing here says those modules are unimportant or that they are covered; it
+# says the bar below is not measured over them.
+
+area    src/session/    Holding a session and the interface a client stores its secret through. A defect here is a token in the wrong place or a session that outlives what the server said.
+area    src/server/     Reaching a server: the address a person typed, which host a request is allowed to go to, and the transport that will carry it. A defect here sends a credential somewhere nobody chose.
+area    src/cache/      What is written to a client's storage and under what key. 0041 makes the key what stops two servers and two people on one device reading each other's entries, and everything that decides what the store is asked to hold is in the same directory.
+area    src/failure/    The one point every failure in the core is mapped onto the vocabulary in 0004. A defect here is a case falling through and a caller being told nothing went wrong.
+area    src/artwork/    Turning bytes that arrived over a network into pixels, which 0003 calls the most attacked surface this repository will carry, and the refusal of every format the core does not decode.
+
+module  src/session/mod.rs          The session handle and the secret store interface a client implements.
+module  src/server/mod.rs           The server module and what it places at its own boundary.
+module  src/server/address.rs       The address a person typed, parsed and refused where it is not usable.
+module  src/server/federation.rs    Which second host a request may reach, and the deliberate act that admits one.
+module  src/cache/mod.rs            The store interface, the one failure it may report, and the key type 0041 derives.
+module  src/cache/bound.rs          What the core asks the store to hold, what it evicts, and what it does when the device refuses.
+module  src/failure/mod.rs          The error vocabulary, which holds no type yet: #37 is the mapping point and it is not built.
+module  src/artwork/mod.rs          The decoded image, which holds no decoder yet: #50 and #55 are where the decode and the format refusal arrive.
