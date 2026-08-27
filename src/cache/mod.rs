@@ -14,9 +14,22 @@
 //!
 //! The store interface 0040 fixes, the one failure it may report, the key type
 //! it is asked about, and the capability a client asks when it wants to know
-//! whether anything survives the process. Nothing in this tree caches anything:
-//! the bound and the eviction are #42, what is cached at all is 0006 and #43,
-//! and the cold-start path is #46.
+//! whether anything survives the process.
+//!
+//! THIS SECTION SAID NOTHING IN THIS TREE CACHES ANYTHING AND THAT THE BOUND AND
+//! THE EVICTION WERE #42. The bound and the eviction are in [`bound`], which is
+//! #42 landed rather than pending, and a client that supplies a store now gets
+//! bookkeeping over it: a bound counted on bytes the core counted, eviction of
+//! the least recently used entry before a write that would exceed it, a read in
+//! flight that eviction may not reach, and writing suspended rather than the
+//! core evicting its own entries when the device is full.
+//!
+//! What is still absent is the rest of the sentence and it is unchanged. WHAT is
+//! cached at all is 0006 and #43, the cold-start path is #46, the second tier
+//! and the split between them are #54, and the index that survives a restart is
+//! #105. Nothing here decides any of those.
+
+pub mod bound;
 
 /// The name one cache entry is kept under.
 ///
