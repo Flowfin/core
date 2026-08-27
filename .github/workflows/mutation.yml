@@ -1,0 +1,115 @@
+# Mutation testing over the surface that decides security outcomes, on a
+# schedule, reported and gating nothing (#85).
+#
+# WHAT THIS ASKS THAT `test` AND `coverage` CANNOT. `.github/workflows/test.yml`
+# refuses a run that collected no tests. `.github/workflows/coverage.yml` refuses
+# a pinned surface whose lines nobody reached. Neither can ask whether a test
+# that reached a line would have noticed that line being wrong, and a test that
+# calls a function and asserts nothing about the answer is green in both. This
+# leg changes the code underneath the suite and reports which changes the suite
+# failed to notice.
+#
+# WHY IT IS NOT ON A PULL REQUEST. Every mutant is a build and a test run of its
+# own, so the wall-clock cost is the suite multiplied by the number of mutants.
+# That is far too slow to sit in front of a merge, and the gate this board is
+# measured against reached the same placement for the same reason. There is no
+# `pull_request` trigger and no `push` trigger here on purpose: a leg that gates
+# nothing but runs on every pull request would spend the cost and buy the part
+# that was rejected.
+#
+# WHAT A FALLING SCORE OBLIGES, AND IT IS NOT A RED GATE. An issue on this board
+# per survivor, carrying the line the run printed, the module it is in, and what
+# would have caught it. `.github/mutation/mutation.sh` is where that position is
+# written out, and every run prints it beside its own score, so the obligation is
+# read where the number is rather than found later by somebody auditing.
+#
+# THE CHECK-RUN NAME IS `mutation`, ON BOTH THE WORKFLOW AND THE JOB. GitHub
+# takes it from the job's `name:` and falls back to the job id, so a ruleset
+# matching the literal cannot be detached by a rename here. #26 is where the
+# names a ruleset requires are decided, and this one is not a candidate for that
+# list: a required check that runs only on a schedule never reports on a pull
+# request head, so requiring it would refuse every merge.
+#
+# THE ANALYSER IS INSTALLED HERE AND ENTERS NO MANIFEST. `cargo install` builds
+# `cargo-mutants` on the runner from its own graph. `Cargo.toml` and `Cargo.lock`
+# are untouched by that, the crate graph this core ships stays empty, and
+# `docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md` is not
+# what admits it, in the same way that record is not what admits shellcheck or
+# the two tools the coverage leg reads counters with. The version is pinned for
+# the reason `rust-toolchain.toml` pins a compiler: a score produced by whatever
+# the runner resolved is a number that moves without a commit.
+#
+# NO TOOLCHAIN IS INSTALLED HERE. `rust-toolchain.toml` pins it and the toolchain
+# manager on this runner reads that file itself (#14), so this file carries no
+# version string for the compiler.
+#
+# THIS RUN IS NOT SANDBOXED THE WAY `test` IS. `.github/workflows/test.yml` runs
+# the suite inside a network namespace carrying only loopback (#20). The runs
+# here are the same suite under a mutated tree, executed outside that namespace,
+# and the install step above reaches the network by design. A test that reached
+# the network would be caught by the `test` job and not by this one, and this leg
+# is not a second reading of that property.
+name: mutation
+
+on:
+  # Weekly. The question this answers moves when the suite moves, and the suite
+  # moves on a pull request, so a daily run would spend the cost to re-report a
+  # number nothing changed. Offset off the hour for the reason every other cron
+  # in this tree is: the top of an hour is where every scheduled job on the
+  # platform queues at once.
+  schedule:
+    - cron: "41 3 * * 2"
+  # So a person who has just written the tests a survivor obliged can read the
+  # new score without waiting a week for it.
+  workflow_dispatch:
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: mutation-workflow-${{ github.ref }}
+  # Not cancelled in flight. A run here is long and produces the only reading of
+  # this number anybody gets, so a superseding run would throw away an hour of
+  # work to re-derive the same answer. The two triggers cannot collide often
+  # enough for that to cost anything.
+  cancel-in-progress: false
+
+jobs:
+  mutation:
+    name: mutation
+    runs-on: ubuntu-latest
+    # The suite multiplied by the mutant count, plus the analyser's own build.
+    # Generous rather than tight because nothing waits on this run, and a timeout
+    # that kills a nearly finished run publishes no score at all.
+    timeout-minutes: 120
+    permissions:
+      contents: read # check out the tree that is mutated
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      # Printed rather than assumed, and compared as well as printed (#14). Every
+      # mutant is compiled by this toolchain, so a score is a statement about a
+      # particular compiler's opinion of a mutated tree.
+      - name: Say which toolchain this run mutated against, and refuse another one
+        run: bash .github/toolchain/toolchain.sh check
+
+      # `--locked` so the analyser is built from its own published lockfile
+      # rather than from whatever its dependency ranges resolve to on the day,
+      # which is the same reason `cargo build --locked` is what the `build` check
+      # runs. The version is the one `.github/mutation/mutation.sh` names, and
+      # every run prints the version that actually produced its accounting, so
+      # the two are compared rather than assumed equal.
+      - name: Install the analyser
+        run: cargo install --locked cargo-mutants@27.1.0
+
+      - name: Prove the fixtures, then mutate the pinned surface and publish the score
+        run: bash .github/mutation/mutation.sh check
