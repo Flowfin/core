@@ -105,6 +105,7 @@ const _: () = {
     any_thread::<server::address::BaseAddress>();
     any_thread::<server::address::AddressNotUsable>();
     any_thread::<artwork::DecodedImage>();
-    any_thread::<cache::bound::BoundedCache<'static>>();
-    any_thread::<cache::bound::CacheBound>();
+    any_thread::<cache::bound::TieredCache<'static>>();
+    any_thread::<cache::bound::CacheBounds>();
+    any_thread::<cache::bound::Tier>();
 };
