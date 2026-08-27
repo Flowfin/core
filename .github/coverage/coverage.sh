@@ -620,7 +620,12 @@ BINARIES
   echo "      ${object_count} test binary/binaries reported against"
   echo
 
-  root="$(pwd | tr '\\' '/')/"
+  # The root the tool's paths are stripped of, with the separator normalised by
+  # the shell's own substitution. A `tr` with a backslash in single quotes does
+  # the same thing and the analyser reads it as somebody trying to escape a
+  # quote, which is a note on every run for a line that was right.
+  root="$(pwd)"
+  root="${root//\\//}/"
   # Word splitting on $objects is what this line is for: it holds the list built
   # above, and quoting it would hand the tool one argument with spaces in it.
   # shellcheck disable=SC2086
