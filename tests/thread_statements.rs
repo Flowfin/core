@@ -20,6 +20,7 @@
 
 use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
+use flowfin_core::cache::bound::{BoundedCache, CacheBound};
 use flowfin_core::cache::{ByteStore, EntryKey};
 use flowfin_core::clock::Clocks;
 use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
@@ -109,4 +110,14 @@ fn the_measurement_sink_a_client_supplies_is_safe_from_any_thread() {
 #[test]
 fn the_measurement_facility_is_safe_from_any_thread() {
     const _: () = any_thread::<Measurement<'static>>();
+}
+
+#[test]
+fn the_cache_bookkeeping_is_safe_from_any_thread() {
+    const _: () = any_thread::<BoundedCache<'static>>();
+}
+
+#[test]
+fn a_cache_bound_is_safe_from_any_thread() {
+    const _: () = any_thread::<CacheBound>();
 }
