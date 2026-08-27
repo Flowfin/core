@@ -60,6 +60,7 @@ area    src/failure/    The one point every failure in the core is mapped onto t
 area    src/artwork/    Turning bytes that arrived over a network into pixels, which 0003 calls the most attacked surface this repository will carry, and the refusal of every format the core does not decode.
 
 module  src/session/mod.rs          The session handle and the secret store interface a client implements.
+module  src/session/device.rs       The device identity, whose identifier is one part of the cache key 0041 derives and one half of the key a server puts a live session under, so a defect here reaches two other surfaces on this list.
 module  src/server/mod.rs           The server module and what it places at its own boundary.
 module  src/server/address.rs       The address a person typed, parsed and refused where it is not usable.
 module  src/server/federation.rs    Which second host a request may reach, and the deliberate act that admits one.
