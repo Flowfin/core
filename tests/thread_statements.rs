@@ -20,7 +20,7 @@
 
 use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
-use flowfin_core::cache::bound::{BoundedCache, CacheBound};
+use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
 use flowfin_core::cache::{ByteStore, EntryKey};
 use flowfin_core::clock::Clocks;
 use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
@@ -114,10 +114,15 @@ fn the_measurement_facility_is_safe_from_any_thread() {
 
 #[test]
 fn the_cache_bookkeeping_is_safe_from_any_thread() {
-    const _: () = any_thread::<BoundedCache<'static>>();
+    const _: () = any_thread::<TieredCache<'static>>();
 }
 
 #[test]
-fn a_cache_bound_is_safe_from_any_thread() {
-    const _: () = any_thread::<CacheBound>();
+fn the_cache_bounds_are_safe_from_any_thread() {
+    const _: () = any_thread::<CacheBounds>();
+}
+
+#[test]
+fn a_cache_tier_is_safe_from_any_thread() {
+    const _: () = any_thread::<Tier>();
 }
