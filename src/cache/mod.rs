@@ -5,10 +5,12 @@
 //! outside it. The records are 0006, 0040, 0041, 0042, 0043, 0046, 0047 and
 //! 0105, and the issues are #40 through #48 and #105.
 //!
-//! 0041 requires a cryptographic digest for a cache key, 0011 measures that the
-//! toolchain offers none, and 0103 is the rule that decides whether one may be
-//! taken as a dependency. Nothing here is written against a digest that does not
-//! exist yet.
+//! THIS PARAGRAPH SAID NOTHING HERE WAS WRITTEN AGAINST A DIGEST THAT DID NOT
+//! EXIST YET. One does. 0041 requires a cryptographic digest for a cache key,
+//! 0011 measured that the toolchain offers none, and 0103's clause for a
+//! requirement a landed record already states is what admitted the one in
+//! `Cargo.toml`, with the clause and what would retire it written beside the
+//! entry. The construction is in [`key`].
 //!
 //! # What is here today
 //!
@@ -32,6 +34,7 @@
 //! survives a restart is #105. Nothing here decides any of those.
 
 pub mod bound;
+pub mod key;
 
 /// The name one cache entry is kept under.
 ///
@@ -40,18 +43,19 @@ pub mod bound;
 /// with it the guarantee that two servers and two people on one device cannot
 /// read each other's entries.
 ///
-/// THE DERIVATION IS NOT IN THIS TREE AND THIS TYPE DOES NOT PERFORM ONE. 0041
-/// requires a cryptographic digest, 0011 measures that the toolchain offers
-/// none, and 0103 is the rule that would admit one. [`EntryKey::from_derived_key`]
-/// takes what a derivation produced and checks nothing about it, exactly as
-/// [`crate::session::SecretName`] does for the other store, and for the same
-/// reason: the interface can be built and used before the derivation behind it
-/// exists, and pretending otherwise would put a second derivation here for #41
-/// to have to remove.
+/// THIS PARAGRAPH SAID THE DERIVATION WAS NOT IN THIS TREE. It is, in [`key`],
+/// and [`EntryKey::derive`] is the call that performs it.
+/// [`EntryKey::from_derived_key`] stays beside it and still checks nothing about
+/// what it is handed, exactly as [`crate::session::SecretName`] does for the
+/// other store: a client's own test double and the bookkeeping in [`bound`] both
+/// need a key that stands for one, and asking either to run a derivation would
+/// make a key a thing only the core can name.
 ///
 /// The two spaces must not collide. 0033 requires a secret store name and a
 /// cache key to be distinguishable, so whatever tag 0041 puts at the front of a
-/// key is what separates them, and neither type invents one on its own.
+/// key is what separates them. [`key`] carries the cache space's tag and a test
+/// that the two spaces differ; the secret store's own tag arrives with #33's
+/// naming and is not invented there.
 ///
 /// Thread safety, from 0009: a plain value, safe from any thread.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

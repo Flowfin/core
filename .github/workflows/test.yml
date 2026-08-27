@@ -72,6 +72,25 @@ jobs:
       - name: Say which toolchain runs the suite, and refuse another one
         run: bash .github/toolchain/toolchain.sh check
 
+      # The crate graph is resolved here for the same reason the toolchain is:
+      # the sandbox below has only loopback in it, so anything the build needs
+      # from the network has to already be on this machine when it is entered.
+      #
+      # THIS STEP DID NOT EXIST UNTIL THE FIRST DEPENDENCY LANDED, AND ITS
+      # ABSENCE WAS NOT VISIBLE BEFORE THAT. With an empty manifest `cargo test`
+      # reached no registry, so the sandbox and the fetch never met. The first
+      # entry sent the suite looking for `index.crates.io` inside a namespace
+      # where that name does not resolve, and the run failed with three spurious
+      # network warnings and a collected count of zero. That is #41.
+      #
+      # It weakens nothing the sandbox proves. What #20 requires is that the
+      # SUITE runs with no display, no route to elevation and no interface but
+      # loopback, and `.github/headless/headless.sh` still reads all three back
+      # inside it. A fetch that happens before any of that is entered is the same
+      # kind of preparation as installing the compiler.
+      - name: Fetch the crate graph, before the network goes away
+        run: cargo fetch --locked
+
       # The suite runs headless, unprivileged and on loopback alone (#20).
       # `.github/headless/enter.sh` creates those three, and
       # `.github/headless/headless.sh` reads them back and refuses the run if any

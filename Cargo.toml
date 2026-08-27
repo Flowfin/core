@@ -16,9 +16,47 @@ publish = false
 name = "flowfin_core"
 
 [dependencies]
-# Empty on purpose. `docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md`
-# is the rule that admits an entry here, and every entry carries the clause that
-# admitted it and what would retire it on the line above it.
+# THE FIRST ENTRY HERE, AND THE COMMENT THAT SAID THERE WERE NONE IS BELOW WITH
+# THE PART OF IT THAT STILL STANDS. Every entry carries the clause of
+# `docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md` that
+# admitted it and what would retire it, on the lines above it, because a separate
+# list drifts from the graph it describes and the drift is invisible until
+# somebody audits it.
+#
+# Admitted by: the clause for a requirement a landed record already states.
+# `docs/decisions/0041-how-a-cache-key-is-built.md` requires a cryptographic
+# digest used at full width, against an input the adversary partly controls, and
+# `docs/decisions/0011-the-language-the-toolchain-and-the-binding-layer.md`
+# measures that the toolchain offers none. 0103 names 0041 as one of the two
+# records that clause was written for, so the judgement of worth was made there
+# and what is left is the licence set, the four behaviours, and the smallest
+# thing that meets the requirement. The licence is `MIT OR Apache-2.0` on this
+# package and on all eight it reaches, both members are in 0103's admitted set,
+# and none of the five outright refusals applies: it reaches no network, touches
+# no filesystem, starts no thread, writes to no log, and carries no field-bearing
+# surface of its own.
+#
+# Retired by: the toolchain offering a cryptographic digest on a stable build,
+# which 0011 already names as the shape that retires this class; or 0041 being
+# superseded by a record that no longer requires one. Not by "when we no longer
+# need it", which 0103 refuses as a condition.
+#
+# `default-features = false` because `alloc` and `oid` are on by default and this
+# core needs neither: nothing here boxes a digest and nothing here reads an object
+# identifier. What that does not remove is `cpufeatures`, which `sha2` reaches for
+# on every target to choose an implementation at run time, and which reaches
+# `libc` on some of them. That is the whole of the graph and it is read rather
+# than assumed:
+#
+#     cargo tree -e normal
+#     cargo metadata --format-version 1 --locked | jq -r '.packages[] | "\(.name) \(.license)"'
+sha2 = { version = "0.11", default-features = false }
+
+# WHAT THE SENTENCE THAT STOOD HERE STILL SAYS. It said this section was empty on
+# purpose and named 0103 as the rule that admits an entry. The emptiness is gone
+# and the rule is not: an entry arriving here without a clause and a removal
+# condition beside it is refused by nothing in this repository today, which is
+# that record's own closing sentence about itself.
 
 [dev-dependencies]
 # Empty on purpose, and judged by the same record: the relaxation there is on

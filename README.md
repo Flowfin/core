@@ -8,10 +8,24 @@ that depends on it exists.
 
 ## Building it
 
-A fresh clone needs a Rust toolchain and nothing else. `cargo`, the formatter and
-the analyser all arrive with it, and there is no dependency to fetch: the manifest
-declares none, and what may ever be added to it is
-[0103](docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md).
+A fresh clone needs a Rust toolchain and a network. `cargo`, the formatter and
+the analyser all arrive with the toolchain, and the manifest declares one
+dependency, which is fetched on the first build.
+
+THIS PARAGRAPH SAID THERE WAS NOTHING TO FETCH AND THAT THE MANIFEST DECLARED
+NONE. Both stopped being true when the cache key derivation landed:
+[0041](docs/decisions/0041-how-a-cache-key-is-built.md) requires a cryptographic
+digest, [0011](docs/decisions/0011-the-language-the-toolchain-and-the-binding-layer.md)
+measures that the toolchain offers none, and
+[0103](docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md) is
+the rule that admitted one. What is there, and what it reaches, is read rather
+than written here:
+
+    cargo tree -e normal
+
+That record is still what may ever be added, and every entry carries the clause
+that admitted it and what would retire it beside it in
+[Cargo.toml](Cargo.toml).
 The version is pinned in [rust-toolchain.toml](rust-toolchain.toml), which the
 toolchain manager reads by itself, so a fresh clone gets the right compiler
 without being told to install one. A compiler that arrived some other way is
