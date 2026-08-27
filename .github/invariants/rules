@@ -81,6 +81,14 @@ prevents: A deadline measured against a clock no test can move. All three clocks
 fixture: let started = std::time::Instant::now();
 clean: /// The source supplies steady, elapsed and wall; nothing here reads one.
 
+id: no-unstated-unit-where-a-position-is-meant
+pattern: (^|[^A-Za-z_])((fn ([a-z_]*_)?(position|duration)\([^)]*\)[[:space:]]*->[[:space:]]*&?(i|u)(8|16|32|64|128|size))|(([a-z_]*_)?(position|duration):[[:space:]]*&?(i|u)(8|16|32|64|128|size)))
+paths: src/
+grounds: docs/decisions/0056-the-unit-a-position-is-expressed-in.md
+prevents: A plain number of unstated unit where a position or a duration is meant, which is the one condition of #56 that is a property of the interface rather than of a test. The unit then becomes whatever the first caller assumed, and two positions that took different routes are compared as though they had been in the same one, which is what 0058's disagreement rule rests on. A name that states the unit is untouched, because something has to write the number on the wire, and that is the near miss beside this rule.
+fixture: pub const fn position(self) -> i64 {
+clean: pub const fn position_ticks(self) -> i64 {
+
 id: no-user-interface-dependency
 pattern: ^name = "(winit|glutin|softbuffer|sdl2|gtk|gtk4|gdk|gdk4|glib|egui|eframe|iced|slint|druid|dioxus|tauri|fltk|conrod_core|qmetaobject|cocoa|cacao|core-graphics|skia-safe|femtovg|raqote|tiny-skia|piet|wgpu|vello|glium|kiss3d|nannou)"
 paths: Cargo.lock

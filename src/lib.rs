@@ -34,11 +34,12 @@
 //! THIS SECTION SAID THAT EVERY TYPE BELOW IS A NAME WITH THE STATEMENT 0009
 //! MAKES ABOUT ITS KIND AND NOTHING ELSE, AND THAT HAS STOPPED BEING TRUE. It
 //! was written when the tree held no behaviour at all. `session` carries the
-//! interface #33 defines and `measurement` carries the span facility #61 does,
-//! and both were landed by the issue that owned them rather than by a layout
-//! deciding anything. It was found while adding the second of the two, by
-//! reading this file to place a module rather than by anything reporting it, and
-//! nothing here reads it.
+//! interface #33 defines, `measurement` carries the span facility #61 does, and
+//! `playback` carries the unit and the two bounds 0056 fixes for #56, and each
+//! was landed by the issue that owned it rather than by a layout deciding
+//! anything. It was found while adding the second of the three, by reading this
+//! file to place a module rather than by anything reporting it, and nothing here
+//! reads it.
 //!
 //! What the sentence was for still holds where nothing has landed yet. A type
 //! below whose issue has not been worked is a name with 0009's statement on it
@@ -60,8 +61,22 @@
 //! BYTES IN THIS TREE. One of them holds something now: `measurement::Measurement`
 //! carries a reference to a client's clock source, a reference to a client's
 //! subscriber and a counter, and the assertion on it is what refuses a facility
-//! that stopped being safe from any thread. The other four still hold nothing,
-//! and for those the sentence is unchanged.
+//! that stopped being safe from any thread.
+//!
+//! THE SENTENCE AFTER IT SAID THE OTHER FOUR STILL HOLD NOTHING, AND IT IS NOT
+//! REPLACED BY A NEW COUNT. It was written against a list of five and the list
+//! below is longer than that, so a reader checking the four could not tell which
+//! four were meant. A count written here goes stale on the next landing for the
+//! same reason this one did, and the list is one command away:
+//!
+//! ```text
+//! git grep -c 'any_thread::<' -- src/lib.rs
+//! ```
+//!
+//! What the sentence was for is unchanged and does not need the number: an
+//! assertion over a type holding nothing cannot fail on the bytes in this tree,
+//! and it is there so that the day the type holds something is the day the
+//! compiler starts judging it.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -105,6 +120,8 @@ const _: () = {
     any_thread::<server::address::BaseAddress>();
     any_thread::<server::address::AddressNotUsable>();
     any_thread::<artwork::DecodedImage>();
+    any_thread::<playback::Ticks>();
+    any_thread::<playback::AdmittedPosition>();
     any_thread::<cache::bound::TieredCache<'static>>();
     any_thread::<cache::bound::CacheBounds>();
     any_thread::<cache::bound::Tier>();
