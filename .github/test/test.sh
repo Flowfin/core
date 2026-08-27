@@ -242,7 +242,7 @@ ACCOUNTING
 
   echo "-- what this run did not read"
   echo "NOT MADE HERE: whether the tests are the right tests. A count is a count, and a suite of one assertion that never fails passes this check."
-  echo "NOT MADE HERE: coverage. Nothing here measures which lines a run reached, and #84 is where that lands."
+  echo "NOT MADE HERE: coverage. Nothing here measures which lines a run reached. .github/coverage/coverage.sh does, over a separate instrumented run, and a module nobody calls leaves THIS check exactly as green as one every path runs through."
   echo "NOT MADE HERE: a path that needs real hardware or a real server. That is the separate harness in #22 and no run here touches it."
   echo
   echo "The suite collected ${executed} test(s) and every one of them passed."
