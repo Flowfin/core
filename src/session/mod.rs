@@ -4,6 +4,15 @@
 //! and handing the secret to a store the client supplies inside the core. The
 //! records are 0005, 0030, 0031, 0032, 0033, 0034, 0036 and 0114, and the issues
 //! are #30 through #36 and #114.
+//!
+//! [`device`] holds what 0036 decides. It is here rather than beside the session
+//! because 0005 fixes a session as one server, one account and one device
+//! together, so the identity is part of what names a session rather than
+//! something a session acquires. None of it is state the core holds: the client
+//! keeps the identifier and the name, and the core owns the shape of the
+//! capability description and fills none of it in.
+
+pub mod device;
 
 /// One signed-in session against one server.
 ///

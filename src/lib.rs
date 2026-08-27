@@ -113,6 +113,9 @@ const fn any_thread<T: Send + Sync>() {}
 const _: () = {
     any_thread::<Core>();
     any_thread::<session::Session>();
+    any_thread::<session::device::DeviceIdentity>();
+    any_thread::<session::device::Capabilities>();
+    any_thread::<session::device::PartNotUsable>();
     any_thread::<measurement::Measurement<'static>>();
     any_thread::<diagnostics::Diagnostics<'static>>();
     any_thread::<server::QueryResult>();
