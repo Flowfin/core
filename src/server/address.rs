@@ -113,11 +113,11 @@ pub enum UnusablePart {
 /// What a person typed could not be turned into somewhere to send a request.
 ///
 /// This is not a value of the failure vocabulary. 0037 requires every value of
-/// that set to be built at one mapping point and nowhere else, and that point
-/// does not exist in this tree yet - [`crate::failure`] holds no type today, and
-/// #37 is where it arrives. So this type says what this module found, and
-/// mapping it onto 0004's `address-not-usable` is the mapping point's, exactly
-/// as [`crate::session::SecretStoreUnavailable`] is handled.
+/// that set to be built at one mapping point and nowhere else. THIS SENTENCE
+/// SAID THAT POINT DOES NOT EXIST IN THIS TREE YET. It does, and this type is
+/// what it reads: [`crate::failure::Failure::address_not_usable`] turns what
+/// this module found into 0004's `address-not-usable`, keeping what was typed
+/// unmodified and the part alongside it.
 ///
 /// It carries what was typed unmodified, including the surrounding whitespace,
 /// because a client shows a person what they typed rather than what the core

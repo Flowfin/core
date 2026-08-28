@@ -39,6 +39,21 @@
 //! is what a real server sends. No answer in `surface.rs` is a recording; #104 is
 //! where a fixture is held honest against a real server and it is open.
 
+// TWO TEST BINARIES COMPILE THIS MODULE AND EACH USES A SUBSET OF IT, WHICH IS
+// WHAT THIS ALLOW IS FOR AND THE WHOLE OF WHAT IT IS FOR. A shared module under
+// tests/ is compiled once per target that declares it, and dead-code analysis
+// runs per target, so an item both binaries need but only one of them calls is
+// reported against the other. The alternatives are worse in the direction that
+// matters: making every target touch every item distorts the cases into
+// exercising scaffolding rather than behaviour, and splitting the module per
+// target is the second copy of a fake that stops agreeing with the first.
+//
+// What it costs is stated rather than hidden: an item here that NO target uses
+// is not reported either, so a reader who wants to know whether something is
+// still driven greps for it rather than trusting a green build.
+#![allow(dead_code)]
+
+pub mod client;
 pub mod clock;
 pub mod surface;
 

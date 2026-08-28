@@ -90,8 +90,10 @@ impl SecretName {
 /// asking it to repeat what the caller knows, and 0037 requires the value of the
 /// failure vocabulary to be built at one mapping point and nowhere else. So a
 /// store says only that it could not answer, and the mapping onto the vocabulary
-/// is the core's. That mapping point does not exist yet; it is #37, and
-/// [`crate::failure`] holds no type today.
+/// is the core's. THIS SENTENCE SAID THAT MAPPING POINT DOES NOT EXIST YET. It
+/// does: [`crate::failure::Failure::from_secret_store`] is where this value
+/// becomes `storage-unavailable`, and it is the caller that says whether the
+/// call was a read or a write.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SecretStoreUnavailable;
 

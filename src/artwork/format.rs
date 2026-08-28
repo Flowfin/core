@@ -37,7 +37,11 @@
 //!
 //! No failure of 0004's vocabulary. 0055 fixes every refusal below as
 //! `answer-not-understood`, and 0037 requires that value to be built at one
-//! mapping point, which is #37 and does not exist. [`Refused`] is a local answer
+//! mapping point. THIS SENTENCE SAID THAT POINT DOES NOT EXIST AND IT DOES NOW:
+//! [`crate::failure::Failure`] is it, and the value these refusals become there
+//! is `answer-not-understood` carrying
+//! [`crate::failure::ReadingSite::ImageFormatRefused`], which is the site 0055's
+//! population is counted on. [`Refused`] is a local answer
 //! that says which check refused, the way [`crate::cache::StorageUnavailable`]
 //! is for its own store, and the several values here become one kind at that
 //! mapping point rather than a sixteenth one.
@@ -203,7 +207,10 @@ impl DeclaredDimensions {
 /// format is a shape the core recognised and declined on purpose, and the word in
 /// the kind says the opposite. What is here is which check refused, which is what
 /// a diagnostic event under #100 would carry and what a reader of a refusal
-/// wants; the mapping onto the kind is #37's and is not made anywhere yet.
+/// wants. THIS SENTENCE SAID THE MAPPING ONTO THE KIND IS NOT MADE ANYWHERE:
+/// the point exists now and is [`crate::failure::Failure`], and no caller in
+/// this tree reaches it from here, because nothing fetches artwork yet and that
+/// is #49.
 ///
 /// A refusal is not the absent answer in #51. One says the server sent something
 /// wrong and the other says the server has no image, and a client that cannot

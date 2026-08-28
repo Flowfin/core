@@ -28,10 +28,10 @@
 //!
 //! Neither is the demand for freshness. 0043 fixes what it returns when the
 //! server cannot be reached, which is the transport's own kind from 0004, never
-//! a stale entry and never a cache-specific failure, and [`crate::failure`]
-//! holds no type to return, because the one mapping point 0037 requires is #37.
-//! A demand written here today would have to invent a failure value at the call
-//! site, which is the exact thing that record exists to prevent.
+//! a stale entry and never a cache-specific failure. THIS PARAGRAPH SAID
+//! [`crate::failure`] HOLDS NO TYPE TO RETURN. It holds one since #37 landed, so
+//! what the demand waits on is a transport that can fail to reach a server,
+//! which is #27, rather than a value to fail with.
 //!
 //! Nothing stamps an entry with a version or tells a complete one from a
 //! truncated one, so every [`WrittenAt`] below describes an entry this version

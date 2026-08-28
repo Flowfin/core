@@ -9,15 +9,12 @@
 //!
 //! # The client here is not the transport
 //!
-//! The transport is #27 and does not exist. What drives the server below is
-//! sixty lines of `std::net` written for this file, which reads a status line,
-//! headers and a body and does nothing else. It is deliberately not a general
-//! client: the moment #27 lands, the cases here are the ones that should be
-//! rewritten to drive the real one, and a capable client written now would be a
-//! second transport nobody decided to have.
+//! What drives the server is `fake_server::client`, which says in its own
+//! documentation what it is and what it is not.
 
 mod fake_server;
 
+use fake_server::client::{LONG_ENOUGH_TO_CALL_IT_SILENCE, ask, ask_carrying, read_back, send};
 use fake_server::clock::ControlledClocks;
 use fake_server::surface::{
     A_SMALL_JPEG, Answer, CAPABILITIES_WITH_NO_ROUTE, Hostile, Method, NOT_AN_ACCEPTED_IMAGE,
@@ -26,141 +23,6 @@ use fake_server::surface::{
 use fake_server::{FakeServer, Seen, matching_row_in};
 use flowfin_core::artwork::format::{Accepted, Refused, admitted};
 use flowfin_core::clock::{Clocks, WallMoment};
-use std::io::{Read, Write};
-use std::net::TcpStream;
-use std::time::Duration;
-
-/// How long a test waits on a connection the server is deliberately not
-/// answering before it calls the silence silence.
-///
-/// This is the test waiting rather than the core, and it is the one interval in
-/// this file measured against real time. The core's own deadlines are on the
-/// injected source in `fake_server::clock`, where a test moves the clock instead
-/// of waiting.
-const LONG_ENOUGH_TO_CALL_IT_SILENCE: Duration = Duration::from_millis(50);
-
-/// What the client above read back.
-struct Received {
-    status: u16,
-    reason: String,
-    headers: Vec<(String, String)>,
-    body: Vec<u8>,
-    declared_length: Option<usize>,
-}
-
-impl Received {
-    fn header(&self, name: &str) -> Option<&str> {
-        let wanted = name.to_ascii_lowercase();
-        self.headers
-            .iter()
-            .find(|(had, _)| *had == wanted)
-            .map(|(_, value)| value.as_str())
-    }
-}
-
-/// Sends one request and reads the answer until the connection ends.
-fn ask(server: &FakeServer, method: &str, path: &str, extra: &[(&str, &str)]) -> Received {
-    read_back(&mut send(server, method, path, extra), None).expect("an answer on loopback")
-}
-
-/// Sends one request carrying a body and reads the answer.
-fn ask_carrying(
-    server: &FakeServer,
-    method: &str,
-    path: &str,
-    extra: &[(&str, &str)],
-    body: &[u8],
-) -> Received {
-    read_back(&mut send_carrying(server, method, path, extra, body), None)
-        .expect("an answer on loopback")
-}
-
-/// Opens a connection and writes one request onto it.
-fn send(server: &FakeServer, method: &str, path: &str, extra: &[(&str, &str)]) -> TcpStream {
-    send_carrying(server, method, path, extra, b"")
-}
-
-/// Opens a connection and writes one request carrying `body` onto it.
-fn send_carrying(
-    server: &FakeServer,
-    method: &str,
-    path: &str,
-    extra: &[(&str, &str)],
-    body: &[u8],
-) -> TcpStream {
-    let mut connection =
-        TcpStream::connect(server.address()).expect("a connection to the fake server");
-    let mut request = format!("{method} {path} HTTP/1.1\r\nHost: {}\r\n", server.address());
-    for (name, value) in extra {
-        request.push_str(name);
-        request.push_str(": ");
-        request.push_str(value);
-        request.push_str("\r\n");
-    }
-    request.push_str("Content-Length: ");
-    request.push_str(&body.len().to_string());
-    request.push_str("\r\n\r\n");
-    let mut wire = request.into_bytes();
-    wire.extend_from_slice(body);
-    connection
-        .write_all(&wire)
-        .expect("the request onto the connection");
-    connection.flush().expect("the request flushed");
-    connection
-}
-
-/// Reads an answer off a connection, or `None` where nothing arrived inside
-/// `patience`.
-fn read_back(connection: &mut TcpStream, patience: Option<Duration>) -> Option<Received> {
-    connection
-        .set_read_timeout(patience)
-        .expect("a read timeout on the client's own socket");
-    let mut received = Vec::new();
-    let mut chunk = [0_u8; 1024];
-    loop {
-        match connection.read(&mut chunk) {
-            // Nothing more is coming, either because the server closed or
-            // because the patience above ran out. Which of the two it was is the
-            // caller's to tell, from whether anything arrived at all.
-            Ok(0) | Err(_) => break,
-            Ok(read) => received.extend_from_slice(&chunk[..read]),
-        }
-    }
-    if received.is_empty() {
-        return None;
-    }
-    let head_ends_at = received
-        .windows(4)
-        .position(|window| window == b"\r\n\r\n")
-        .expect("an answer with a head");
-    let head = String::from_utf8(received[..head_ends_at].to_vec()).expect("a head that is text");
-    let mut lines = head.split("\r\n");
-    let mut status_line = lines.next().expect("a status line").split(' ');
-    let _version = status_line.next();
-    let status: u16 = status_line
-        .next()
-        .expect("a status")
-        .parse()
-        .expect("a status that is a number");
-    let reason = status_line.collect::<Vec<_>>().join(" ");
-    let mut headers = Vec::new();
-    for line in lines {
-        if let Some((name, value)) = line.split_once(':') {
-            headers.push((name.trim().to_ascii_lowercase(), value.trim().to_owned()));
-        }
-    }
-    let declared_length = headers
-        .iter()
-        .find(|(name, _)| name == "content-length")
-        .and_then(|(_, value)| value.parse::<usize>().ok());
-    Some(Received {
-        status,
-        reason,
-        headers,
-        body: received[head_ends_at + 4..].to_vec(),
-        declared_length,
-    })
-}
 
 /// The answer both rows of the colliding fixture below carry. What that case is
 /// about is which row answers, so the answers are the same on purpose.
