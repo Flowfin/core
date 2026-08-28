@@ -900,6 +900,50 @@ mod tests {
         assert_eq!(value_of(&seen[0], "entry-kind"), "Text(\"item-metadata\")");
     }
 
+    /// Every name in the three tables a report reads out, said once each.
+    ///
+    /// It is one condition over all of them rather than an assertion inside the
+    /// conditions above, because what a name is worth is that it does not move:
+    /// a field is data a client reads, and a name that changed when somebody
+    /// renamed a variant would change what every client's report says. A
+    /// condition that only reached the names its own case happened to produce
+    /// would leave the rest free to move.
+    #[test]
+    fn every_name_a_report_carries_is_the_name_it_was_written_as() {
+        assert_eq!(
+            EntryKind::all()
+                .iter()
+                .map(|kind| kind.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "library-query-results",
+                "item-metadata",
+                "server-capability-answers",
+                "artwork-bytes",
+                "decoded-dimensions",
+            ]
+        );
+
+        assert_eq!(
+            WhichCheckFailed::all()
+                .iter()
+                .map(|which| which.as_str())
+                .collect::<Vec<_>>(),
+            vec!["malformed", "version", "kind", "length", "digest"]
+        );
+
+        // 0054's split, over the whole set rather than over the member somebody
+        // remembered: artwork bytes are the artwork tier and everything else
+        // 0006 calls a cache entry is the metadata tier.
+        assert_eq!(
+            EntryKind::all()
+                .iter()
+                .map(|kind| Tier::of(*kind).as_str())
+                .collect::<Vec<_>>(),
+            vec!["metadata", "metadata", "metadata", "artwork", "metadata",]
+        );
+    }
+
     /// The debug text of one field of one collected event.
     fn value_of<'a>(collected: &'a Collected, name: &str) -> &'a str {
         collected
