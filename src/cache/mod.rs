@@ -29,11 +29,20 @@
 //! when the device is full, and artwork released so that a refused metadata
 //! write can be attempted once more.
 //!
-//! What is still absent is the rest of the sentence and it is unchanged. WHAT is
-//! cached at all is 0006 and #43, the cold-start path is #46, and the index that
-//! survives a restart is #105. Nothing here decides any of those.
+//! THE REST OF THAT SENTENCE SENT A READER TO #43 FOR WHAT IS CACHED AT ALL,
+//! AND HALF OF WHAT #43 OWNS IS NOW HERE. [`freshness`] holds the three states a
+//! read answers with, the age 0102 anchors on the server rather than on a device
+//! clock, and 0043's table of how long each kind of entry stays fresh. What is
+//! still absent from that half is the demand for freshness, which needs a
+//! failure to return and so waits on #37, and every caller: nothing in this tree
+//! fetches bytes out of a store and hands them there.
+//!
+//! The rest of the sentence is unchanged. The cold-start path is #46, and the
+//! index that survives a restart is #105, so every entry [`freshness`] describes
+//! is one this version wrote completely. Nothing here decides either of those.
 
 pub mod bound;
+pub mod freshness;
 pub mod key;
 
 /// The name one cache entry is kept under.
