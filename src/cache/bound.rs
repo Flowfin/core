@@ -50,6 +50,7 @@ use core::time::Duration;
 use std::collections::BTreeMap;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
+use super::freshness::EntryKind;
 use super::{ByteStore, EntryKey};
 use crate::clock::{Clocks, ElapsedInstant};
 use crate::diagnostics::redaction::FieldName;
@@ -151,6 +152,25 @@ pub enum Tier {
 }
 
 impl Tier {
+    /// Which tier a kind of entry is accounted under.
+    ///
+    /// 0054's split, read off this type's own documentation rather than decided
+    /// again: artwork bytes are the artwork tier and everything else 0006 calls
+    /// a cache entry is the metadata tier, decoded dimensions included. It is a
+    /// function rather than a field on a kind so that the mapping sits beside
+    /// the thing it maps onto, which is where a reader asking what a tier holds
+    /// will be.
+    #[must_use]
+    pub const fn of(kind: EntryKind) -> Self {
+        match kind {
+            EntryKind::ArtworkBytes => Self::Artwork,
+            EntryKind::LibraryQueryResults
+            | EntryKind::ItemMetadata
+            | EntryKind::ServerCapabilityAnswers
+            | EntryKind::DecodedDimensions => Self::Metadata,
+        }
+    }
+
     /// Both tiers.
     ///
     /// Here so that a caller reads the set out of the crate rather than keeping
@@ -487,7 +507,7 @@ impl<'a> TieredCache<'a> {
     /// EVICTED. That is 0042's rule and it is held here rather than at the
     /// eviction: eviction picks the next entry in the order instead and comes
     /// back to this key once the read has finished.
-    pub fn read(&self, tier: Tier, key: &EntryKey) -> Option<Vec<u8>> {
+    pub(crate) fn read(&self, tier: Tier, key: &EntryKey) -> Option<Vec<u8>> {
         let answer = {
             let _in_flight = ReadInFlight::started(self, key);
             self.store.read(key)
@@ -510,6 +530,27 @@ impl<'a> TieredCache<'a> {
             }
             Err(_) => None,
         }
+    }
+
+    /// Removes one entry and nothing else.
+    ///
+    /// This is what 0105 has a failed envelope reading do, and it is deliberately
+    /// not an eviction: 0042's accounting is about a bound that was reached, and
+    /// this entry is going because it could not be believed. A store that cannot
+    /// remove it is left alone rather than counted towards the run of refusals
+    /// that suspends writing, for the reason the eviction path already gives -
+    /// a remove that could not be made is the store being unreachable rather
+    /// than a write being refused.
+    ///
+    /// The store is asked first and with no lock held, which is 0040's rule for
+    /// every call into a client's implementation. The index is corrected
+    /// afterwards, so an entry the store kept is one the accounting has stopped
+    /// counting, which is the direction that evicts too early rather than the
+    /// one that overruns the bound.
+    pub(crate) fn forget(&self, tier: Tier, key: &EntryKey) {
+        let _asked = self.store.remove(key);
+        let mut state = self.locked();
+        drop(take(&mut state, tier, key));
     }
 
     /// Offers bytes to one tier, evicting from that tier first where they would
@@ -537,7 +578,7 @@ impl<'a> TieredCache<'a> {
     /// next entry in the order to pick, so the write does not fit today and no
     /// read is cancelled to make it fit, which is the half of 0042's rule that
     /// is easy to lose.
-    pub fn write(&self, tier: Tier, key: &EntryKey, bytes: &[u8]) -> Cached {
+    pub(crate) fn write(&self, tier: Tier, key: &EntryKey, bytes: &[u8]) -> Cached {
         let now = self.clocks.elapsed();
         let incoming = counted_length(bytes);
 
