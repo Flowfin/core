@@ -292,3 +292,164 @@ impl Correlator {
 static HEX: [char; 16] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ];
+
+#[cfg(test)]
+mod tests {
+    //! What the three treatments, the correlator and the salt are proven with
+    //! here, and what is proven one module up instead.
+    //!
+    //! The conditions in [`crate::diagnostics`] drive whole events through the
+    //! facility and read what a sink was handed, which is where the rule meets
+    //! its boundary. These are about the pieces underneath: that a name carries
+    //! the treatment it was built with wherever it is built, that every shape a
+    //! field value can take is reduced rather than only the one this tree emits
+    //! today, and that the salt cannot be read back out of the type that holds
+    //! it.
+
+    use super::{CORRELATOR_WIDTH, Correlator, CorrelatorSalt, FieldName, Treatment};
+    use crate::diagnostics::FieldValue;
+    use core::time::Duration;
+
+    fn a_salt() -> CorrelatorSalt {
+        CorrelatorSalt::from_bytes([0x5a; CorrelatorSalt::WIDTH])
+    }
+
+    fn another_salt() -> CorrelatorSalt {
+        CorrelatorSalt::from_bytes([0xa5; CorrelatorSalt::WIDTH])
+    }
+
+    /// Each of the three calls is the treatment, and the name comes back out
+    /// unchanged. Built here rather than as a constant so the calls are made at
+    /// a moment a run can see.
+    #[test]
+    fn a_name_carries_the_treatment_the_call_that_built_it_names() {
+        let whole = FieldName::carried_whole("attempts");
+        let reduced = FieldName::reduced("item");
+        let excluded = FieldName::excluded("token");
+
+        assert_eq!(whole.treatment(), Treatment::CarriedWhole);
+        assert_eq!(reduced.treatment(), Treatment::Reduced);
+        assert_eq!(excluded.treatment(), Treatment::Excluded);
+
+        assert_eq!(whole.as_str(), "attempts");
+        assert_eq!(reduced.as_str(), "item");
+        assert_eq!(excluded.as_str(), "token");
+    }
+
+    /// Two names differing only in their treatment are two values, so a name
+    /// cannot be compared without its treatment coming with it.
+    #[test]
+    fn one_name_under_two_treatments_is_two_values() {
+        assert_ne!(FieldName::reduced("item"), FieldName::excluded("item"));
+        assert_eq!(FieldName::reduced("item"), FieldName::reduced("item"));
+    }
+
+    /// Every shape a field value can take is reduced, not only the one this tree
+    /// emits under a reduced name today. 0071 puts the decision on the name, and
+    /// a reduction that answered for one shape would put it back on the shape.
+    #[test]
+    fn every_shape_of_value_reduces() {
+        let salt = a_salt();
+        let shapes = [
+            FieldValue::Count(7),
+            FieldValue::Interval(Duration::from_millis(7)),
+            FieldValue::Text("seven"),
+            FieldValue::Truth(true),
+        ];
+
+        let correlators: Vec<String> = shapes
+            .iter()
+            .map(|shape| Correlator::of(&salt, *shape).as_str().to_owned())
+            .collect();
+
+        for correlator in &correlators {
+            assert_eq!(correlator.len(), CORRELATOR_WIDTH);
+            assert!(
+                correlator.chars().all(|c| c.is_ascii_hexdigit()),
+                "the correlator was {correlator}"
+            );
+        }
+
+        let mut distinct = correlators.clone();
+        distinct.sort();
+        distinct.dedup();
+        assert_eq!(
+            distinct.len(),
+            correlators.len(),
+            "two shapes reduced to one correlator"
+        );
+    }
+
+    /// The shape is inside the digest as well as the value, so a count and a
+    /// truth that would read the same do not correlate as one thing.
+    #[test]
+    fn two_shapes_carrying_the_same_number_do_not_correlate() {
+        let salt = a_salt();
+        assert_ne!(
+            Correlator::of(&salt, FieldValue::Count(1)).as_str(),
+            Correlator::of(&salt, FieldValue::Truth(true)).as_str()
+        );
+        assert_ne!(
+            Correlator::of(&salt, FieldValue::Count(0)).as_str(),
+            Correlator::of(&salt, FieldValue::Truth(false)).as_str()
+        );
+    }
+
+    /// The same value under two salts is two correlators, which is the property
+    /// the salt exists for: a correlator means nothing outside the run that
+    /// produced it.
+    #[test]
+    fn the_salt_is_inside_the_correlator() {
+        assert_ne!(
+            Correlator::of(&a_salt(), FieldValue::Text("one")).as_str(),
+            Correlator::of(&another_salt(), FieldValue::Text("one")).as_str()
+        );
+        assert_eq!(
+            Correlator::of(&a_salt(), FieldValue::Text("one")).as_str(),
+            Correlator::of(&a_salt(), FieldValue::Text("one")).as_str()
+        );
+    }
+
+    /// The one value this type exists to keep off every output cannot reach one
+    /// through the trait every type in this crate carries. Written out by hand
+    /// rather than derived, and this is what watches the derive coming back.
+    #[test]
+    fn the_salt_is_not_in_what_a_debug_printing_produces() {
+        let written_out = format!("{:?}", a_salt());
+        assert!(
+            !written_out.contains("5a") && !written_out.contains("90"),
+            "the salt was in what was written out: {written_out}"
+        );
+        assert!(written_out.starts_with("CorrelatorSalt"));
+    }
+
+    /// Two salts built from the same bytes are the same salt, which is what lets
+    /// a condition anywhere in this suite name one.
+    #[test]
+    fn a_salt_is_its_bytes() {
+        assert_eq!(a_salt(), a_salt());
+        assert_ne!(a_salt(), another_salt());
+        assert_eq!(CorrelatorSalt::WIDTH, 32);
+    }
+
+    /// A treatment is ordered and hashable so that a caller can put one in a set
+    /// or a table, which is what the statement the core owes for a bundle will
+    /// be built out of.
+    #[test]
+    fn the_three_treatments_are_ordered_and_distinct() {
+        let mut all = [
+            Treatment::CarriedWhole,
+            Treatment::Excluded,
+            Treatment::Reduced,
+        ];
+        all.sort_unstable();
+        assert_eq!(
+            all,
+            [
+                Treatment::Excluded,
+                Treatment::Reduced,
+                Treatment::CarriedWhole
+            ]
+        );
+    }
+}
