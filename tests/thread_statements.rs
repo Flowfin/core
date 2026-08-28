@@ -21,6 +21,9 @@
 use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
+use flowfin_core::cache::freshness::{
+    Age, Answer, EntryKind, Held, Skew, WhyTheAgeIsUnreadable, WrittenAt,
+};
 use flowfin_core::cache::{ByteStore, EntryKey};
 use flowfin_core::clock::Clocks;
 use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
@@ -141,4 +144,39 @@ fn the_cache_bounds_are_safe_from_any_thread() {
 #[test]
 fn a_cache_tier_is_safe_from_any_thread() {
     const _: () = any_thread::<Tier>();
+}
+
+#[test]
+fn a_kind_of_cache_entry_is_safe_from_any_thread() {
+    const _: () = any_thread::<EntryKind>();
+}
+
+#[test]
+fn the_skew_an_entry_is_anchored_with_is_safe_from_any_thread() {
+    const _: () = any_thread::<Skew>();
+}
+
+#[test]
+fn the_two_moments_an_entry_is_written_at_are_safe_from_any_thread() {
+    const _: () = any_thread::<WrittenAt>();
+}
+
+#[test]
+fn the_age_of_an_entry_is_safe_from_any_thread() {
+    const _: () = any_thread::<Age>();
+}
+
+#[test]
+fn why_an_age_is_unreadable_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhyTheAgeIsUnreadable>();
+}
+
+#[test]
+fn a_held_cache_entry_is_safe_from_any_thread() {
+    const _: () = any_thread::<Held>();
+}
+
+#[test]
+fn what_a_cache_read_answers_with_is_safe_from_any_thread() {
+    const _: () = any_thread::<Answer>();
 }

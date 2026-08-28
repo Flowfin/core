@@ -132,4 +132,11 @@ const _: () = {
     any_thread::<cache::bound::TieredCache<'static>>();
     any_thread::<cache::bound::CacheBounds>();
     any_thread::<cache::bound::Tier>();
+    any_thread::<cache::freshness::EntryKind>();
+    any_thread::<cache::freshness::Skew>();
+    any_thread::<cache::freshness::WrittenAt>();
+    any_thread::<cache::freshness::WhyTheAgeIsUnreadable>();
+    any_thread::<cache::freshness::Age>();
+    any_thread::<cache::freshness::Held>();
+    any_thread::<cache::freshness::Answer>();
 };
