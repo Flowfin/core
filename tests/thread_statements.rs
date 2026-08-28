@@ -20,6 +20,7 @@
 
 use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
+use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
 use flowfin_core::cache::freshness::{
     Age, Answer, EntryKind, Held, Skew, WhyTheAgeIsUnreadable, WrittenAt,
@@ -144,6 +145,26 @@ fn the_cache_bounds_are_safe_from_any_thread() {
 #[test]
 fn a_cache_tier_is_safe_from_any_thread() {
     const _: () = any_thread::<Tier>();
+}
+
+#[test]
+fn an_accepted_image_format_is_safe_from_any_thread() {
+    const _: () = any_thread::<Accepted>();
+}
+
+#[test]
+fn the_dimensions_a_header_declared_are_safe_from_any_thread() {
+    const _: () = any_thread::<DeclaredDimensions>();
+}
+
+#[test]
+fn a_refused_image_is_safe_from_any_thread() {
+    const _: () = any_thread::<Refused>();
+}
+
+#[test]
+fn an_admitted_image_is_safe_from_any_thread() {
+    const _: () = any_thread::<Admitted>();
 }
 
 #[test]

@@ -123,6 +123,10 @@ const _: () = {
     any_thread::<server::address::BaseAddress>();
     any_thread::<server::address::AddressNotUsable>();
     any_thread::<artwork::DecodedImage>();
+    any_thread::<artwork::format::Accepted>();
+    any_thread::<artwork::format::DeclaredDimensions>();
+    any_thread::<artwork::format::Refused>();
+    any_thread::<artwork::format::Admitted>();
     any_thread::<playback::Ticks>();
     any_thread::<playback::AdmittedPosition>();
     any_thread::<playback::resume::Resume>();
