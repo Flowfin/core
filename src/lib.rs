@@ -140,6 +140,9 @@ const _: () = {
     any_thread::<cache::bound::TieredCache<'static>>();
     any_thread::<cache::bound::CacheBounds>();
     any_thread::<cache::bound::Tier>();
+    any_thread::<cache::envelope::Entries<'static>>();
+    any_thread::<cache::envelope::Drops>();
+    any_thread::<cache::envelope::WhichCheckFailed>();
     any_thread::<cache::freshness::EntryKind>();
     any_thread::<cache::freshness::Skew>();
     any_thread::<cache::freshness::WrittenAt>();

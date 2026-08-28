@@ -42,6 +42,7 @@
 //! is one this version wrote completely. Nothing here decides either of those.
 
 pub mod bound;
+pub mod envelope;
 pub mod freshness;
 pub mod key;
 

@@ -22,6 +22,7 @@ use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
 use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
+use flowfin_core::cache::envelope::{Drops, Entries, WhichCheckFailed};
 use flowfin_core::cache::freshness::{
     Age, Answer, EntryKind, Held, Skew, WhyTheAgeIsUnreadable, WrittenAt,
 };
@@ -217,4 +218,19 @@ fn the_salt_a_correlator_is_taken_under_is_safe_from_any_thread() {
 #[test]
 fn a_correlator_is_safe_from_any_thread() {
     const _: () = any_thread::<Correlator>();
+}
+
+#[test]
+fn the_entries_view_of_the_cache_is_safe_from_any_thread() {
+    const _: () = any_thread::<Entries<'static>>();
+}
+
+#[test]
+fn the_standing_drop_counts_are_safe_from_any_thread() {
+    const _: () = any_thread::<Drops>();
+}
+
+#[test]
+fn which_reading_a_dropped_entry_failed_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhichCheckFailed>();
 }

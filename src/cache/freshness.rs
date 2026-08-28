@@ -89,6 +89,37 @@ pub enum EntryKind {
 }
 
 impl EntryKind {
+    /// Every kind, so that a caller reads the set out of the crate rather than
+    /// keeping a copy of it, and so a condition applies a rule to the whole of
+    /// it rather than to whichever member somebody remembered.
+    #[must_use]
+    pub const fn all() -> &'static [Self] {
+        &[
+            Self::LibraryQueryResults,
+            Self::ItemMetadata,
+            Self::ServerCapabilityAnswers,
+            Self::ArtworkBytes,
+            Self::DecodedDimensions,
+        ]
+    }
+
+    /// The kind as it is reported.
+    ///
+    /// This is what an event carries rather than the text a debug printing
+    /// would produce, which 0100 requires: a field is data a client reads, and a
+    /// name that changed when somebody renamed a variant would change what every
+    /// client's report says.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::LibraryQueryResults => "library-query-results",
+            Self::ItemMetadata => "item-metadata",
+            Self::ServerCapabilityAnswers => "server-capability-answers",
+            Self::ArtworkBytes => "artwork-bytes",
+            Self::DecodedDimensions => "decoded-dimensions",
+        }
+    }
+
     /// How long artwork bytes stay fresh, and the same for the dimensions read
     /// out of them.
     ///
