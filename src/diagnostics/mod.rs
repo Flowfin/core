@@ -36,9 +36,12 @@
 //! built. That is a statement about this tree rather than about the interface,
 //! and the same sentence stands over [`crate::session`] for its own reason.
 
+pub mod redaction;
+
 use crate::clock::{Clocks, WallMoment};
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::time::Duration;
+use redaction::{Correlator, CorrelatorSalt, FieldName, Treatment};
 
 /// How much of what happened is worth somebody's attention.
 ///
@@ -261,25 +264,33 @@ pub enum FieldValue<'a> {
 /// Thread safety, from 0009: a plain value, safe from any thread.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Field<'a> {
-    name: &'static str,
+    name: FieldName,
     value: FieldValue<'a>,
 }
 
 impl<'a> Field<'a> {
     /// A field.
     ///
-    /// The name is `&'static str` for the reason an identity is: it is written
-    /// at the emit site and is never assembled out of what arrived from
-    /// somewhere, so the rule in #71 reads a fixed set of names rather than
+    /// THE NAME CARRIES ITS TREATMENT AND THIS SIGNATURE IS WHERE THAT IS
+    /// ENFORCED. A [`FieldName`] is built through one of three calls, each of
+    /// which is one of 0071's three treatments, so a field whose treatment
+    /// nobody chose cannot be written and the compiler refuses it rather than a
+    /// review. 0071 states that default as a rule - a field nobody has
+    /// classified is excluded - and this is the stronger form of it, because a
+    /// default that cannot be reached cannot fall the wrong way.
+    ///
+    /// The name is still `&'static str` inside, for the reason an identity is:
+    /// it is written at the emit site and is never assembled out of what arrived
+    /// from somewhere, so what the rule reads is a fixed name rather than
     /// whatever a server put in an answer.
     #[must_use]
-    pub const fn new(name: &'static str, value: FieldValue<'a>) -> Self {
+    pub const fn new(name: FieldName, value: FieldValue<'a>) -> Self {
         Self { name, value }
     }
 
-    /// The name #71's rule decides on.
+    /// The name, with the treatment 0071's rule gives it.
     #[must_use]
-    pub const fn name(&self) -> &'static str {
+    pub const fn name(&self) -> FieldName {
         self.name
     }
 
@@ -367,6 +378,10 @@ pub trait DiagnosticsSink: Send + Sync {
 pub struct Diagnostics<'a> {
     clocks: &'a dyn Clocks,
     sink: Option<&'a dyn DiagnosticsSink>,
+    /// What a reduced field is correlated under, for the life of this facility.
+    /// 0071 has it created when the core is created and never changed, so it is
+    /// held by value and there is no call that moves it.
+    salt: CorrelatorSalt,
     /// Held as a number rather than as a [`Severity`] so that it can be changed
     /// from any thread without a lock. Every value written here comes from
     /// [`Severity::as_number`].
@@ -396,10 +411,12 @@ impl<'a> Diagnostics<'a> {
         clocks: &'a dyn Clocks,
         sink: Option<&'a dyn DiagnosticsSink>,
         level: Severity,
+        salt: CorrelatorSalt,
     ) -> Self {
         Self {
             clocks,
             sink,
+            salt,
             level: AtomicU8::new(level.as_number()),
         }
     }
@@ -449,11 +466,58 @@ impl<'a> Diagnostics<'a> {
         if severity > self.level() {
             return;
         }
+        let moment = self.clocks.wall();
+
+        // The ordinary event carries nothing 0071 touches, and it reaches the
+        // sink as it was written. This is not an exception to the rule: it is
+        // the rule finding nothing to do, and the branch exists so that an event
+        // of counts and intervals costs no allocation for a redaction that would
+        // change none of its fields.
+        if fields
+            .iter()
+            .all(|field| field.name().treatment() == Treatment::CarriedWhole)
+        {
+            sink.event(&Event {
+                severity,
+                name,
+                fields,
+                moment,
+            });
+            return;
+        }
+
+        // Every reduced value first, one entry per field so the two sequences
+        // line up by position, because the correlators have to outlive the
+        // borrow the event takes of them. Position rather than a running count
+        // so that there is no arm here that cannot be reached: a field with a
+        // correlator beside it is the reduced one, and the second pass keeps the
+        // order the emitting subsystem wrote, which 0100 states as a property of
+        // an event rather than as a convenience.
+        let correlators: Vec<Option<Correlator>> = fields
+            .iter()
+            .map(|field| match field.name().treatment() {
+                Treatment::Reduced => Some(Correlator::of(&self.salt, field.value())),
+                Treatment::Excluded | Treatment::CarriedWhole => None,
+            })
+            .collect();
+
+        let mut kept = Vec::with_capacity(fields.len());
+        for (field, correlator) in fields.iter().zip(&correlators) {
+            if let Some(correlator) = correlator {
+                kept.push(Field::new(
+                    field.name(),
+                    FieldValue::Text(correlator.as_str()),
+                ));
+            } else if field.name().treatment() == Treatment::CarriedWhole {
+                kept.push(*field);
+            }
+        }
+
         sink.event(&Event {
             severity,
             name,
-            fields,
-            moment: self.clocks.wall(),
+            fields: &kept,
+            moment,
         });
     }
 }
@@ -474,6 +538,7 @@ mod tests {
     //! needs an allocator the crate cannot hold and is in
     //! `tests/an_event_costs_nothing_when_nobody_is_listening.rs`.
 
+    use super::redaction::{CORRELATOR_WIDTH, CorrelatorSalt, FieldName, Treatment};
     use super::{
         Diagnostics, DiagnosticsSink, Event, EventName, Field, FieldValue, Severity,
         is_a_well_formed_event_name,
@@ -482,6 +547,15 @@ mod tests {
     use core::sync::atomic::{AtomicUsize, Ordering};
     use core::time::Duration;
     use std::sync::Mutex;
+
+    /// A salt for the suite, fixed so that a correlator is the same on every run
+    /// of a case. That is the opposite of what a real one is for, which is why
+    /// this is a fixture rather than something a client would write: 0071's
+    /// property is that a correlator means nothing outside the run that produced
+    /// it, and a case asserting a correlator has to be able to name one.
+    fn a_salt() -> CorrelatorSalt {
+        CorrelatorSalt::from_bytes([0x5a; CorrelatorSalt::WIDTH])
+    }
 
     /// A clock source that answers the same moment every time and counts how
     /// often it was asked.
@@ -556,7 +630,7 @@ mod tests {
                     fields: event
                         .fields()
                         .iter()
-                        .map(|field| (field.name(), format!("{:?}", field.value())))
+                        .map(|field| (field.name().as_str(), format!("{:?}", field.value())))
                         .collect(),
                     seconds: event.moment().seconds_from_the_epoch(),
                 });
@@ -567,20 +641,45 @@ mod tests {
         EventName::declared("server.declared-unreachable");
     const ENTRY_SERVED_STALE: EventName = EventName::declared("cache.entry-served-stale");
 
+    /// One name under each of 0071's three treatments, so that the conditions
+    /// below can put all three in one event and read what came out.
+    ///
+    /// The names are the ones the record itself uses as its examples of each
+    /// treatment: a count and an error kind are carried whole, a
+    /// server-supplied identifier and an account are reduced, and a session
+    /// token is excluded.
+    const ATTEMPTS: FieldName = FieldName::carried_whole("attempts");
+    const WAITED: FieldName = FieldName::carried_whole("waited");
+    const KIND: FieldName = FieldName::carried_whole("kind");
+    const ANYTHING_CACHED: FieldName = FieldName::carried_whole("anything-cached");
+    const ITEM: FieldName = FieldName::reduced("item");
+    const ACCOUNT: FieldName = FieldName::reduced("account");
+    const TOKEN: FieldName = FieldName::excluded("token");
+
+    /// What a value under a reduced name looks like in this suite, so that a
+    /// condition asserting the correlator is not asserting the digest twice.
+    const AN_ITEM: &str = "series/9d41/episode-3";
+    const ANOTHER_ITEM: &str = "series/9d41/episode-4";
+
+    /// A value under the excluded name. It is written as one string so that a
+    /// condition can search everything the sink was handed for it, which is a
+    /// stronger statement than the field being absent under its own name.
+    const A_TOKEN: &str = "not-a-real-token-9d41f0c2";
+
     #[test]
     fn an_event_arrives_with_everything_the_record_says_it_carries() {
         let clocks = CountingClocks::new();
         let sink = InMemory::new();
-        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Detail, a_salt());
 
         diagnostics.emit(
             Severity::Notice,
             SERVER_DECLARED_UNREACHABLE,
             &[
-                Field::new("attempts", FieldValue::Count(2)),
-                Field::new("waited", FieldValue::Interval(Duration::from_millis(5_000))),
-                Field::new("kind", FieldValue::Text("server-unreachable")),
-                Field::new("anything-cached", FieldValue::Truth(true)),
+                Field::new(ATTEMPTS, FieldValue::Count(2)),
+                Field::new(WAITED, FieldValue::Interval(Duration::from_millis(5_000))),
+                Field::new(KIND, FieldValue::Text("server-unreachable")),
+                Field::new(ANYTHING_CACHED, FieldValue::Truth(true)),
             ],
         );
 
@@ -599,12 +698,205 @@ mod tests {
         );
     }
 
+    /// 0071 applied to one event carrying a name under each of its three
+    /// treatments, read out of what the sink was handed rather than out of what
+    /// was written.
+    ///
+    /// One condition over all three rather than three conditions, because what
+    /// this is about is the boundary: the same call carries a value whole, a
+    /// value reduced and a value not at all, and the sink sees the difference.
+    #[test]
+    fn each_of_the_three_treatments_reaches_the_sink_as_the_record_says() {
+        let clocks = CountingClocks::new();
+        let sink = InMemory::new();
+        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Detail, a_salt());
+
+        diagnostics.emit(
+            Severity::Notice,
+            SERVER_DECLARED_UNREACHABLE,
+            &[
+                Field::new(ATTEMPTS, FieldValue::Count(2)),
+                Field::new(TOKEN, FieldValue::Text(A_TOKEN)),
+                Field::new(ITEM, FieldValue::Text(AN_ITEM)),
+                Field::new(KIND, FieldValue::Text("server-unreachable")),
+            ],
+        );
+
+        let collected = sink.collected();
+        assert_eq!(collected.len(), 1);
+
+        // The excluded name is not there at all, and the order of what is left
+        // is the order the emitting subsystem wrote.
+        assert_eq!(
+            collected[0]
+                .fields
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>(),
+            vec!["attempts", "item", "kind"],
+        );
+
+        // The two carried whole are unchanged.
+        assert_eq!(value_of(&collected[0], "attempts"), "Count(2)");
+        assert_eq!(text_of(&collected[0], "kind"), "server-unreachable");
+
+        // The reduced one is a correlator and never the value itself.
+        let correlator = text_of(&collected[0], "item");
+        assert_ne!(correlator, AN_ITEM);
+        assert_eq!(correlator.len(), CORRELATOR_WIDTH);
+        assert!(
+            correlator.chars().all(|c| c.is_ascii_hexdigit()),
+            "the correlator was {correlator}",
+        );
+    }
+
+    /// The strongest form of the excluded treatment: the value is nowhere in
+    /// what the sink was handed, under any name, rather than merely absent from
+    /// the name it was written under.
+    #[test]
+    fn an_excluded_value_appears_nowhere_the_sink_can_see() {
+        let clocks = CountingClocks::new();
+        let sink = InMemory::new();
+        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Detail, a_salt());
+
+        diagnostics.emit(
+            Severity::Notice,
+            SERVER_DECLARED_UNREACHABLE,
+            &[
+                Field::new(TOKEN, FieldValue::Text(A_TOKEN)),
+                Field::new(ITEM, FieldValue::Text(A_TOKEN)),
+                Field::new(ATTEMPTS, FieldValue::Count(1)),
+            ],
+        );
+
+        let written_out = format!("{:?}", sink.collected());
+        assert!(
+            !written_out.contains(A_TOKEN),
+            "the token was in what the sink was handed: {written_out}",
+        );
+    }
+
+    /// What the correlator is for: within one run, two events about one value
+    /// carry one correlator, so a report says that one thing failed twice.
+    #[test]
+    fn one_value_carries_one_correlator_within_a_run() {
+        let clocks = CountingClocks::new();
+        let sink = InMemory::new();
+        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Detail, a_salt());
+
+        diagnostics.emit(
+            Severity::Notice,
+            SERVER_DECLARED_UNREACHABLE,
+            &[Field::new(ITEM, FieldValue::Text(AN_ITEM))],
+        );
+        diagnostics.emit(
+            Severity::Notice,
+            ENTRY_SERVED_STALE,
+            &[Field::new(ACCOUNT, FieldValue::Text(AN_ITEM))],
+        );
+
+        let collected = sink.collected();
+        assert_eq!(
+            text_of(&collected[0], "item"),
+            text_of(&collected[1], "account"),
+        );
+    }
+
+    /// The one-change neighbour of the condition above. Without it that
+    /// assertion would hold for a reduction that answered the same thing for
+    /// every value.
+    #[test]
+    fn two_values_carry_two_correlators() {
+        let clocks = CountingClocks::new();
+        let sink = InMemory::new();
+        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Detail, a_salt());
+
+        diagnostics.emit(
+            Severity::Notice,
+            SERVER_DECLARED_UNREACHABLE,
+            &[Field::new(ITEM, FieldValue::Text(AN_ITEM))],
+        );
+        diagnostics.emit(
+            Severity::Notice,
+            SERVER_DECLARED_UNREACHABLE,
+            &[Field::new(ITEM, FieldValue::Text(ANOTHER_ITEM))],
+        );
+
+        let collected = sink.collected();
+        assert_ne!(
+            text_of(&collected[0], "item"),
+            text_of(&collected[1], "item"),
+        );
+    }
+
+    /// The property 0071 states and the one this treatment exists for: a
+    /// correlator means nothing outside the run that produced it. Two
+    /// facilities with two salts reduce one value two ways.
+    #[test]
+    fn two_salts_carry_two_correlators_for_one_value() {
+        let clocks = CountingClocks::new();
+        let one = InMemory::new();
+        let other = InMemory::new();
+        let first = Diagnostics::new(&clocks, Some(&one), Severity::Detail, a_salt());
+        let second = Diagnostics::new(
+            &clocks,
+            Some(&other),
+            Severity::Detail,
+            CorrelatorSalt::from_bytes([0xa5; CorrelatorSalt::WIDTH]),
+        );
+
+        for diagnostics in [&first, &second] {
+            diagnostics.emit(
+                Severity::Notice,
+                SERVER_DECLARED_UNREACHABLE,
+                &[Field::new(ITEM, FieldValue::Text(AN_ITEM))],
+            );
+        }
+
+        assert_ne!(
+            text_of(&one.collected()[0], "item"),
+            text_of(&other.collected()[0], "item"),
+        );
+    }
+
+    /// A name carries the treatment it was built with, which is the whole of
+    /// what makes a field nobody classified unwritable.
+    #[test]
+    fn a_name_carries_the_treatment_it_was_built_with() {
+        assert_eq!(ATTEMPTS.treatment(), Treatment::CarriedWhole);
+        assert_eq!(ITEM.treatment(), Treatment::Reduced);
+        assert_eq!(TOKEN.treatment(), Treatment::Excluded);
+        assert_eq!(TOKEN.as_str(), "token");
+    }
+
+    /// The debug text of one field of one collected event.
+    fn value_of<'a>(collected: &'a Collected, name: &str) -> &'a str {
+        collected
+            .fields
+            .iter()
+            .find(|(field, _)| *field == name)
+            .map_or_else(
+                || panic!("no field named {name}"),
+                |(_, value)| value.as_str(),
+            )
+    }
+
+    /// The same, for a field the sink received as text, with the debug quoting
+    /// taken off so a condition compares the value rather than the debug shape.
+    fn text_of<'a>(collected: &'a Collected, name: &str) -> &'a str {
+        let value = value_of(collected, name);
+        value
+            .strip_prefix("Text(\"")
+            .and_then(|rest| rest.strip_suffix("\")"))
+            .unwrap_or_else(|| panic!("{name} did not arrive as text: {value}"))
+    }
+
     /// The rule 0100 states about cost, at the half a test inside the crate can
     /// reach: with nobody listening the clock is not read.
     #[test]
     fn with_no_sink_nothing_is_delivered_and_no_clock_is_read() {
         let clocks = CountingClocks::new();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
 
         for _ in 0..1_000 {
             diagnostics.emit(Severity::Fault, ENTRY_SERVED_STALE, &[]);
@@ -620,7 +912,7 @@ mod tests {
     fn with_a_sink_the_same_events_are_delivered_and_the_clock_is_read() {
         let clocks = CountingClocks::new();
         let sink = InMemory::new();
-        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Detail, a_salt());
 
         for _ in 0..1_000 {
             diagnostics.emit(Severity::Fault, ENTRY_SERVED_STALE, &[]);
@@ -635,7 +927,7 @@ mod tests {
     fn an_event_below_the_level_reads_no_clock_and_reaches_nobody() {
         let clocks = CountingClocks::new();
         let sink = InMemory::new();
-        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Notice);
+        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Notice, a_salt());
 
         diagnostics.emit(Severity::Detail, ENTRY_SERVED_STALE, &[]);
 
@@ -649,7 +941,7 @@ mod tests {
     fn the_level_moves_while_the_core_is_running() {
         let clocks = CountingClocks::new();
         let sink = InMemory::new();
-        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Notice);
+        let diagnostics = Diagnostics::new(&clocks, Some(&sink), Severity::Notice, a_salt());
 
         diagnostics.emit(Severity::Detail, ENTRY_SERVED_STALE, &[]);
         diagnostics.set_level(Severity::Detail);
@@ -667,7 +959,7 @@ mod tests {
     #[test]
     fn every_severity_comes_back_out_of_the_level_it_was_put_into() {
         let clocks = CountingClocks::new();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Fault);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Fault, a_salt());
         for severity in Severity::all() {
             diagnostics.set_level(*severity);
             assert_eq!(diagnostics.level(), *severity, "{}", severity.as_str());

@@ -52,6 +52,7 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use super::{ByteStore, EntryKey};
 use crate::clock::{Clocks, ElapsedInstant};
+use crate::diagnostics::redaction::FieldName;
 use crate::diagnostics::{Diagnostics, EventName, Field, FieldValue, Severity};
 
 /// One mebibyte, so that the arithmetic below reads as the records write it.
@@ -105,6 +106,25 @@ const WRITING_SUSPENDED: EventName = EventName::declared("cache.writing-suspende
 /// Reported when artwork was released so that a refused metadata write could be
 /// attempted again.
 const ARTWORK_GAVE_WAY: EventName = EventName::declared("cache.artwork-gave-way");
+
+/// The field names those two events carry, each with the treatment 0071 gives
+/// it.
+///
+/// Every one of them is carried whole, and 0068's own test is what says so:
+/// could two people running the same build against the same server hold
+/// different values here. A count of bytes, a count of entries, how long writing
+/// is suspended for and which of two tiers gave way are all facts about this
+/// device's cache under this bound, and none of them is about a person, an item
+/// or a server.
+///
+/// They are constants beside the identities they appear under rather than
+/// entries in a list somewhere else, which is 0100's placement for an event's
+/// identity applied to the names on it.
+const RELEASED_BYTES: FieldName = FieldName::carried_whole("released-bytes");
+const RELEASED_ENTRIES: FieldName = FieldName::carried_whole("released-entries");
+const FOR_TIER: FieldName = FieldName::carried_whole("for-tier");
+const CONSECUTIVE_REFUSALS: FieldName = FieldName::carried_whole("consecutive-refusals");
+const SUSPENDED_FOR: FieldName = FieldName::carried_whole("suspended-for");
 
 /// Which of the two accountings an entry belongs to.
 ///
@@ -606,9 +626,9 @@ impl<'a> TieredCache<'a> {
             Severity::Notice,
             ARTWORK_GAVE_WAY,
             &[
-                Field::new("released-bytes", FieldValue::Count(released)),
-                Field::new("released-entries", FieldValue::Count(entries)),
-                Field::new("for-tier", FieldValue::Text(Tier::Metadata.as_str())),
+                Field::new(RELEASED_BYTES, FieldValue::Count(released)),
+                Field::new(RELEASED_ENTRIES, FieldValue::Count(entries)),
+                Field::new(FOR_TIER, FieldValue::Text(Tier::Metadata.as_str())),
             ],
         );
         true
@@ -723,11 +743,8 @@ impl<'a> TieredCache<'a> {
                 Severity::Notice,
                 WRITING_SUSPENDED,
                 &[
-                    Field::new(
-                        "consecutive-refusals",
-                        FieldValue::Count(u64::from(refusals)),
-                    ),
-                    Field::new("suspended-for", FieldValue::Interval(SUSPENSION)),
+                    Field::new(CONSECUTIVE_REFUSALS, FieldValue::Count(u64::from(refusals))),
+                    Field::new(SUSPENDED_FOR, FieldValue::Interval(SUSPENSION)),
                 ],
             );
         }
@@ -934,10 +951,20 @@ mod tests {
     };
     use crate::cache::{ByteStore, EntryKey, StorageUnavailable};
     use crate::clock::{Clocks, ElapsedInstant, SteadyInstant, WallMoment};
+    use crate::diagnostics::redaction::CorrelatorSalt;
     use crate::diagnostics::{Diagnostics, DiagnosticsSink, Event, Severity};
     use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
     use std::collections::BTreeMap;
     use std::sync::{Condvar, Mutex};
+
+    /// A salt for the suite, fixed so that a correlator is the same on every run
+    /// of a case. That is the opposite of what a real one is for, which is why
+    /// this is a fixture rather than something a client would write: 0071's
+    /// property is that a correlator means nothing outside the run that produced
+    /// it, and a case asserting a correlator has to be able to name one.
+    fn a_salt() -> CorrelatorSalt {
+        CorrelatorSalt::from_bytes([0x5a; CorrelatorSalt::WIDTH])
+    }
 
     /// A read held open from outside, so that the window 0042's rule is about
     /// exists for as long as a condition needs it.
@@ -1248,7 +1275,7 @@ mod tests {
     fn a_tier_bounded_at_zero_keeps_nothing() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(&store, &clocks, &diagnostics, bounds_of(0, METADATA_FLOOR));
 
         assert_eq!(
@@ -1278,7 +1305,7 @@ mod tests {
     fn filling_the_artwork_tier_past_its_bound_evicts_no_metadata() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1323,7 +1350,7 @@ mod tests {
     fn filling_the_metadata_tier_past_its_bound_evicts_no_artwork() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1362,7 +1389,7 @@ mod tests {
     fn a_full_tier_does_not_borrow_from_an_empty_one() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1394,7 +1421,7 @@ mod tests {
     fn the_entry_evicted_is_the_least_recently_used_one_and_not_the_oldest() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1434,7 +1461,7 @@ mod tests {
     fn using_one_tier_does_not_move_the_order_of_the_other() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1489,7 +1516,7 @@ mod tests {
     fn an_entry_with_a_read_in_flight_is_not_the_one_evicted() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1541,7 +1568,7 @@ mod tests {
     fn a_write_that_could_only_fit_by_cancelling_a_read_does_not_happen() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1588,7 +1615,7 @@ mod tests {
     fn a_store_that_refuses_every_write_leaves_a_core_that_works() {
         let store = Store::refusing_writes();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(&store, &clocks, &diagnostics, CacheBounds::DEFAULT);
 
         for at in 0..5 {
@@ -1630,7 +1657,7 @@ mod tests {
         let store = Store::refusing_writes();
         let clocks = Moving::default();
         let collector = Collector::default();
-        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail, a_salt());
         let cache = TieredCache::new(&store, &clocks, &diagnostics, CacheBounds::DEFAULT);
 
         for at in 0..3 {
@@ -1662,7 +1689,7 @@ mod tests {
     fn a_suspension_reached_on_artwork_applies_to_metadata_too() {
         let store = Store::refusing_writes();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(&store, &clocks, &diagnostics, CacheBounds::DEFAULT);
 
         for at in 0..3 {
@@ -1687,7 +1714,7 @@ mod tests {
     fn reads_are_answered_while_writing_is_suspended() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(&store, &clocks, &diagnostics, CacheBounds::DEFAULT);
 
         assert_eq!(
@@ -1716,7 +1743,7 @@ mod tests {
         let store = Store::refusing_writes();
         let clocks = Moving::default();
         let collector = Collector::default();
-        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail, a_salt());
         let cache = TieredCache::new(&store, &clocks, &diagnostics, CacheBounds::DEFAULT);
 
         for at in 0..3 {
@@ -1753,7 +1780,7 @@ mod tests {
         let store = Store::default();
         let clocks = Moving::default();
         let collector = Collector::default();
-        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail, a_salt());
         let cache = TieredCache::new(&store, &clocks, &diagnostics, CacheBounds::DEFAULT);
 
         store.refuse_writes.store(true, Ordering::Relaxed);
@@ -1794,7 +1821,7 @@ mod tests {
         let store = Store::refusing_the_next_writes(0);
         let clocks = Moving::default();
         let collector = Collector::default();
-        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1849,7 +1876,7 @@ mod tests {
     fn what_is_released_is_at_least_eight_times_the_refused_write() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1900,7 +1927,7 @@ mod tests {
         let store = Store::default();
         let clocks = Moving::default();
         let collector = Collector::default();
-        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -1949,7 +1976,7 @@ mod tests {
         let store = Store::refusing_writes();
         let clocks = Moving::default();
         let collector = Collector::default();
-        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail, a_salt());
         let cache = TieredCache::new(&store, &clocks, &diagnostics, CacheBounds::DEFAULT);
 
         assert_eq!(
@@ -1968,7 +1995,7 @@ mod tests {
         let store = Store::refusing_writes();
         let clocks = Moving::default();
         let collector = Collector::default();
-        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -2015,7 +2042,7 @@ mod tests {
     fn bytes_larger_than_a_tiers_whole_bound_evict_nothing() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -2046,7 +2073,7 @@ mod tests {
     fn a_write_that_replaces_an_entry_is_counted_once() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -2079,7 +2106,7 @@ mod tests {
         let store = Store::default();
         let clocks = Moving::default();
         let collector = Collector::default();
-        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, Some(&collector), Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -2113,7 +2140,7 @@ mod tests {
     fn an_entry_the_store_no_longer_has_leaves_the_index_on_the_next_read() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -2141,7 +2168,7 @@ mod tests {
     fn a_store_that_could_not_be_read_leaves_the_accounting_alone() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -2166,7 +2193,7 @@ mod tests {
     fn the_bounds_a_client_chose_are_the_ones_enforced() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
@@ -2202,7 +2229,7 @@ mod tests {
     fn every_tier_is_accounted_for_separately() {
         let store = Store::default();
         let clocks = Moving::default();
-        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail);
+        let diagnostics = Diagnostics::new(&clocks, None, Severity::Detail, a_salt());
         let cache = TieredCache::new(
             &store,
             &clocks,
