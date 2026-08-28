@@ -43,20 +43,29 @@
 # are the paths where a defect is exploitable or silently wrong.
 #
 # WHAT IS DELIBERATELY NOT ON IT, and this is a negative statement that stays
-# negative. src/clock/, src/diagnostics/, src/measurement/, src/playback/ and
-# src/lib.rs are not areas here. The clock is three value types over an injected
-# source. The measurement facility and the diagnostics facility are what the core
-# reports THROUGH rather than what it decides with, and a defect in either
-# produces a wrong number or a missing event rather than a wrong outcome. What
-# would move the diagnostics sink onto this surface is #71, which decides what
-# may leave through a diagnostic event at all, and that has not been built.
-# Nothing here says those modules are unimportant or that they are covered; it
-# says the bar below is not measured over them.
+# negative. src/clock/, src/measurement/, src/playback/ and src/lib.rs are not
+# areas here. The clock is three value types over an injected source. The
+# measurement facility is what the core reports THROUGH rather than what it
+# decides with, and a defect in it produces a wrong number rather than a wrong
+# outcome. Nothing here says those modules are unimportant or that they are
+# covered; it says the bar below is not measured over them.
+#
+# SRC/DIAGNOSTICS/ WAS IN THAT LIST AND IS AN AREA NOW, ON THE CONDITION THIS
+# FILE ITSELF NAMED. What stood here said the facility is what the core reports
+# through rather than what it decides with, and that what would move it onto the
+# surface is #71 deciding what may leave through a diagnostic event at all. That
+# is built. A field name now carries one of three treatments, and the facility
+# drops the excluded, reduces the reduced and carries the rest whole before the
+# client sink is called, so a defect there is a value about a person leaving the
+# device rather than a missing event. That is the same class as everything else
+# on this list, and the condition arriving is what moves it rather than anybody
+# changing their mind about the sentence.
 
 area    src/session/    Holding a session and the interface a client stores its secret through. A defect here is a token in the wrong place or a session that outlives what the server said.
 area    src/server/     Reaching a server: the address a person typed, which host a request is allowed to go to, and the transport that will carry it. A defect here sends a credential somewhere nobody chose.
 area    src/cache/      What is written to a client's storage and under what key. 0041 makes the key what stops two servers and two people on one device reading each other's entries, and everything that decides what the store is asked to hold is in the same directory.
 area    src/failure/    The one point every failure in the core is mapped onto the vocabulary in 0004. A defect here is a case falling through and a caller being told nothing went wrong.
+area    src/diagnostics/ What may leave the device through an event. 0071 decides that per field name and before the client's sink is called, so a defect here is a token, an account or an item identifier in a log somebody is asked to attach to a bug report.
 area    src/artwork/    Turning bytes that arrived over a network into pixels, which 0003 calls the most attacked surface this repository will carry, and the refusal of every format the core does not decode.
 
 module  src/session/mod.rs          The session handle and the secret store interface a client implements.
@@ -69,6 +78,8 @@ module  src/cache/key.rs            How that key is built. 0041 makes a collisio
 module  src/cache/bound.rs          What the core asks the store to hold, what it evicts, and what it does when the device refuses.
 module  src/cache/envelope.rs       The envelope every entry is written inside and the four readings a read takes before the payload is looked at. 0105 makes a wrong answer here an entry another build wrote, or a write a power cut left unfinished, read as though this build had written it, which is a wrong field shown to somebody rather than an error.
 module  src/cache/freshness.rs      Whether what the store handed back may be shown and how old it is. 0043 makes a wrong answer here a person seeing something that is not there any more, and the two guards on the age are what stop a wrong device clock making an entry fresh forever.
+module  src/diagnostics/mod.rs      The event a client's sink receives, the level it is judged against, and the point 0071's treatment is applied at, which 0101 places outside the boundary.
+module  src/diagnostics/redaction.rs Which of 0071's three treatments a field name carries and what a reduced value becomes. A defect here is a value 0068 calls personal reaching a sink whole.
 module  src/failure/mod.rs          The error vocabulary, which holds no type yet: #37 is the mapping point and it is not built.
 module  src/artwork/mod.rs          The decoded image, which holds no decoder yet: #50 is where the decode arrives.
 module  src/artwork/format.rs       Everything 0055 puts before a decoder: which three formats are accepted, the signature match that decides from the bytes rather than from what a server declared, and the two bounds read before pixels are allocated. A defect here hands the most attacked surface in this repository something nobody chose to accept.
