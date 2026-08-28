@@ -298,6 +298,37 @@ e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff";
     table
 }
 
+/// A DELIBERATE DEFECT, WRITTEN TO MEASURE WHETHER THE CODE-SCANNING ANALYSIS
+/// REPORTS IT, AND REVERTED IN THE NEXT COMMIT ON THIS BRANCH (#81).
+///
+/// #81's second condition is that a deliberately introduced finding of the kind
+/// the analysis is meant to catch reddens the gate. Five were tried in #195 and
+/// the query set fired on none of them, and the reading recorded there was about
+/// the graph rather than about the queries: the crate declared no dependency, so
+/// nothing in it was a sink any query recognised. The graph has moved, `sha2` is
+/// in it, and three of the sixteen loaded queries are named for exactly that.
+///
+/// Two shapes in one function, both of them what those queries look for: key
+/// material written into the source, and a value a caller supplies as a
+/// credential hashed with a bare digest. Nothing calls it, nothing merges it,
+/// and the run it exists to produce is read into #81.
+#[must_use]
+pub fn the_deliberate_defect_for_issue_81(password: &str) -> String {
+    const SECRET_KEY: [u8; 32] = [
+        0x3f, 0x8c, 0x1b, 0x0a, 0x9d, 0x2e, 0x4f, 0x67, 0x08, 0x19, 0x2a, 0x3b, 0x4c, 0x5d, 0x6e,
+        0x7f, 0x90, 0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6, 0x07, 0x18, 0x29, 0x3a, 0x4b, 0x5c, 0x6d,
+        0x7e, 0x8f,
+    ];
+    let mut hasher = Sha256::new();
+    hasher.update(SECRET_KEY);
+    hasher.update(password.as_bytes());
+    let mut out = String::with_capacity(Sha256::output_size() * 2);
+    for byte in hasher.finalize() {
+        out.push_str(HEX[usize::from(byte)]);
+    }
+    out
+}
+
 impl EntryKey {
     /// Derives the key one cache entry is kept under.
     ///
