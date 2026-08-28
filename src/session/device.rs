@@ -37,9 +37,12 @@
 /// Why a part of a device identity or a capability description was refused.
 ///
 /// A local answer rather than a value of the failure vocabulary. 0037 requires
-/// every value of that vocabulary to be built at one mapping point, that point
-/// is #37, and [`crate::failure`] holds no type today. This is the same shape as
-/// [`crate::session::SecretStoreUnavailable`] for the same reason.
+/// every value of that vocabulary to be built at one mapping point. THIS
+/// SENTENCE SAID [`crate::failure`] HOLDS NO TYPE TODAY; it holds one since #37
+/// landed, and nothing here maps onto it, because a refused part of an identity
+/// is a client handing the core something wrong rather than an answer being
+/// read. This is the same shape as [`crate::session::SecretStoreUnavailable`]
+/// for the same reason.
 ///
 /// Thread safety, from 0009: a plain value, safe from any thread.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

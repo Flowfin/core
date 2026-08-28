@@ -33,9 +33,11 @@
 //! AND HALF OF WHAT #43 OWNS IS NOW HERE. [`freshness`] holds the three states a
 //! read answers with, the age 0102 anchors on the server rather than on a device
 //! clock, and 0043's table of how long each kind of entry stays fresh. What is
-//! still absent from that half is the demand for freshness, which needs a
-//! failure to return and so waits on #37, and every caller: nothing in this tree
-//! fetches bytes out of a store and hands them there.
+//! still absent from that half is the demand for freshness and every caller.
+//! THIS SENTENCE SAID THE DEMAND WAITS ON #37 FOR A FAILURE TO RETURN. That
+//! landed; what it waits on now is a transport that can fail to reach a server,
+//! which is #27. Nothing in this tree fetches bytes out of a store and hands
+//! them anywhere.
 //!
 //! The rest of the sentence is unchanged. The cold-start path is #46, and the
 //! index that survives a restart is #105, so every entry [`freshness`] describes
@@ -106,9 +108,11 @@ impl EntryKey {
 /// a read or a write. Both are facts the core already holds at the moment it
 /// calls, so asking a client's implementation to supply them would be asking it
 /// to repeat what the caller knows, and 0037 requires the value of the failure
-/// vocabulary to be built at one mapping point and nowhere else. That mapping
-/// point does not exist yet; it is #37, and [`crate::failure`] holds no type
-/// today.
+/// vocabulary to be built at one mapping point and nowhere else. THIS SENTENCE
+/// SAID THAT POINT DOES NOT EXIST YET. It does:
+/// [`crate::failure::Failure::from_cache_store`] is where this value becomes
+/// `storage-unavailable`, and it is the caller that says whether the call was a
+/// read or a write.
 ///
 /// Thread safety, from 0009: a plain value, safe from any thread.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

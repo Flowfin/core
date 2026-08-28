@@ -30,6 +30,9 @@ use flowfin_core::cache::{ByteStore, EntryKey};
 use flowfin_core::clock::Clocks;
 use flowfin_core::diagnostics::redaction::{Correlator, CorrelatorSalt, FieldName, Treatment};
 use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
+use flowfin_core::failure::{
+    Answered, Capability, Failure, FaultSite, Kind, ReadingSite, TransportOutcome,
+};
 use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
@@ -233,4 +236,39 @@ fn the_standing_drop_counts_are_safe_from_any_thread() {
 #[test]
 fn which_reading_a_dropped_entry_failed_is_safe_from_any_thread() {
     const _: () = any_thread::<WhichCheckFailed>();
+}
+
+#[test]
+fn a_failure_of_the_vocabulary_is_safe_from_any_thread() {
+    const _: () = any_thread::<Failure>();
+}
+
+#[test]
+fn which_of_the_fifteen_a_failure_is_is_safe_from_any_thread() {
+    const _: () = any_thread::<Kind>();
+}
+
+#[test]
+fn a_capability_of_the_server_surface_is_safe_from_any_thread() {
+    const _: () = any_thread::<Capability>();
+}
+
+#[test]
+fn where_the_core_was_reading_is_safe_from_any_thread() {
+    const _: () = any_thread::<ReadingSite>();
+}
+
+#[test]
+fn which_defect_produced_an_internal_fault_is_safe_from_any_thread() {
+    const _: () = any_thread::<FaultSite>();
+}
+
+#[test]
+fn what_the_transport_found_is_safe_from_any_thread() {
+    const _: () = any_thread::<TransportOutcome<'static>>();
+}
+
+#[test]
+fn what_a_server_answered_beside_its_status_is_safe_from_any_thread() {
+    const _: () = any_thread::<Answered<'static>>();
 }
