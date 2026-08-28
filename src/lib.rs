@@ -118,6 +118,10 @@ const _: () = {
     any_thread::<session::device::PartNotUsable>();
     any_thread::<measurement::Measurement<'static>>();
     any_thread::<diagnostics::Diagnostics<'static>>();
+    any_thread::<diagnostics::redaction::Treatment>();
+    any_thread::<diagnostics::redaction::FieldName>();
+    any_thread::<diagnostics::redaction::CorrelatorSalt>();
+    any_thread::<diagnostics::redaction::Correlator>();
     any_thread::<server::QueryResult>();
     any_thread::<server::federation::Federation<'static>>();
     any_thread::<server::address::BaseAddress>();

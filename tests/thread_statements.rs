@@ -27,6 +27,7 @@ use flowfin_core::cache::freshness::{
 };
 use flowfin_core::cache::{ByteStore, EntryKey};
 use flowfin_core::clock::Clocks;
+use flowfin_core::diagnostics::redaction::{Correlator, CorrelatorSalt, FieldName, Treatment};
 use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
 use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
@@ -200,4 +201,20 @@ fn a_held_cache_entry_is_safe_from_any_thread() {
 #[test]
 fn what_a_cache_read_answers_with_is_safe_from_any_thread() {
     const _: () = any_thread::<Answer>();
+}
+
+#[test]
+fn a_field_name_and_its_treatment_are_safe_from_any_thread() {
+    const _: () = any_thread::<FieldName>();
+    const _: () = any_thread::<Treatment>();
+}
+
+#[test]
+fn the_salt_a_correlator_is_taken_under_is_safe_from_any_thread() {
+    const _: () = any_thread::<CorrelatorSalt>();
+}
+
+#[test]
+fn a_correlator_is_safe_from_any_thread() {
+    const _: () = any_thread::<Correlator>();
 }
