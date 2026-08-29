@@ -20,6 +20,10 @@
 
 use flowfin_core::Core;
 use flowfin_core::artwork::DecodedImage;
+use flowfin_core::artwork::address::{
+    ArtworkRequest, DrawnSize, Edge, ImageKind, ImageTag, ItemId, NotUsableInARequest,
+    SizeNotUsable,
+};
 use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
 use flowfin_core::cache::envelope::{Drops, Entries, WhichCheckFailed};
@@ -170,6 +174,46 @@ fn a_refused_image_is_safe_from_any_thread() {
 #[test]
 fn an_admitted_image_is_safe_from_any_thread() {
     const _: () = any_thread::<Admitted>();
+}
+
+#[test]
+fn an_image_kind_is_safe_from_any_thread() {
+    const _: () = any_thread::<ImageKind>();
+}
+
+#[test]
+fn which_edge_of_a_size_was_refused_is_safe_from_any_thread() {
+    const _: () = any_thread::<Edge>();
+}
+
+#[test]
+fn why_a_size_is_not_usable_is_safe_from_any_thread() {
+    const _: () = any_thread::<SizeNotUsable>();
+}
+
+#[test]
+fn the_size_the_core_asks_for_is_safe_from_any_thread() {
+    const _: () = any_thread::<DrawnSize>();
+}
+
+#[test]
+fn why_a_server_value_may_not_be_written_is_safe_from_any_thread() {
+    const _: () = any_thread::<NotUsableInARequest>();
+}
+
+#[test]
+fn an_item_identifier_is_safe_from_any_thread() {
+    const _: () = any_thread::<ItemId>();
+}
+
+#[test]
+fn a_content_tag_is_safe_from_any_thread() {
+    const _: () = any_thread::<ImageTag>();
+}
+
+#[test]
+fn an_artwork_request_is_safe_from_any_thread() {
+    const _: () = any_thread::<ArtworkRequest>();
 }
 
 #[test]

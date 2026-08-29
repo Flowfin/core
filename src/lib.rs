@@ -127,6 +127,14 @@ const _: () = {
     any_thread::<server::address::BaseAddress>();
     any_thread::<server::address::AddressNotUsable>();
     any_thread::<artwork::DecodedImage>();
+    any_thread::<artwork::address::ImageKind>();
+    any_thread::<artwork::address::Edge>();
+    any_thread::<artwork::address::SizeNotUsable>();
+    any_thread::<artwork::address::DrawnSize>();
+    any_thread::<artwork::address::NotUsableInARequest>();
+    any_thread::<artwork::address::ItemId>();
+    any_thread::<artwork::address::ImageTag>();
+    any_thread::<artwork::address::ArtworkRequest>();
     any_thread::<artwork::format::Accepted>();
     any_thread::<artwork::format::DeclaredDimensions>();
     any_thread::<artwork::format::Refused>();

@@ -13,10 +13,18 @@
 //! and the bound on the dimensions a header declares, read before any buffer for
 //! pixels exists.
 //!
+//! Everything 0049 puts before a request, in [`address`]: the five image kinds,
+//! the ladder a requested size is rounded onto so that two nearby tiles share
+//! one entry, the content tag 0006 depends on, and the refusal of an identifier
+//! or a tag whose bytes would let a server choose part of the request.
+//!
 //! What is absent is the decoder itself. [`DecodedImage`] is still a name, the
 //! decode and its memory budget are #50, and nothing in this tree turns admitted
-//! bytes into pixels.
+//! bytes into pixels. What is also absent is the fetch: [`address`] builds the
+//! address and derives the key, and the transport that would go and get it is
+//! #27.
 
+pub mod address;
 pub mod format;
 
 /// Pixels the core produced from bytes a server sent.
