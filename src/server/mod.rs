@@ -14,6 +14,12 @@
 //! enters the core and nowhere else, and every request path is appended to the
 //! result by the one routine that module carries.
 //!
+//! [`transport`] holds 0027's bounds: the two per-attempt deadlines inside the
+//! call deadline 0007 sets, how many requests may be outstanding and against
+//! whom, how long an idle connection is kept, and how far a cancelled response
+//! is read before the connection is closed instead. It holds no socket, and its
+//! own documentation says why that is a decision rather than an omission.
+//!
 //! [`federation`] holds what 0072 decides: a second host becomes reachable only
 //! through an act a person performed, against one server, naming what it shares,
 //! and revocable without the network. Which hosts may be contacted at all is
@@ -21,6 +27,7 @@
 
 pub mod address;
 pub mod federation;
+pub mod transport;
 
 /// An answer the core has already received and handed back.
 ///

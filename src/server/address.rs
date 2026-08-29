@@ -76,6 +76,54 @@ impl Scheme {
     }
 }
 
+/// The scheme, the host and the port of a base address, and nothing else.
+///
+/// This is 0069's sentence about what an origin is, written as a value. That
+/// record needs it to decide which destinations may be reached at all, and 0027
+/// needs it to decide which connections may be reused for one another. Both read
+/// the same three parts, so there is one type rather than two comparisons that
+/// agree until one of them is edited.
+///
+/// A PATH IS NOT PART OF IT, which is 0069's own sentence and the half a reader
+/// gets wrong. 0028 joins every request path to a base by concatenation, so a
+/// server an operator reached at a sub-path is the same origin as one they
+/// reached at the root, and a connection to it is reusable for both.
+///
+/// AN ABSENT PORT IS NOT THE SCHEME'S DEFAULT FILLED IN. Nothing here supplies
+/// 80 or 443, because 0028 keeps what was typed and supplies nothing, and an
+/// origin that guessed would compare equal to one a person typed the number into
+/// while the two took different routes through everything downstream. Where a
+/// socket eventually needs a number, that is the connect and not this value.
+///
+/// Thread safety, from 0009: immutable once built, safe from any thread.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Origin {
+    scheme: Scheme,
+    host: String,
+    port: Option<u16>,
+}
+
+impl Origin {
+    /// The scheme, which decides whether 0029 has a certificate to judge.
+    #[must_use]
+    pub const fn scheme(&self) -> Scheme {
+        self.scheme
+    }
+
+    /// The host, lowered in case by the parse that produced it, with its
+    /// brackets where it is an IPv6 address.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+
+    /// The port, where one was typed, and `None` where none was.
+    #[must_use]
+    pub const fn port(&self) -> Option<u16> {
+        self.port
+    }
+}
+
 /// Which part of what was typed could not be used.
 ///
 /// 0004 fixes the payload of `address-not-usable` as the address exactly as it
@@ -258,6 +306,26 @@ impl BaseAddress {
             // double slash never reaches a server.
             path: kept_path,
         })
+    }
+
+    /// The origin this address names.
+    ///
+    /// 0069 fixes what an origin is and this is that sentence as a value: the
+    /// scheme, the host and the port, and never the path. A server at a sub-path
+    /// is one origin with the rest of the tree, which is why [`Origin`] drops
+    /// what [`BaseAddress::join`] keeps.
+    ///
+    /// It is derived here rather than assembled by whoever needs one. 0027
+    /// reuses a connection within an origin and never across one, and an origin
+    /// built at a call site out of the parts of an address is the construction
+    /// that eventually forgets the port.
+    #[must_use]
+    pub fn origin(&self) -> Origin {
+        Origin {
+            scheme: self.scheme,
+            host: self.host.clone(),
+            port: self.port,
+        }
     }
 
     /// Appends a request path to this base address.
