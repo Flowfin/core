@@ -8,11 +8,21 @@ green run here and a green run there are the same run:
     cargo build --locked --all-targets
     cargo test --locked
 
-A fresh clone needs a Rust toolchain and nothing else. There is no restore step
-to run first, and that is a fact about this tree rather than a convenience: the
-manifest declares no dependencies, so `cargo build` fetches nothing. When that
-changes, `--locked` is what makes the restore refuse to rewrite `Cargo.lock`
-rather than doing it quietly, and it is already in both commands for that reason.
+A fresh clone needs a Rust toolchain and a network. The manifest declares a
+dependency, so the first build fetches before it compiles, and `--locked` is what
+makes that restore refuse to rewrite `Cargo.lock` rather than doing it quietly.
+It is in both commands for that reason. What is declared, and what it reaches, is
+read rather than written here:
+
+    cargo tree -e normal
+
+THIS PARAGRAPH SAID A FRESH CLONE NEEDED THE TOOLCHAIN AND NOTHING ELSE, ON THE
+GROUND THAT THE MANIFEST DECLARED NO DEPENDENCIES. It declares one, and the
+sentence saying what `--locked` would be for when that changed was left standing
+above the sentence it was about, so this file went on promising that nothing is
+fetched. `README.md` carries the correction already and this one did not, which
+is the same drift the section below names for the two commands, one paragraph
+earlier and in the file that names it.
 
 The toolchain version is pinned in `rust-toolchain.toml`, in one place, and no
 workflow carries a copy of the number. The toolchain manager reads that file
