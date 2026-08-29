@@ -69,14 +69,29 @@ that the boundary is visible in the tree and not only in a document:
 `src/server/`, `src/session/`, `src/cache/`, `src/artwork/`, `src/playback/` and
 `src/measurement/`.
 
-Two directories beside those six are not concerns from that record and say so in
+Three directories beside those six are not concerns from that record and say so in
 their own first paragraph. `src/failure/` holds the error vocabulary the six map
-onto, and `src/diagnostics/` holds the sink a client supplies.
+onto, `src/diagnostics/` holds the sink a client supplies, and `src/clock/` holds
+the one source all three clocks reach the core through, because
+[0102](docs/decisions/0102-the-clocks-every-deadline-is-measured-against.md)
+states a rule per clock and a reading taken anywhere else would be a deadline no
+test can move.
 
-There is no behaviour in any of them yet. What each type is, and the statement
-about which thread a client may call it from, is written where a reader meets the
-type; `tests/thread_statements.rs` is what refuses a change that breaks one of
-those statements.
+What each type is, and the statement about which thread a client may call it from,
+is written where a reader meets the type; `tests/thread_statements.rs` is what
+refuses a change that breaks one of those statements. What each directory holds
+is read rather than listed here, because a list of what has landed is wrong on the
+next landing:
+
+    git ls-tree --name-only origin/main src/
+
+THIS PARAGRAPH COUNTED TWO DIRECTORIES AND SAID THERE WAS NO BEHAVIOUR IN ANY OF
+THEM. There are three, and the claim that none of them holds behaviour stopped
+being true of this tree. It was written when the tree held none; `src/lib.rs`
+carries the correction for the sentence it made about the same thing, and this
+file was not brought into step with it. Both errors ran in the direction that
+makes the tree look emptier than it is, in the first file anybody reads about this
+repository.
 
 ## What the gate builds for, and what nothing here covers
 
