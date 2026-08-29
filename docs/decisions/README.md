@@ -52,6 +52,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0102. The clocks every deadline is measured against](0102-the-clocks-every-deadline-is-measured-against.md)
 - [0103. What admits a dependency, and what is refused](0103-what-admits-a-dependency-and-what-is-refused.md)
 - [0105. An entry this version did not write, and one that was not finished](0105-an-entry-this-version-did-not-write.md)
+- [0109. What a recorded fixture may carry, and why the check asks about membership](0109-what-a-recorded-fixture-may-carry.md)
 - [0111. Which source is played, and what the handover carries](0111-which-source-is-played-and-the-handover.md)
 - [0112. Where the platform decoder begins](0112-where-the-platform-decoder-begins.md)
 - [0113. The target triples the gate compiles for](0113-the-target-triples-the-gate-compiles-for.md)
