@@ -1,0 +1,107 @@
+# What a recorded fixture may carry (#109).
+#
+# A rule set as data rather than as code, loaded and applied by
+# .github/fixture-scrub/fixture-scrub.sh, in the shape .github/invariants/rules
+# already fixes for this tree: a rule is added by editing a register, with the
+# record it comes from and the failure it prevents on the same block.
+#
+# WHY THE PROPERTY IS MEMBERSHIP AND NOT A SHAPE. #109 asks for a check refusing
+# a value matching a named shape, and a synthetic account name has the shape of
+# an account name, so a shape alone refuses every recording or none of them. Each
+# block therefore carries two patterns where it admits anything at all: `find`
+# locates a candidate and `allow` says which values are admitted. The argument is
+# in docs/decisions/0109-what-a-recorded-fixture-may-carry.md, and that record is
+# the thing to argue with rather than a pattern here.
+#
+# The fields:
+#
+#   id         what the rule is called, in the verdict and in the refusal.
+#   kind       the thing the rule is about, printed beside the file and the line,
+#              so a refusal names a subject rather than only a pattern.
+#   treatment  `absent` or `synthetic`. Under `absent` any candidate at all is
+#              refused and the block carries no `allow`. Under `synthetic` a
+#              candidate is refused where `allow` does not admit it, and the
+#              block carries one.
+#   find       an extended regular expression locating a candidate value. Whole
+#              matches are judged, one per occurrence, so a line carrying two of
+#              them is two judgements.
+#   allow      an extended regular expression a candidate must match ENTIRELY to
+#              be admitted. Required under `synthetic`, refused under `absent`.
+#   paths      a prefix of a tracked path. The subject is git's set, so a file on
+#              disk that nobody added is not judged and is not reported clean.
+#   grounds    the landed record the rule comes from. A rule nobody can trace to
+#              a decision is a preference.
+#   prevents   the failure it prevents, in one line.
+#   fixture    a line that violates the rule. Every run judges this text against
+#              the WHOLE rule set and requires the verdict to be exactly this
+#              rule, so a rule proves it bites and proves it bites alone.
+#   clean      a line that nearly violates it and must not. The one-character
+#              mistake somebody actually makes is worth more than a violation
+#              that could not have passed.
+#
+# THERE IS NO FIELD FOR AN EXCEPTION AND THAT IS DELIBERATE. The neighbouring
+# register carries one because a rule there needed it. No rule here does, and a
+# field nothing uses is a field no fixture proves, which on this board is the
+# shape a guard is refused in rather than a convenience left ready.
+#
+# NO RULE HERE NAMES A FIELD OF THE SERVER'S OWN INTERFACE THAT NOTHING IN THIS
+# TREE HAS READ. tests/fake_server/surface.rs states the same constraint for the
+# answers it serves and gives the reason: a field name invented here would be a
+# claim about an interface nobody read. The two authorization parts below are in
+# docs/decisions/0036-the-device-identity-and-who-supplies-it.md, which read them
+# out of the server's own repository at a named commit. Everything else below is
+# a shape of this repository's own making, which is a rule about what a recording
+# procedure here writes rather than a claim about what a server sends.
+
+id: token-is-not-a-recorded-value
+kind: the session token
+treatment: absent
+find: (Token|AccessToken)"?[[:space:]]*[=:][[:space:]]*"[^"]*"
+paths: tests/
+grounds: docs/decisions/0071-what-may-leave-through-a-diagnostic-event.md
+prevents: A credential in a public tree. 0071 excludes the token outright rather than reducing it, so there is no synthetic token either: a recording carries no value under this name at all, and a fixture that needs one is a fixture whose recording was not scrubbed. A token committed once is in the history whether or not a later change deletes the file.
+fixture: Token="zk3Qv8Lm2Rt7Yp1Xw"
+clean: TokenGeneration = 4
+
+id: password-is-not-a-recorded-value
+kind: a password
+treatment: absent
+find: (Pw|Password)"?[[:space:]]*[=:][[:space:]]*"[^"]*"
+paths: tests/
+grounds: docs/decisions/0030-the-password-route.md
+prevents: An operator's own password in a public tree, arriving through the request half of a recorded exchange rather than through a response. 0030 fixes what the password may touch, and a file on disk is not in that set at any value, which is why this carries no synthetic form either.
+fixture: "Password": "correct horse battery staple"
+clean: PasswordRoute = "0030"
+
+id: address-is-not-synthetic
+kind: the server address
+treatment: synthetic
+find: https?://[][a-zA-Z0-9._:-]+
+allow: https?://(127\.0\.0\.1|\[::1\]|localhost|server\.invalid)(:[0-9]+)?
+paths: tests/recorded/
+grounds: docs/decisions/0068-the-data-locality-position.md
+prevents: The address of somebody's own server in a public tree. 0068 places the address as typed and the identity behind it in the personal set, and says a self-hosted address frequently says where the person lives. The subject is the recorded set alone rather than the whole of tests/, because a hand-written source file there legitimately carries a format placeholder and a loopback prefix a port is appended to, and neither is a value any recording holds.
+fixture: "BaseUrl": "https://media.example-household.de:8920"
+clean: "BaseUrl": "https://server.invalid:8920"
+
+id: device-identity-is-not-synthetic
+kind: the device identity
+treatment: synthetic
+find: (DeviceId|Device)"?[[:space:]]*[=:][[:space:]]*"[^"]*"
+allow: (DeviceId"?[[:space:]]*[=:][[:space:]]*"synthetic-device-0"|Device"?[[:space:]]*[=:][[:space:]]*"a synthetic device")
+paths: tests/
+grounds: docs/decisions/0036-the-device-identity-and-who-supplies-it.md
+prevents: The identity of a real device in a public tree. 0036 read both of these parts out of the authorization value the server parses, at a named commit, and 0068 places the device identity and the profile in the personal set because the profile says what hardware somebody has.
+fixture: DeviceId="a1b2c3d4e5f60718"
+clean: DeviceId="synthetic-device-0"
+
+id: identifier-is-not-synthetic
+kind: a server-supplied identifier
+treatment: synthetic
+find: [0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}
+allow: 00000000-?0000-?4000-?8000-?00000000000[0-9a-f]
+paths: tests/
+grounds: docs/decisions/0068-the-data-locality-position.md
+prevents: An account, an item or a session identifier out of somebody's own library in a public tree. 0068 places server-supplied identifiers in the personal set, and an identifier is the one field of a recording that reads as meaningless and correlates a person across every other file it appears in.
+fixture: "Id": "3fa85f6457174562b3fc2c963f66afa6"
+clean: "Id": "00000000000040008000000000000001"
