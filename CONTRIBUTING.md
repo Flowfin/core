@@ -230,16 +230,30 @@ code-scanning surface.
 
 Read this before treating a green tick as a merge condition.
 
-**No check is required to merge.** The ruleset on `main` requires a pull request
-and refuses a deletion and a rewrite, and it names no status check at all:
+**No check is required to merge.** The ruleset on `main` requires a pull request,
+requires a verified signature, and refuses a deletion and a rewrite. It names no
+status check at all:
 
-    gh api repos/Flowfin/core/rulesets/20572113 --jq '[.rules[].type]'
-    ["deletion","non_fast_forward","pull_request"]
+    gh api repos/Flowfin/core/rulesets/20572113 --jq '{enforcement, bypass: .bypass_actors, required: [.rules[].type]}'
+    {"bypass":[],"enforcement":"active","required":["deletion","non_fast_forward","pull_request","required_signatures"]}
 
 So a red `build` blocks nothing today. #26 is where the names are written into
-that ruleset, and it waits on #113 deciding what the names will be under a build
-matrix. Until then, whether a red check stops a merge is a person's judgement, and
+that ruleset, and what that issue waits on is written on it rather than restated
+here. Until then, whether a red check stops a merge is a person's judgement, and
 the rule is that it does.
+
+THE PASTE ABOVE CARRIED THREE RULES, AND THE FOURTH IS THE ONE THAT REFUSES A
+MERGE WITH EVERY CHECK GREEN. The sentence under it named an issue that has since
+closed as what #26 was waiting on, which is why neither is stated here any more.
+Enforcement is active and the bypass list is empty, so one commit without a
+verified signature anywhere in a branch's history refuses the merge. That is not
+the `Signed-off-by` trailer the section above is about: a trailer is text in a
+message and `DCO sign-off` reads it, a signature is a cryptographic object over
+the commit and no check in this tree reads one. Both are required and neither
+stands in for the other, and the only thing that says a signature is missing is
+the merge at the end of the line. So a signing failure is fixed rather than pushed
+past: the way around it is one flag, and taking it moves the refusal to that
+point, after the review has already been done.
 
 **The two commands above are prose.** Nothing compares what a workflow invokes
 against what this document and `README.md` say a contributor runs. The three are
@@ -364,8 +378,16 @@ four short. The sentence beside it already told them to derive the count, and no
 the set goes the same way:
 
     git ls-tree -r --name-only origin/main -- .github | grep '\.sh$' | wc -l
-    12
+    17
     git ls-files -- '.github/**/*.sh'
+
+THE OUTPUT PASTED HERE SAID TWELVE AND THE TREE CARRIED SEVENTEEN, which is this
+paragraph's own subject arriving in this paragraph. It records a list that went
+four short and hands the reader a command instead, and the output beside that
+command then went five short. Seventeen is a reading taken at
+`74066f7b9ac3972b779ed1ef60e1d48a6dd74965` rather than a fact about the tree
+tomorrow. The command is the part to trust and the number is what it answered
+once.
 
 A rule that is turned off is turned off in a register beside the script, one entry
 per line with the reason on the same line, and the run refuses an entry that
