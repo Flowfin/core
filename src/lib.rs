@@ -125,6 +125,14 @@ const _: () = {
     any_thread::<server::QueryResult>();
     any_thread::<server::federation::Federation<'static>>();
     any_thread::<server::address::BaseAddress>();
+    any_thread::<server::address::Origin>();
+    any_thread::<server::transport::CallDeadline>();
+    any_thread::<server::transport::AttemptBound>();
+    any_thread::<server::transport::Outstanding>();
+    any_thread::<server::transport::Waits>();
+    any_thread::<server::transport::EndsAConnection>();
+    any_thread::<server::transport::ACancelledBody>();
+    any_thread::<server::transport::IdleConnections<()>>();
     any_thread::<server::address::AddressNotUsable>();
     any_thread::<artwork::DecodedImage>();
     any_thread::<artwork::address::ImageKind>();

@@ -73,6 +73,7 @@ module  src/session/device.rs       The device identity, whose identifier is one
 module  src/server/mod.rs           The server module and what it places at its own boundary.
 module  src/server/address.rs       The address a person typed, parsed and refused where it is not usable.
 module  src/server/federation.rs    Which second host a request may reach, and the deliberate act that admits one.
+module  src/server/transport.rs     The bounds every request is carried inside: which deadline an attempt runs against, how many may be outstanding against one server, how long an idle connection may be reused, and how far a cancelled body is read. A defect here is a request that outlives the deadline a caller was promised, or a connection handed back to an origin it was never opened to.
 module  src/cache/mod.rs            The store interface, the one failure it may report, and the key type 0041 derives.
 module  src/cache/key.rs            How that key is built. 0041 makes a collision here a disclosure rather than a stale answer, because part of the input came from a server 0101 does not trust.
 module  src/cache/bound.rs          What the core asks the store to hold, what it evicts, and what it does when the device refuses.
