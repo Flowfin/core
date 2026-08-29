@@ -171,6 +171,24 @@ carries what it reads and, on every run, the list of what it does not.
 file. The rules it does not refuse are in `.github/shell-analysis/excluded-rules`
 with the reason for each.
 
+**`fixture-scrub`** refuses a value in a recorded fixture that a scrubbed
+recording does not carry: a session token, a password, a server address, a device
+identity or a server-supplied identifier. It asks about membership of a declared
+set rather than about a shape, because a synthetic identifier has the shape of a
+real one and a rule written on the shape alone refuses every recording or none.
+The set is data, in `.github/fixture-scrub/values`, one block per rule with the
+record it comes from and the failure it prevents on it, and
+`.github/fixture-scrub/fixture-scrub.sh` proves every rule against its own
+violating line and its own near miss before it judges anything. A refusal names
+the file, the line and the kind, and never the value. What it cannot reach is
+printed on every run: the personal data list in
+`docs/decisions/0068-the-data-locality-position.md` is closed by a question a
+contributor answers, so a title, an account name and a viewing history walk past
+every rule, and nothing here reads the history. `tests/recorded/README.md` is the
+procedure that produces a recording which passes, and it is written before the
+first recording rather than after it, for the reason #99 already gives about line
+endings.
+
 **`Analyze (rust)`** runs the code-scanning surface's own semantic analysis over
 `src/`, which asks a question a pattern cannot: whether a value that arrived from
 outside reaches a place that trusts it, across the calls in between. The verdict

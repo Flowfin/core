@@ -1,0 +1,65 @@
+# What a recorded fixture may carry (#109).
+#
+# A response recorded from a real server carries what that server holds: a
+# session token, an address, a device identity, and identifiers that correlate a
+# person across every file they appear in. This repository is public, and a
+# fixture committed once is in the history whether or not a later change deletes
+# the file, so the check runs before the first recording rather than after it.
+#
+# The check-run name is exactly `fixture-scrub`, on both the workflow and the
+# job. GitHub takes that name from the job's `name:` and falls back to the job
+# id, and a ruleset matches the literal, so having the two agree means a rename
+# cannot detach a requirement from the thing it was requiring without being
+# visible in this file.
+#
+# The rules are DATA, in .github/fixture-scrub/values, and
+# .github/fixture-scrub/fixture-scrub.sh is the loader that refuses a block
+# carrying no stated failure. Every run proves every rule against its own
+# violating line and its own near miss before it judges the tree, so a rule
+# cannot pass its fixture and refuse something else in the gate.
+#
+# The job carries no `if:` and no path filter, for the reason
+# .github/workflows/build.yml already gives: GitHub creates a check run for a job
+# it started and then skipped, carrying the same name a job that did the work
+# would. A path filter would be worse here than elsewhere, because the file this
+# check exists for is one somebody adds rather than one somebody edits.
+#
+# Nothing here compiles. A pattern over tracked text needs no toolchain, so this
+# check has a verdict on a tree the compiler cannot build.
+name: fixture-scrub
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: fixture-scrub-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixture-scrub:
+    name: fixture-scrub
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # check out the tree the rules read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      - name: Prove every rule bites, then apply the rule set
+        run: bash .github/fixture-scrub/fixture-scrub.sh check
