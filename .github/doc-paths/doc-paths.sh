@@ -486,7 +486,7 @@ EOF
   echo
 
   echo "-- what this run did not read"
-  echo "NOT MADE HERE: a command a document tells a reader to run. Checking that a verb exists needs a verb in the tree or a pinned toolchain to look in, and this repository has neither; #14 pins one and entry 2 of #1 decides what it is."
+  echo "NOT MADE HERE: a command a document tells a reader to run. Only whether a path resolves is judged, so a document naming a verb, a flag or a subcommand this tree does not carry passes unexamined. A pinned toolchain to look in is here now, which is what #14 landed; no check that looks in it has been written."
   echo "NOT MADE HERE: a path written in plain prose. Only a Markdown link target and a code span are read, so a path in an ordinary sentence passes unexamined."
   echo "NOT MADE HERE: a code span with no separator in it. docs/gate-parity.md names two dozen files inside another repository that way, and reading one as a local path would refuse every one of them."
   echo "NOT MADE HERE: anything inside a fenced or indented block. Those carry commands and their output, and the paths in them are frequently another repository's."
