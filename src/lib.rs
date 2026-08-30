@@ -122,6 +122,14 @@ const _: () = {
     any_thread::<session::delegated::ValueNotUsable>();
     any_thread::<session::delegated::ValueAlreadyOpen>();
     any_thread::<session::delegated::NoAttemptMatched>();
+    any_thread::<session::renewal::Generation>();
+    any_thread::<session::renewal::RenewalRoute>();
+    any_thread::<session::renewal::Rejection>();
+    any_thread::<session::renewal::WhatARejectedCallDoes>();
+    any_thread::<session::renewal::HowTheRenewalEnded>();
+    any_thread::<session::renewal::WhatTheOutcomeDoes>();
+    any_thread::<session::renewal::Renewals>();
+    any_thread::<session::renewal::RenewalSchedule>();
     any_thread::<measurement::Measurement<'static>>();
     any_thread::<diagnostics::Diagnostics<'static>>();
     any_thread::<diagnostics::redaction::Treatment>();
