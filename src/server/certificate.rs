@@ -329,16 +329,14 @@ impl Pins {
     /// rather than this signature.
     pub fn pin(&self, server: PinnedServer, fingerprint: Fingerprint) -> Option<Fingerprint> {
         let mut held = self.held();
-        match held.iter_mut().find(|pin| pin.server == server) {
-            Some(pin) => Some(core::mem::replace(&mut pin.fingerprint, fingerprint)),
-            None => {
-                held.push(Pin {
-                    server,
-                    fingerprint,
-                });
-                None
-            }
+        if let Some(pin) = held.iter_mut().find(|pin| pin.server == server) {
+            return Some(core::mem::replace(&mut pin.fingerprint, fingerprint));
         }
+        held.push(Pin {
+            server,
+            fingerprint,
+        });
+        None
     }
 
     /// Whether this chain is the certificate an operator pinned for this server.
