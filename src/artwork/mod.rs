@@ -18,6 +18,11 @@
 //! one entry, the content tag 0006 depends on, and the refusal of an identifier
 //! or a tag whose bytes would let a server choose part of the request.
 //!
+//! Everything #51 puts between the two, in [`presence`]: what an item has for
+//! one image kind, where an item with no tag for a kind stops being a request
+//! that was never built and becomes an answer a client can show, and why a tag
+//! the core refused is neither that answer nor the same thing as one.
+//!
 //! What is absent is the decoder itself. [`DecodedImage`] is still a name, the
 //! decode and its memory budget are #50, and nothing in this tree turns admitted
 //! bytes into pixels. What is also absent is the fetch: [`address`] builds the
@@ -26,6 +31,7 @@
 
 pub mod address;
 pub mod format;
+pub mod presence;
 
 /// Pixels the core produced from bytes a server sent.
 ///

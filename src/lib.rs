@@ -168,6 +168,7 @@ const _: () = {
     any_thread::<artwork::format::DeclaredDimensions>();
     any_thread::<artwork::format::Refused>();
     any_thread::<artwork::format::Admitted>();
+    any_thread::<artwork::presence::WhatTheItemHas>();
     any_thread::<playback::Ticks>();
     any_thread::<playback::AdmittedPosition>();
     any_thread::<playback::resume::Resume>();

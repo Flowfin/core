@@ -25,6 +25,7 @@ use flowfin_core::artwork::address::{
     SizeNotUsable,
 };
 use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
+use flowfin_core::artwork::presence::WhatTheItemHas;
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
 use flowfin_core::cache::envelope::{Drops, Entries, WhichCheckFailed};
 use flowfin_core::cache::freshness::{
@@ -221,6 +222,11 @@ fn a_content_tag_is_safe_from_any_thread() {
 #[test]
 fn an_artwork_request_is_safe_from_any_thread() {
     const _: () = any_thread::<ArtworkRequest>();
+}
+
+#[test]
+fn what_an_item_has_for_a_kind_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheItemHas>();
 }
 
 #[test]
