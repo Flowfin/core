@@ -39,6 +39,9 @@ use flowfin_core::failure::{
     Answered, Capability, Failure, FaultSite, Kind, ReadingSite, TransportOutcome,
 };
 use flowfin_core::measurement::{Measurement, MeasurementSink};
+use flowfin_core::playback::cadence::{
+    ReportsWithoutWaiting, TheInterval, WhatItDoesToTheInterval,
+};
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::server::federation::Federation;
@@ -437,6 +440,21 @@ fn what_an_enqueue_did_is_safe_from_any_thread() {
 #[test]
 fn one_sessions_write_queue_is_safe_from_any_thread() {
     const _: () = any_thread::<WriteQueue<()>>();
+}
+
+#[test]
+fn an_event_that_reports_without_waiting_is_safe_from_any_thread() {
+    const _: () = any_thread::<ReportsWithoutWaiting>();
+}
+
+#[test]
+fn what_such_an_event_does_to_the_interval_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatItDoesToTheInterval>();
+}
+
+#[test]
+fn the_progress_reporting_interval_is_safe_from_any_thread() {
+    const _: () = any_thread::<TheInterval>();
 }
 
 #[test]
