@@ -157,6 +157,12 @@ const _: () = {
     any_thread::<server::transport::EndsAConnection>();
     any_thread::<server::transport::ACancelledBody>();
     any_thread::<server::transport::IdleConnections<()>>();
+    any_thread::<server::write_queue::WhatIsAsserted>();
+    any_thread::<server::write_queue::Target>();
+    any_thread::<server::write_queue::Entry<()>>();
+    any_thread::<server::write_queue::Dropped>();
+    any_thread::<server::write_queue::WhatTheEnqueueDid>();
+    any_thread::<server::write_queue::WriteQueue<()>>();
     any_thread::<server::address::AddressNotUsable>();
     any_thread::<artwork::DecodedImage>();
     any_thread::<artwork::address::ImageKind>();
