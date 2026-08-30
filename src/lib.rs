@@ -116,6 +116,12 @@ const _: () = {
     any_thread::<session::device::DeviceIdentity>();
     any_thread::<session::device::Capabilities>();
     any_thread::<session::device::PartNotUsable>();
+    any_thread::<session::delegated::TieValue>();
+    any_thread::<session::delegated::Relayable>();
+    any_thread::<session::delegated::OpenAttempts>();
+    any_thread::<session::delegated::ValueNotUsable>();
+    any_thread::<session::delegated::ValueAlreadyOpen>();
+    any_thread::<session::delegated::NoAttemptMatched>();
     any_thread::<measurement::Measurement<'static>>();
     any_thread::<diagnostics::Diagnostics<'static>>();
     any_thread::<diagnostics::redaction::Treatment>();
