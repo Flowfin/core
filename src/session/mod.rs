@@ -11,7 +11,14 @@
 //! something a session acquires. None of it is state the core holds: the client
 //! keeps the identifier and the name, and the core owns the shape of the
 //! capability description and fills none of it in.
+//!
+//! [`delegated`] holds the part of 0032 a byte comparison settles: the value
+//! that ties one delegated sign-in attempt to its answer, the set of attempts
+//! this process has started, and the order an answer is matched in. It is here
+//! rather than beside a route because there is no route - the address, the
+//! detection and the exchange are requests, and the transport is #27.
 
+pub mod delegated;
 pub mod device;
 
 /// One signed-in session against one server.

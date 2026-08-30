@@ -41,6 +41,9 @@ use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::server::federation::Federation;
+use flowfin_core::session::delegated::{
+    NoAttemptMatched, OpenAttempts, Relayable, TieValue, ValueAlreadyOpen, ValueNotUsable,
+};
 use flowfin_core::session::device::{Capabilities, DeviceIdentity, PartNotUsable};
 use flowfin_core::session::{SecretStore, Session};
 
@@ -315,4 +318,34 @@ fn what_the_transport_found_is_safe_from_any_thread() {
 #[test]
 fn what_a_server_answered_beside_its_status_is_safe_from_any_thread() {
     const _: () = any_thread::<Answered<'static>>();
+}
+
+#[test]
+fn the_value_tying_a_delegated_attempt_to_its_answer_is_safe_from_any_thread() {
+    const _: () = any_thread::<TieValue>();
+}
+
+#[test]
+fn what_a_matched_answer_may_be_relayed_as_is_safe_from_any_thread() {
+    const _: () = any_thread::<Relayable>();
+}
+
+#[test]
+fn the_delegated_attempts_a_process_has_started_are_safe_from_any_thread() {
+    const _: () = any_thread::<OpenAttempts>();
+}
+
+#[test]
+fn why_a_value_offered_for_an_attempt_was_refused_is_safe_from_any_thread() {
+    const _: () = any_thread::<ValueNotUsable>();
+}
+
+#[test]
+fn a_value_a_second_attempt_reused_is_safe_from_any_thread() {
+    const _: () = any_thread::<ValueAlreadyOpen>();
+}
+
+#[test]
+fn an_answer_naming_no_started_attempt_is_safe_from_any_thread() {
+    const _: () = any_thread::<NoAttemptMatched>();
 }
