@@ -46,6 +46,7 @@ use flowfin_core::session::delegated::{
     NoAttemptMatched, OpenAttempts, Relayable, TieValue, ValueAlreadyOpen, ValueNotUsable,
 };
 use flowfin_core::session::device::{Capabilities, DeviceIdentity, PartNotUsable};
+use flowfin_core::session::quick_connect::{HowTheCallEnded, IssuedExchange, WhileWaiting};
 use flowfin_core::session::renewal::{
     Generation, HowTheRenewalEnded, Rejection, RenewalRoute, RenewalSchedule, Renewals,
     WhatARejectedCallDoes, WhatTheOutcomeDoes,
@@ -388,6 +389,21 @@ fn how_a_renewal_ended_is_safe_from_any_thread() {
 #[test]
 fn what_a_renewal_outcome_does_is_safe_from_any_thread() {
     const _: () = any_thread::<WhatTheOutcomeDoes>();
+}
+
+#[test]
+fn where_a_quick_connect_exchange_stands_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhileWaiting>();
+}
+
+#[test]
+fn how_a_quick_connect_call_ended_is_safe_from_any_thread() {
+    const _: () = any_thread::<HowTheCallEnded>();
+}
+
+#[test]
+fn the_two_values_a_quick_connect_exchange_was_issued_with_are_safe_from_any_thread() {
+    const _: () = any_thread::<IssuedExchange>();
 }
 
 #[test]

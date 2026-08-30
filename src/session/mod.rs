@@ -18,6 +18,13 @@
 //! rather than beside a route because there is no route - the address, the
 //! detection and the exchange are requests, and the transport is #27.
 //!
+//! [`quick_connect`] holds the part of 0031 one clock reading and a
+//! construction settle: when the next question about an exchange is due, that
+//! the interval does not move however many have been asked, which of the four
+//! endings fails the caller, and which of the two values the server issued
+//! crosses to the client. It asks no server anything, for the same reason
+//! [`delegated`] does not.
+//!
 //! [`renewal`] holds the part of 0034 a counter and one clock reading settle:
 //! the generation a rejection is answered against, which rejection starts the
 //! session's one renewal and which joins it, what each renewal outcome does, and
@@ -26,6 +33,7 @@
 
 pub mod delegated;
 pub mod device;
+pub mod quick_connect;
 pub mod renewal;
 
 /// One signed-in session against one server.

@@ -71,6 +71,7 @@ area    src/artwork/    Turning bytes that arrived over a network into pixels, w
 module  src/session/mod.rs          The session handle and the secret store interface a client implements.
 module  src/session/delegated.rs    The value that ties a delegated sign-in attempt to its answer, and the order an answer is matched in. A defect here accepts an answer nobody started, or relays one to the operator's server before it has been matched to an attempt.
 module  src/session/renewal.rs      The generation a rejection is answered against and the moment a renewal is due. A defect here is twenty renewals where 0034 fixes one, or a session signed out because a network dropped rather than because a server refused it.
+module  src/session/quick_connect.rs  0031's cadence for asking about a Quick Connect exchange, its four endings, and which of the two values the server issued crosses to the client. A defect here is a backoff nobody decided on a route where the answer arrives from a person, a denial reported as a failure, or the value the core presents handed out beside the code.
 module  src/session/device.rs       The device identity, whose identifier is one part of the cache key 0041 derives and one half of the key a server puts a live session under, so a defect here reaches two other surfaces on this list.
 module  src/server/mod.rs           The server module and what it places at its own boundary.
 module  src/server/address.rs       The address a person typed, parsed and refused where it is not usable.
