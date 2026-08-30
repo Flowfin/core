@@ -24,6 +24,9 @@ use flowfin_core::artwork::address::{
     ArtworkRequest, DrawnSize, Edge, ImageKind, ImageTag, ItemId, NotUsableInARequest,
     SizeNotUsable,
 };
+use flowfin_core::artwork::announced::{
+    AnnouncedWindow, SharedFetches, WhatTheAnnouncementDid, WhatTheHoldDid, WhatTheWithdrawalDid,
+};
 use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
 use flowfin_core::artwork::presence::WhatTheItemHas;
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
@@ -455,6 +458,31 @@ fn what_such_an_event_does_to_the_interval_is_safe_from_any_thread() {
 #[test]
 fn the_progress_reporting_interval_is_safe_from_any_thread() {
     const _: () = any_thread::<TheInterval>();
+}
+
+#[test]
+fn what_announcing_a_window_did_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheAnnouncementDid>();
+}
+
+#[test]
+fn an_announced_window_is_safe_from_any_thread() {
+    const _: () = any_thread::<AnnouncedWindow>();
+}
+
+#[test]
+fn what_holding_an_entrys_fetch_did_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheHoldDid>();
+}
+
+#[test]
+fn what_withdrawing_from_an_entrys_fetch_did_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheWithdrawalDid>();
+}
+
+#[test]
+fn the_fetches_announcements_share_are_safe_from_any_thread() {
+    const _: () = any_thread::<SharedFetches>();
 }
 
 #[test]

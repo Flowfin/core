@@ -173,6 +173,11 @@ const _: () = {
     any_thread::<artwork::address::ItemId>();
     any_thread::<artwork::address::ImageTag>();
     any_thread::<artwork::address::ArtworkRequest>();
+    any_thread::<artwork::announced::WhatTheAnnouncementDid>();
+    any_thread::<artwork::announced::AnnouncedWindow>();
+    any_thread::<artwork::announced::WhatTheHoldDid>();
+    any_thread::<artwork::announced::WhatTheWithdrawalDid>();
+    any_thread::<artwork::announced::SharedFetches>();
     any_thread::<artwork::format::Accepted>();
     any_thread::<artwork::format::DeclaredDimensions>();
     any_thread::<artwork::format::Refused>();

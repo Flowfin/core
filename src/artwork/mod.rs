@@ -23,6 +23,11 @@
 //! that was never built and becomes an answer a client can show, and why a tag
 //! the core refused is neither that answer nor the same thing as one.
 //!
+//! Everything 0053 puts in front of the fetch, in [`announced`]: the ordered
+//! window a client announces, what a window longer than the bound costs and how
+//! a client is told, and which callers are sharing one entry's fetch so that the
+//! last withdrawal is the one that abandons it.
+//!
 //! What is absent is the decoder itself. [`DecodedImage`] is still a name, the
 //! decode and its memory budget are #50, and nothing in this tree turns admitted
 //! bytes into pixels. What is also absent is the fetch: [`address`] builds the
@@ -30,6 +35,7 @@
 //! #27.
 
 pub mod address;
+pub mod announced;
 pub mod format;
 pub mod presence;
 
