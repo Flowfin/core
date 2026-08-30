@@ -69,6 +69,7 @@ area    src/diagnostics/ What may leave the device through an event. 0071 decide
 area    src/artwork/    Turning bytes that arrived over a network into pixels, which 0003 calls the most attacked surface this repository will carry, and the refusal of every format the core does not decode.
 
 module  src/session/mod.rs          The session handle and the secret store interface a client implements.
+module  src/session/delegated.rs    The value that ties a delegated sign-in attempt to its answer, and the order an answer is matched in. A defect here accepts an answer nobody started, or relays one to the operator's server before it has been matched to an attempt.
 module  src/session/device.rs       The device identity, whose identifier is one part of the cache key 0041 derives and one half of the key a server puts a live session under, so a defect here reaches two other surfaces on this list.
 module  src/server/mod.rs           The server module and what it places at its own boundary.
 module  src/server/address.rs       The address a person typed, parsed and refused where it is not usable.
