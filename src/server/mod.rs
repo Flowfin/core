@@ -25,6 +25,11 @@
 //! handed after a refusal so it can show one. It holds no validation, and its
 //! own documentation says why that is the platform's rather than an omission.
 //!
+//! [`recovery`] holds 0045's schedule for a server that is gone: how long until
+//! the next probe is due, where the doubling stops, the hour after which the
+//! core stops asking, and what a client's attempt-now does to both. It holds no
+//! probe, for the same reason [`transport`] holds no socket.
+//!
 //! [`federation`] holds what 0072 decides: a second host becomes reachable only
 //! through an act a person performed, against one server, naming what it shares,
 //! and revocable without the network. Which hosts may be contacted at all is
@@ -33,6 +38,7 @@
 pub mod address;
 pub mod certificate;
 pub mod federation;
+pub mod recovery;
 pub mod transport;
 
 /// An answer the core has already received and handed back.

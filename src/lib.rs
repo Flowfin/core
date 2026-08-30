@@ -130,6 +130,7 @@ const _: () = {
     any_thread::<server::certificate::PinnedServer>();
     any_thread::<server::certificate::Pin>();
     any_thread::<server::certificate::Pins>();
+    any_thread::<server::recovery::WhileUnreachable>();
     any_thread::<server::address::BaseAddress>();
     any_thread::<server::address::Origin>();
     any_thread::<server::transport::CallDeadline>();
