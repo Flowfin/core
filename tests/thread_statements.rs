@@ -45,9 +45,11 @@ use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::playback::cadence::{
     ReportsWithoutWaiting, TheInterval, WhatItDoesToTheInterval,
 };
-use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::server::federation::Federation;
+use flowfin_core::server::library::{
+    LibraryRead, NotAPagedRead, Page, PageRequest, WhatAskingForAPageDid, WhatTheReadAnswers,
+};
 use flowfin_core::server::write_queue::{
     Dropped, Entry, Target, WhatIsAsserted, WhatTheEnqueueDid, WriteQueue,
 };
@@ -95,8 +97,33 @@ fn a_refused_part_of_an_identity_is_safe_from_any_thread() {
 }
 
 #[test]
-fn a_query_result_is_safe_from_any_thread() {
-    const _: () = any_thread::<QueryResult>();
+fn a_page_from_a_library_read_is_safe_from_any_thread() {
+    const _: () = any_thread::<Page<()>>();
+}
+
+#[test]
+fn a_page_request_is_safe_from_any_thread() {
+    const _: () = any_thread::<PageRequest>();
+}
+
+#[test]
+fn what_a_library_read_answers_with_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheReadAnswers>();
+}
+
+#[test]
+fn a_library_read_is_safe_from_any_thread() {
+    const _: () = any_thread::<LibraryRead>();
+}
+
+#[test]
+fn why_a_read_took_no_page_request_is_safe_from_any_thread() {
+    const _: () = any_thread::<NotAPagedRead>();
+}
+
+#[test]
+fn what_asking_a_read_for_a_page_did_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatAskingForAPageDid>();
 }
 
 #[test]

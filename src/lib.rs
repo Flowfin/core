@@ -139,8 +139,13 @@ const _: () = {
     any_thread::<diagnostics::redaction::FieldName>();
     any_thread::<diagnostics::redaction::CorrelatorSalt>();
     any_thread::<diagnostics::redaction::Correlator>();
-    any_thread::<server::QueryResult>();
     any_thread::<server::federation::Federation<'static>>();
+    any_thread::<server::library::PageRequest>();
+    any_thread::<server::library::WhatTheReadAnswers>();
+    any_thread::<server::library::LibraryRead>();
+    any_thread::<server::library::NotAPagedRead>();
+    any_thread::<server::library::WhatAskingForAPageDid>();
+    any_thread::<server::library::Page<()>>();
     any_thread::<server::certificate::Fingerprint>();
     any_thread::<server::certificate::PresentedChain<'static>>();
     any_thread::<server::certificate::Refused<'static>>();
