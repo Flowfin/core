@@ -40,6 +40,7 @@ pub mod certificate;
 pub mod federation;
 pub mod recovery;
 pub mod transport;
+pub mod write_queue;
 
 /// An answer the core has already received and handed back.
 ///

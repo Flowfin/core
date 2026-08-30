@@ -42,6 +42,9 @@ use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::server::federation::Federation;
+use flowfin_core::server::write_queue::{
+    Dropped, Entry, Target, WhatIsAsserted, WhatTheEnqueueDid, WriteQueue,
+};
 use flowfin_core::session::delegated::{
     NoAttemptMatched, OpenAttempts, Relayable, TieValue, ValueAlreadyOpen, ValueNotUsable,
 };
@@ -404,6 +407,36 @@ fn how_a_quick_connect_call_ended_is_safe_from_any_thread() {
 #[test]
 fn the_two_values_a_quick_connect_exchange_was_issued_with_are_safe_from_any_thread() {
     const _: () = any_thread::<IssuedExchange>();
+}
+
+#[test]
+fn what_one_write_queue_entry_asserts_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatIsAsserted>();
+}
+
+#[test]
+fn the_item_a_queued_write_is_about_is_safe_from_any_thread() {
+    const _: () = any_thread::<Target>();
+}
+
+#[test]
+fn one_queued_write_is_safe_from_any_thread() {
+    const _: () = any_thread::<Entry<()>>();
+}
+
+#[test]
+fn what_a_queue_dropped_at_its_bound_is_safe_from_any_thread() {
+    const _: () = any_thread::<Dropped>();
+}
+
+#[test]
+fn what_an_enqueue_did_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheEnqueueDid>();
+}
+
+#[test]
+fn one_sessions_write_queue_is_safe_from_any_thread() {
+    const _: () = any_thread::<WriteQueue<()>>();
 }
 
 #[test]
