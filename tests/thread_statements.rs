@@ -45,6 +45,10 @@ use flowfin_core::session::delegated::{
     NoAttemptMatched, OpenAttempts, Relayable, TieValue, ValueAlreadyOpen, ValueNotUsable,
 };
 use flowfin_core::session::device::{Capabilities, DeviceIdentity, PartNotUsable};
+use flowfin_core::session::renewal::{
+    Generation, HowTheRenewalEnded, Rejection, RenewalRoute, RenewalSchedule, Renewals,
+    WhatARejectedCallDoes, WhatTheOutcomeDoes,
+};
 use flowfin_core::session::{SecretStore, Session};
 
 /// Compiles only for a type that is safe to use from any thread.
@@ -348,4 +352,44 @@ fn a_value_a_second_attempt_reused_is_safe_from_any_thread() {
 #[test]
 fn an_answer_naming_no_started_attempt_is_safe_from_any_thread() {
     const _: () = any_thread::<NoAttemptMatched>();
+}
+
+#[test]
+fn the_generation_a_token_went_out_under_is_safe_from_any_thread() {
+    const _: () = any_thread::<Generation>();
+}
+
+#[test]
+fn whether_a_server_offers_a_renewal_route_is_safe_from_any_thread() {
+    const _: () = any_thread::<RenewalRoute>();
+}
+
+#[test]
+fn a_rejection_a_renewal_is_answered_against_is_safe_from_any_thread() {
+    const _: () = any_thread::<Rejection>();
+}
+
+#[test]
+fn what_a_rejected_call_does_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatARejectedCallDoes>();
+}
+
+#[test]
+fn how_a_renewal_ended_is_safe_from_any_thread() {
+    const _: () = any_thread::<HowTheRenewalEnded>();
+}
+
+#[test]
+fn what_a_renewal_outcome_does_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheOutcomeDoes>();
+}
+
+#[test]
+fn one_sessions_renewals_are_safe_from_any_thread() {
+    const _: () = any_thread::<Renewals>();
+}
+
+#[test]
+fn when_a_renewal_is_due_is_safe_from_any_thread() {
+    const _: () = any_thread::<RenewalSchedule>();
 }
