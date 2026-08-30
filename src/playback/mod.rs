@@ -20,8 +20,9 @@
 //! 0056's two bounds. [`resume`] carries 0058's three thresholds and its rule
 //! for whose position wins, expressed in that unit, and [`watched`] carries
 //! 0060's completion rule, which takes [`resume`]'s boundary rather than
-//! stating a second one. 0057's cadence is still a name in a record and is not
-//! built.
+//! stating a second one. [`cadence`] carries 0057's interval, the five events
+//! that do not wait for it, what each does to it, and the constraint 0057 puts
+//! on [`resume`]'s rewind.
 //!
 //! # Why the type is named for the unit
 //!
@@ -50,6 +51,7 @@
 //! emit once per call instead, which is a different rule wearing the same
 //! sentence.
 
+pub mod cadence;
 pub mod resume;
 pub mod watched;
 

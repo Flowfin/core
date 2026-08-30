@@ -180,6 +180,9 @@ const _: () = {
     any_thread::<artwork::presence::WhatTheItemHas>();
     any_thread::<playback::Ticks>();
     any_thread::<playback::AdmittedPosition>();
+    any_thread::<playback::cadence::ReportsWithoutWaiting>();
+    any_thread::<playback::cadence::WhatItDoesToTheInterval>();
+    any_thread::<playback::cadence::TheInterval>();
     any_thread::<playback::resume::Resume>();
     any_thread::<playback::resume::PositionInForce>();
     any_thread::<playback::watched::Marked>();
