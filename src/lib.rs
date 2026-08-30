@@ -124,6 +124,12 @@ const _: () = {
     any_thread::<diagnostics::redaction::Correlator>();
     any_thread::<server::QueryResult>();
     any_thread::<server::federation::Federation<'static>>();
+    any_thread::<server::certificate::Fingerprint>();
+    any_thread::<server::certificate::PresentedChain<'static>>();
+    any_thread::<server::certificate::Refused<'static>>();
+    any_thread::<server::certificate::PinnedServer>();
+    any_thread::<server::certificate::Pin>();
+    any_thread::<server::certificate::Pins>();
     any_thread::<server::address::BaseAddress>();
     any_thread::<server::address::Origin>();
     any_thread::<server::transport::CallDeadline>();
