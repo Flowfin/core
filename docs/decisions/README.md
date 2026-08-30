@@ -25,6 +25,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0036. The device identity, and who supplies each part of it](0036-the-device-identity-and-who-supplies-it.md)
 - [0037. The one point a failure becomes a kind, and what tells three populations apart](0037-the-mapping-point.md)
 - [0038. Retry and backoff](0038-retry-and-backoff.md)
+- [0039. The page, the one item type, and what next up is not](0039-the-page-the-item-and-what-next-up-is-not.md)
 - [0040. The cache store interface, and a core with no store](0040-the-cache-store-interface.md)
 - [0041. How a cache key is built, and why a collision is a disclosure](0041-how-a-cache-key-is-built.md)
 - [0042. The cache bound, and what is evicted when it is reached](0042-the-cache-bound-and-what-is-evicted.md)
