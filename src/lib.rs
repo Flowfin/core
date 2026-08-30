@@ -122,6 +122,9 @@ const _: () = {
     any_thread::<session::delegated::ValueNotUsable>();
     any_thread::<session::delegated::ValueAlreadyOpen>();
     any_thread::<session::delegated::NoAttemptMatched>();
+    any_thread::<session::quick_connect::WhileWaiting>();
+    any_thread::<session::quick_connect::HowTheCallEnded>();
+    any_thread::<session::quick_connect::IssuedExchange>();
     any_thread::<session::renewal::Generation>();
     any_thread::<session::renewal::RenewalRoute>();
     any_thread::<session::renewal::Rejection>();
