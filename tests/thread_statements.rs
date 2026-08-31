@@ -77,6 +77,10 @@ use flowfin_core::session::renewal::{
     Generation, HowTheRenewalEnded, Rejection, RenewalRoute, RenewalSchedule, Renewals,
     WhatARejectedCallDoes, WhatTheOutcomeDoes,
 };
+use flowfin_core::session::sign_out::{
+    Act, HowItEnds, LocalHalf, Removal, TellingTheServer, WhatIsTakenAway, WhatTheClientIsTold,
+    WhySigningOut, WorkInFlight,
+};
 use flowfin_core::session::{SecretStore, Session};
 
 /// Compiles only for a type that is safe to use from any thread.
@@ -94,6 +98,23 @@ fn the_core_handle_is_safe_from_any_thread() {
 #[test]
 fn a_session_handle_is_safe_from_any_thread() {
     const _: () = any_thread::<Session>();
+}
+
+#[test]
+fn the_two_acts_that_end_a_session_are_safe_from_any_thread() {
+    const _: () = any_thread::<Act>();
+    const _: () = any_thread::<WhatIsTakenAway>();
+    const _: () = any_thread::<WorkInFlight>();
+    const _: () = any_thread::<HowItEnds>();
+}
+
+#[test]
+fn the_halves_of_a_sign_out_are_safe_from_any_thread() {
+    const _: () = any_thread::<WhySigningOut>();
+    const _: () = any_thread::<LocalHalf>();
+    const _: () = any_thread::<TellingTheServer>();
+    const _: () = any_thread::<WhatTheClientIsTold>();
+    const _: () = any_thread::<Removal>();
 }
 
 #[test]
