@@ -315,6 +315,14 @@ selftest() {
   assert_out "refused: no author read at all, which is the fail-closed direction" \
     "refused" "$(exemption_verdict '')"
 
+  echo "== a number that names no issue here =="
+  assert_out "reads its scope: the issue answered" \
+    "found" "$(lookup_verdict yes not-asked)"
+  assert_out "declares no scope: the issue did not answer and the repository did" \
+    "absent" "$(lookup_verdict no yes)"
+  assert_out "refuses: neither answered, so nothing was learned about the number" \
+    "unreadable" "$(lookup_verdict no no)"
+
   echo "== body-not-empty =="
   assert_out "bites: the template with the issue number filled in and nothing written" \
     "" "$(skeleton | body_prose)"
@@ -365,8 +373,58 @@ selftest() {
 
 # One issue body, or a non-zero exit. A lookup that failed is not an issue that
 # declares no scope, and reading it as one would turn an outage into a pass.
+#
+# The tool's own message is silenced because this run says what happened on its
+# own line either way, and an ordinary body quoting release notes would otherwise
+# print one `Not Found` per quoted number above a line that says the run is fine.
+# Nothing is hidden by that: a lookup that could not be made produces an error
+# line of this file's own, naming the number and saying the comparison was not
+# made.
 issue_body() {
-  gh api "repos/${GH_REPO}/issues/$1" --jq '.body // ""'
+  gh api "repos/${GH_REPO}/issues/$1" --jq '.body // ""' 2>/dev/null
+}
+
+# Whether the repository itself answers, asked only after a lookup has already
+# failed.
+#
+# It is the cheapest question that separates the two reasons an issue lookup can
+# fail. If this answers, the route, the token and the repository are all fine, so
+# the number named nothing here; if it does not, nothing was learned about the
+# number at all.
+repository_answers() {
+  gh api "repos/${GH_REPO}" --jq '.full_name' > /dev/null 2>&1
+}
+
+# What a failed issue lookup means, from whether the issue answered and whether
+# the repository did.
+#
+# `found`, `absent` or `unreadable`, and the three are kept apart because two of
+# them were collapsed and the collapse fails closed on ordinary work. A body may
+# quote another repository's release notes, which carry bare `#<number>`
+# references to issues over there; `issue_refs` reads every bare reference as one
+# here, because nothing in the text can say otherwise, and the lookup is the only
+# thing that can. A 404 is a definite answer to that question and an outage is
+# not, so ONLY the outage refuses.
+#
+# This is the same distinction `record/finding/` in the operations tree names for
+# a register: "about somewhere else" and "cannot be placed" are opposite
+# statements, and collapsing them discards the first as if it were the second.
+#
+# It takes two words rather than running the lookups itself so that the fixtures
+# below judge the rule without a network. What is NOT fixtured is the mapping
+# from a `gh` exit code onto those two words, which is the line above and below
+# this function.
+lookup_verdict() {
+  local issue_answered="$1" repository_answered="$2"
+  if [ "$issue_answered" = "yes" ]; then
+    echo found
+    return
+  fi
+  if [ "$repository_answered" = "yes" ]; then
+    echo absent
+    return
+  fi
+  echo unreadable
 }
 
 check() {
@@ -408,11 +466,26 @@ check() {
   : > "$scope_file"
   local n
   for n in $refs; do
-    local b p
-    if ! b="$(issue_body "$n")"; then
-      echo "::error::Could not read issue #${n}. The scope comparison cannot be made, and this run will not pass in place of it."
+    local b p answered repository verdict
+    repository=not-asked
+    if b="$(issue_body "$n")"; then
+      answered=yes
+    else
+      answered=no
+      b=""
+      # Only here, which is what keeps a body naming twenty issues to twenty
+      # calls rather than forty.
+      if repository_answers; then repository=yes; else repository=no; fi
+    fi
+    verdict="$(lookup_verdict "$answered" "$repository")"
+    if [ "$verdict" = "unreadable" ]; then
+      echo "::error::Could not read issue #${n}, and this repository did not answer either, so nothing was learned about that number. The scope comparison cannot be made, and this run will not pass in place of it."
       rm -f "$scope_file"
       return 1
+    fi
+    if [ "$verdict" = "absent" ]; then
+      echo "      #${n} names no issue on this repository, so it declares no scope. A body quoting another repository's release notes carries bare references to issues over there, and nothing in the text tells one from a reference here."
+      continue
     fi
     p="$(printf '%s' "$b" | scope_prefixes)"
     if [ -n "$p" ]; then
