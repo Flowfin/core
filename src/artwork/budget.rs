@@ -100,9 +100,9 @@ pub const BYTES_A_PIXEL: u64 = 4;
 /// hundred by four hundred and fifty pixels, which is 540000 bytes decoded, so
 /// this holds about 124 of them and a wall of two hundred at 108000000 bytes
 /// does not fit. That is the point of the number rather than an accident of it:
-/// what is on a screen at any moment is a fraction of two hundred, #53 cancels a
-/// tile that scrolled off, and a budget large enough for every tile somebody
-/// scrolled past holds a library in pixels.
+/// what a person is looking at is a fraction of two hundred, #53 withdraws a tile
+/// a client no longer wants, and a budget large enough for every tile a client
+/// ever announced holds a library in pixels.
 pub const THE_BUDGET_AT_CREATION: u64 = 64 * 1024 * 1024;
 
 /// The smallest budget a client may set.
@@ -333,8 +333,8 @@ impl DecodedBytesHeld {
 
     /// Takes a decode out of the queue before it ever started.
     ///
-    /// #53 cancels a tile that scrolled off, and one that scrolled off while
-    /// waiting never allocated anything, so there is nothing to release. It
+    /// #53 withdraws a tile a client no longer wants, and one withdrawn while it
+    /// was waiting never allocated anything, so there is nothing to release. It
     /// answers whether a waiting decode of that size was found, because a caller
     /// withdrawing something the queue does not hold is a bookkeeping defect
     /// rather than an ordinary outcome.
@@ -582,8 +582,8 @@ mod tests {
         assert_eq!(held.waiting(), 0);
     }
 
-    /// A tile that scrolled off while waiting never allocated anything, so there
-    /// is nothing to release and it simply leaves the queue.
+    /// A tile withdrawn while it was still waiting never allocated anything, so
+    /// there is nothing to release and it simply leaves the queue.
     #[test]
     fn a_decode_withdrawn_before_it_started_leaves_the_queue_and_releases_nothing() {
         let mut held = DecodedBytesHeld::under(Budget::at_creation());
