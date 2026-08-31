@@ -46,11 +46,18 @@
 //! listener ever lengthens a window. It listens to nothing, for the same reason
 //! the demand for freshness has no caller.
 //!
+//! [`cold_start`] holds the part of 0046 a match on a kind and a match on a call
+//! settle: that no cache read waits on the secret read, which entries are
+//! servable before a session is restored, which calls are not, and that what is
+//! served says nothing about whether anybody is signed in. It starts nothing,
+//! because creating a core is #115.
+//!
 //! The rest of the sentence is unchanged. The cold-start path is #46, and the
 //! index that survives a restart is #105, so every entry [`freshness`] describes
 //! is one this version wrote completely. Nothing here decides either of those.
 
 pub mod bound;
+pub mod cold_start;
 pub mod envelope;
 pub mod freshness;
 pub mod key;
