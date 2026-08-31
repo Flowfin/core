@@ -164,6 +164,12 @@ const _: () = {
     any_thread::<server::write_queue::WhatTheEnqueueDid>();
     any_thread::<server::write_queue::WriteQueue<()>>();
     any_thread::<server::address::AddressNotUsable>();
+    any_thread::<server::retry::Attempts>();
+    any_thread::<server::retry::WhatTheRequestDoes>();
+    any_thread::<server::retry::WhatAFailureDoes>();
+    any_thread::<server::retry::TheWait>();
+    any_thread::<server::retry::WhyTheCallStopped>();
+    any_thread::<server::retry::WhatTheCallDoesNext>();
     any_thread::<artwork::DecodedImage>();
     any_thread::<artwork::address::ImageKind>();
     any_thread::<artwork::address::Edge>();
