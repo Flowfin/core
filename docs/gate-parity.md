@@ -194,6 +194,14 @@ rather than inside one, so no row here reaches it and #108 holds it instead. Thi
 table is built from workflow files, which is exactly the gap #108 was opened
 against.
 
+THAT PARAGRAPH SAID THE SAME THING WHEN THERE WAS NO SUCH CONFIGURATION AND IT
+SAYS IT NOW THAT THERE IS, which is the half worth separating. `.github/dependabot.yml`
+is in this tree and proposes weekly grouped updates for the two ecosystems this
+repository has, and it is still not a workflow file, so the sentence above is
+unchanged as a statement about this table's reach and is no longer a statement
+that nothing proposes an update. What #108 still holds is its own remaining
+condition, which is a proposal actually appearing and meeting the gate.
+
 Nothing here says whether a check that runs on this repository is passing, on
 either repository. The rows record what exists and what is decided, and a run's
 conclusion is a different question read at a different time.
