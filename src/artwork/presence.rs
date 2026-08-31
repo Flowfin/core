@@ -58,8 +58,8 @@
 //! What moved is the condition rather than the records. It was narrowed on
 //! 2026-08-30 to what this core can promise: a second ask for a known-absent
 //! image within one screenful makes no network call BECAUSE THE ANSWER CARRIES
-//! NO ADDRESS FOR ONE TO BE MADE FROM, and nothing about the absence is kept
-//! across sessions or scrolls. That is a property of
+//! NO ADDRESS FOR ONE TO BE MADE FROM, and nothing about the absence outlives
+//! the ask that produced it. That is a property of
 //! [`WhatTheItemHas::NoImageOfThisKind`] rather than of a store: a fetch in this
 //! core is started from an [`ArtworkRequest`], the request is what
 //! [`crate::artwork::address::ArtworkRequest::entry_key`] turns into the key
