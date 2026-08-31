@@ -28,6 +28,33 @@
 //! 0116's change-notification connection and the response decoding - and neither
 //! has an entry point in this tree, so neither has a directory here.
 //!
+//! # The rules answer, and what the gate asserts on is the answer
+//!
+//! THE RULES USED TO BE ASSERTIONS OVER ONE FIXED DIRECTORY, WHICH IS A GUARD
+//! NOBODY HAS WATCHED FAIL. Each of them reads the corpus this tree carries,
+//! that corpus is healthy, and a rule that has only ever run against a healthy
+//! subject cannot be told apart from a rule that refuses nothing. Two of #86's
+//! four conditions ask for the opposite: that an empty corpus REDDEN the build
+//! and that a deliberately unhandled input in a seed REDDEN it, which are
+//! statements about a run going red rather than about an assertion existing.
+//!
+//! So [`rules`] takes the root and the target names as arguments and ANSWERS
+//! with the refusals rather than asserting them. The gate hands it this tree's
+//! corpus and the names in `TARGETS` and requires the answer to be empty; each
+//! proof below hands it a root built for one defect and requires the answer to
+//! name exactly that rule and no other. The rules the gate runs and the rules
+//! the proofs trip are one function rather than two, which is what stops a proof
+//! passing against a second copy of the logic.
+//!
+//! [`replay_every_seed`] is parameterised the same way and for the same reason:
+//! the target it calls is an argument, so a proof can hand it a target that does
+//! not name what it did with a seed and watch the panic come out rather than be
+//! counted as an answer.
+//!
+//! Every root a proof builds is under the build directory rather than in the
+//! tree, so nothing a proof writes is tracked and no such root can be mistaken
+//! for a corpus.
+//!
 //! # What a seed asserts
 //!
 //! That the target ANSWERS. Every target below returns a value or a member of a
@@ -69,10 +96,9 @@ fn corpus_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/corpus")
 }
 
-/// The directory names under the corpus root, sorted.
-fn corpus_directories() -> Vec<String> {
-    let root = corpus_root();
-    let entries = std::fs::read_dir(&root)
+/// The directory names under one corpus root, sorted.
+fn corpus_directories(root: &Path) -> Vec<String> {
+    let entries = std::fs::read_dir(root)
         .unwrap_or_else(|e| panic!("cannot read the corpus root {}: {e}", root.display()));
     let mut names = Vec::new();
     for entry in entries {
@@ -85,9 +111,9 @@ fn corpus_directories() -> Vec<String> {
     names
 }
 
-/// The seeds in one target's directory, sorted, as (name, bytes).
-fn seeds(target: &str) -> Vec<(String, Vec<u8>)> {
-    let directory = corpus_root().join(target);
+/// The seeds in one target's directory under one root, sorted, as (name, bytes).
+fn seeds(root: &Path, target: &str) -> Vec<(String, Vec<u8>)> {
+    let directory = root.join(target);
     let entries = std::fs::read_dir(&directory)
         .unwrap_or_else(|e| panic!("cannot read {}: {e}", directory.display()));
     let mut found = Vec::new();
@@ -103,6 +129,81 @@ fn seeds(target: &str) -> Vec<(String, Vec<u8>)> {
     }
     found.sort_by(|a, b| a.0.cmp(&b.0));
     found
+}
+
+/// One reason a corpus root cannot be replayed as it stands.
+///
+/// The rule is an identifier rather than a sentence, so a proof can require
+/// exactly one of them and no other in a way a message could not. The sentence a
+/// reader of a failing run needs is built beside the assertion that carries it.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct Refusal {
+    rule: &'static str,
+    subject: String,
+}
+
+impl Refusal {
+    fn new(rule: &'static str, subject: &str) -> Self {
+        Self {
+            rule,
+            subject: subject.to_owned(),
+        }
+    }
+}
+
+/// Every rule over one corpus root, answering rather than asserting.
+///
+/// `named` is the set of targets [`replay`] can call, passed in rather than read
+/// from the constant above, so a proof can build a root of its own and still run
+/// this function rather than a copy of it.
+fn rules(root: &Path, named: &[&str]) -> Vec<Refusal> {
+    let mut refusals = Vec::new();
+    let directories = corpus_directories(root);
+
+    // Replaying nothing proves nothing and exits zero, which reads exactly like
+    // a replay that found no defect.
+    if directories.is_empty() {
+        refusals.push(Refusal::new(
+            "the-root-holds-no-directory",
+            "the corpus root",
+        ));
+    }
+
+    let found: BTreeSet<&str> = directories.iter().map(String::as_str).collect();
+    let declared: BTreeSet<&str> = named.iter().copied().collect();
+
+    // An empty corpus reddens the build rather than passing quietly, which is
+    // #86's third condition.
+    for directory in &directories {
+        if seeds(root, directory).is_empty() {
+            refusals.push(Refusal::new("a-directory-holds-no-seed", directory));
+        }
+    }
+
+    // A corpus with no entry point behind it is replayed by nothing.
+    for directory in found.difference(&declared) {
+        refusals.push(Refusal::new("a-directory-names-no-target", directory));
+    }
+
+    // A target with no seeds is a target nothing replays, and the run above it
+    // would have passed without ever reaching it.
+    for target in declared.difference(&found) {
+        refusals.push(Refusal::new("a-target-has-no-directory", target));
+    }
+
+    refusals.sort();
+    refusals
+}
+
+/// The rule identifiers in one answer, sorted and deduplicated.
+///
+/// A proof compares this against the single rule its root was built to trip, so
+/// a root that trips a second rule fails the proof rather than passing it.
+fn rule_ids(refusals: &[Refusal]) -> Vec<&'static str> {
+    let mut ids: Vec<&'static str> = refusals.iter().map(|refusal| refusal.rule).collect();
+    ids.sort_unstable();
+    ids.dedup();
+    ids
 }
 
 /// Hands one seed to one target and returns what it answered, as text.
@@ -157,57 +258,18 @@ fn replay(target: &str, bytes: &[u8]) -> String {
     }
 }
 
-#[test]
-fn the_corpus_root_is_not_empty() {
-    let directories = corpus_directories();
-    assert!(
-        !directories.is_empty(),
-        "there are no corpus directories under {}. Replaying nothing proves nothing and \
-         exits zero, which reads exactly like a replay that found no defect.",
-        corpus_root().display()
-    );
-}
-
-#[test]
-fn every_corpus_directory_names_a_target_and_every_target_has_one() {
-    let found: BTreeSet<String> = corpus_directories().into_iter().collect();
-    let named: BTreeSet<String> = TARGETS.iter().map(|t| (*t).to_owned()).collect();
-
-    let without_a_target: Vec<&String> = found.difference(&named).collect();
-    assert!(
-        without_a_target.is_empty(),
-        "corpus directories naming no target this file can replay: {without_a_target:?}. \
-         A corpus with no entry point behind it is replayed by nothing."
-    );
-
-    let without_a_corpus: Vec<&String> = named.difference(&found).collect();
-    assert!(
-        without_a_corpus.is_empty(),
-        "targets with no corpus directory: {without_a_corpus:?}. A target with no seeds is a \
-         target nothing replays, and the run above would have passed without reaching it."
-    );
-}
-
-#[test]
-fn no_corpus_directory_is_empty() {
-    for target in corpus_directories() {
-        assert!(
-            !seeds(&target).is_empty(),
-            "the corpus directory {target} holds no seed. #86 asks that an empty corpus redden \
-             the build rather than passing quietly, because replaying nothing proves nothing."
-        );
-    }
-}
-
-/// The replay itself. Every seed of every target, and the assertion is that each
-/// one produced an answer at all: a target that did anything else would have
-/// panicked, and a panic here is this test failing.
-#[test]
-fn every_seed_is_replayed_and_every_target_answers() {
+/// Every seed of every directory under one root, through one target function.
+///
+/// Returns how many seeds were replayed. What it asserts per seed is that the
+/// target answered at all: anything the code does not name could only leave
+/// through a panic, and a panic is deliberately not caught here. Catching one
+/// and counting it would turn #86's fourth condition into a number in a report,
+/// which is the one-line change this arrangement exists against.
+fn replay_every_seed(root: &Path, call: fn(&str, &[u8]) -> String) -> usize {
     let mut replayed = 0;
-    for target in corpus_directories() {
-        for (name, bytes) in seeds(&target) {
-            let answer = replay(&target, &bytes);
+    for target in corpus_directories(root) {
+        for (name, bytes) in seeds(root, &target) {
+            let answer = call(&target, &bytes);
             assert!(
                 !answer.is_empty(),
                 "{target}/{name} produced no answer at all"
@@ -215,8 +277,32 @@ fn every_seed_is_replayed_and_every_target_answers() {
             replayed += 1;
         }
     }
+    replayed
+}
+
+// --------------------------------------------------------------------------
+// The gate: the rules and the replay, over the corpus this tree carries.
+// --------------------------------------------------------------------------
+
+#[test]
+fn the_corpus_this_tree_carries_breaks_no_rule() {
+    let root = corpus_root();
+    let refusals = rules(&root, TARGETS);
     assert!(
-        replayed >= corpus_directories().len(),
+        refusals.is_empty(),
+        "the corpus under {} breaks {} rule(s): {refusals:?}. Each one is a state in which a \
+         replay exits zero having covered less than the run reads as having covered.",
+        root.display(),
+        refusals.len()
+    );
+}
+
+#[test]
+fn every_seed_is_replayed_and_every_target_answers() {
+    let root = corpus_root();
+    let replayed = replay_every_seed(&root, replay);
+    assert!(
+        replayed >= corpus_directories(&root).len(),
         "fewer seeds were replayed than there are targets, so at least one target ran nothing"
     );
 }
@@ -230,9 +316,10 @@ fn every_seed_is_replayed_and_every_target_answers() {
 /// seed for on the day it lands.
 #[test]
 fn the_named_refusals_are_each_reached_by_a_seed() {
+    let root = corpus_root();
     let mut image_refusals = BTreeSet::new();
     let mut image_accepted = BTreeSet::new();
-    for (_, bytes) in seeds("artwork-format") {
+    for (_, bytes) in seeds(&root, "artwork-format") {
         match admitted(&bytes) {
             Ok(found) => {
                 image_accepted.insert(format!("{:?}", found.format()));
@@ -269,7 +356,7 @@ fn the_named_refusals_are_each_reached_by_a_seed() {
 
     let mut envelope_drops = BTreeSet::new();
     let mut envelope_opened = 0;
-    for (_, bytes) in seeds("cache-envelope") {
+    for (_, bytes) in seeds(&root, "cache-envelope") {
         match open(EntryKind::LibraryQueryResults, &bytes) {
             Ok(_) => envelope_opened += 1,
             Err(failed) => {
@@ -292,7 +379,7 @@ fn the_named_refusals_are_each_reached_by_a_seed() {
 
     let mut addresses_parsed = 0;
     let mut addresses_refused = 0;
-    for (_, bytes) in seeds("server-address") {
+    for (_, bytes) in seeds(&root, "server-address") {
         match BaseAddress::parse(&String::from_utf8_lossy(&bytes)) {
             Ok(_) => addresses_parsed += 1,
             Err(_) => addresses_refused += 1,
@@ -303,4 +390,184 @@ fn the_named_refusals_are_each_reached_by_a_seed() {
         "the server-address corpus reaches only one side of the parser: {addresses_parsed} \
          parsed and {addresses_refused} refused."
     );
+}
+
+// --------------------------------------------------------------------------
+// The proofs. Each builds a root outside the tree, hands it to the same
+// function the gate above runs, and requires the rule it was built to trip.
+// --------------------------------------------------------------------------
+
+/// A root under the build directory, emptied first so a run is never read
+/// against what the run before it left behind.
+fn a_root_for(case: &str) -> PathBuf {
+    let root = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join("corpus-rules")
+        .join(case);
+    if root.exists() {
+        std::fs::remove_dir_all(&root)
+            .unwrap_or_else(|e| panic!("cannot clear {}: {e}", root.display()));
+    }
+    std::fs::create_dir_all(&root)
+        .unwrap_or_else(|e| panic!("cannot create {}: {e}", root.display()));
+    root
+}
+
+fn a_directory(root: &Path, target: &str) {
+    let directory = root.join(target);
+    std::fs::create_dir_all(&directory)
+        .unwrap_or_else(|e| panic!("cannot create {}: {e}", directory.display()));
+}
+
+fn a_seed(root: &Path, target: &str, name: &str, bytes: &[u8]) {
+    a_directory(root, target);
+    let path = root.join(target).join(name);
+    std::fs::write(&path, bytes).unwrap_or_else(|e| panic!("cannot write {}: {e}", path.display()));
+}
+
+/// The healthy root every one-change neighbour below is a change to.
+///
+/// Two directories rather than one, each holding one seed, and both named. With
+/// a single directory a rule that fires on the LAST directory it reads would be
+/// indistinguishable from one that fires on the only directory there is.
+fn a_healthy_root(case: &str) -> PathBuf {
+    let root = a_root_for(case);
+    a_seed(&root, "first-target", "a-seed", b"one");
+    a_seed(&root, "second-target", "a-seed", b"two");
+    root
+}
+
+const HEALTHY: &[&str] = &["first-target", "second-target"];
+
+#[test]
+fn the_healthy_root_breaks_no_rule() {
+    let root = a_healthy_root("the-healthy-root");
+    assert_eq!(
+        rules(&root, HEALTHY),
+        Vec::new(),
+        "the root each proof below is a one-change neighbour of already breaks a rule, so \
+         nothing those proofs report could be attributed to their own change."
+    );
+}
+
+#[test]
+fn a_root_with_no_directory_is_refused() {
+    // The one proof that is not a neighbour of the healthy root. A root holding
+    // no directory names no target either, so the target list goes with the
+    // directories: both halves are the same absence rather than two changes.
+    let root = a_root_for("a-root-with-no-directory");
+    let refusals = rules(&root, &[]);
+    assert_eq!(
+        rule_ids(&refusals),
+        vec!["the-root-holds-no-directory"],
+        "an empty corpus root is what a replay of nothing looks like from the inside, and it \
+         exits zero. Refusals were {refusals:?}."
+    );
+}
+
+#[test]
+fn a_directory_with_no_seed_is_refused() {
+    let root = a_healthy_root("a-directory-with-no-seed");
+    // The one change: the second target keeps its directory and loses its seed.
+    std::fs::remove_file(root.join("second-target").join("a-seed")).expect("the seed is there");
+    let refusals = rules(&root, HEALTHY);
+    assert_eq!(
+        rule_ids(&refusals),
+        vec!["a-directory-holds-no-seed"],
+        "this is #86's `an empty corpus reddens the build`. Refusals were {refusals:?}."
+    );
+    assert_eq!(
+        refusals[0].subject, "second-target",
+        "the refusal names the directory rather than only a count, so a corpus that lost one \
+         seed is repaired without reading every directory in it."
+    );
+}
+
+#[test]
+fn a_directory_naming_no_target_is_refused() {
+    let root = a_healthy_root("a-directory-naming-no-target");
+    // The one change: a third directory, with a seed and nothing behind it.
+    a_seed(&root, "a-surface-nobody-can-call", "a-seed", b"three");
+    let refusals = rules(&root, HEALTHY);
+    assert_eq!(
+        rule_ids(&refusals),
+        vec!["a-directory-names-no-target"],
+        "a corpus with no entry point behind it is replayed by nothing, and the run that walks \
+         past it exits zero. Refusals were {refusals:?}."
+    );
+    assert_eq!(refusals[0].subject, "a-surface-nobody-can-call");
+}
+
+#[test]
+fn a_target_with_no_directory_is_refused() {
+    let root = a_healthy_root("a-target-with-no-directory");
+    // The one change: a third target is named and acquires no corpus.
+    let named = &["first-target", "second-target", "a-target-with-no-seeds"];
+    let refusals = rules(&root, named);
+    assert_eq!(
+        rule_ids(&refusals),
+        vec!["a-target-has-no-directory"],
+        "a target nothing replays is the half of #86's derivation that a directory listing \
+         cannot see on its own. Refusals were {refusals:?}."
+    );
+    assert_eq!(refusals[0].subject, "a-target-with-no-seeds");
+}
+
+/// A target that does not name what it did with one of its seeds.
+///
+/// It exists only to be handed to [`replay_every_seed`], and the input it fails
+/// on is a literal rather than a shape, so the two proofs below differ by that
+/// seed and by nothing else.
+fn a_target_that_does_not_handle_one_seed(_target: &str, bytes: &[u8]) -> String {
+    assert!(
+        bytes != b"the input this target does not name",
+        "this target does not name what it did with the seed it was handed"
+    );
+    format!("answered {} byte(s)", bytes.len())
+}
+
+#[test]
+#[should_panic(expected = "this target does not name what it did with the seed it was handed")]
+fn a_seed_the_target_does_not_handle_reddens_the_replay() {
+    let root = a_root_for("a-seed-the-target-does-not-handle");
+    // Seeds are read in sorted order, so the ordinary one is replayed first and
+    // the failure cannot be read as a loop that never started.
+    a_seed(&root, "first-target", "a-handled-seed", b"one");
+    a_seed(
+        &root,
+        "first-target",
+        "b-unhandled-seed",
+        b"the input this target does not name",
+    );
+    replay_every_seed(&root, a_target_that_does_not_handle_one_seed);
+}
+
+#[test]
+fn the_same_root_without_that_seed_replays_green() {
+    // The one-change neighbour of the proof above. Without it that proof shows a
+    // target failing at everything, which says nothing about the seed.
+    let root = a_root_for("without-the-unhandled-seed");
+    a_seed(&root, "first-target", "a-handled-seed", b"one");
+    assert_eq!(
+        replay_every_seed(&root, a_target_that_does_not_handle_one_seed),
+        1,
+        "the target fails on one literal and answers everything else, so a green run here is \
+         what makes the red run beside it about the seed rather than about the target."
+    );
+}
+
+/// A target that returns, and returns nothing.
+///
+/// The other way a target can fail to answer. A count of seeds replayed is
+/// identical either way, which is why the count is not what the replay asserts
+/// on.
+fn a_target_that_answers_nothing(_target: &str, _bytes: &[u8]) -> String {
+    String::new()
+}
+
+#[test]
+#[should_panic(expected = "produced no answer at all")]
+fn a_target_that_answers_nothing_reddens_the_replay() {
+    let root = a_root_for("a-target-that-answers-nothing");
+    a_seed(&root, "first-target", "a-seed", b"one");
+    replay_every_seed(&root, a_target_that_answers_nothing);
 }
