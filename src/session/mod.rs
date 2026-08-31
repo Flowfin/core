@@ -31,6 +31,12 @@
 //! crosses to the client. It asks no server anything, for the same reason
 //! [`delegated`] does not.
 //!
+//! [`sign_out`] holds the part of 0114 a type, a table and a pair of counts
+//! settle: that the server half of a sign-out cannot be reached before the local
+//! half is done, which of the two acts removes what, how each kind of work in
+//! flight ends, and what a removal that could not be completed reports. It signs
+//! nothing out, because there is no session in this tree to end.
+//!
 //! [`renewal`] holds the part of 0034 a counter and one clock reading settle:
 //! the generation a rejection is answered against, which rejection starts the
 //! session's one renewal and which joins it, what each renewal outcome does, and
@@ -42,6 +48,7 @@ pub mod device;
 pub mod password;
 pub mod quick_connect;
 pub mod renewal;
+pub mod sign_out;
 
 /// One signed-in session against one server.
 ///
