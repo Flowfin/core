@@ -28,14 +28,20 @@
 //! a client is told, and which callers are sharing one entry's fetch so that the
 //! last withdrawal is the one that abandons it.
 //!
-//! What is absent is the decoder itself. [`DecodedImage`] is still a name, the
-//! decode and its memory budget are #50, and nothing in this tree turns admitted
-//! bytes into pixels. What is also absent is the fetch: [`address`] builds the
+//! Everything 0050 puts around the decode, in [`budget`]: how many decoded
+//! bytes the core holds at once, what a buffer costs at four bytes a pixel, the
+//! floor 0055 fixes on what a client may set, and the order decodes waiting for
+//! room are started in.
+//!
+//! What is absent is the decoder itself. [`DecodedImage`] is still a name,
+//! nothing in this tree turns admitted bytes into pixels, and [`budget`] holds
+//! the rule such a decoder would be admitted by rather than the decode. What is also absent is the fetch: [`address`] builds the
 //! address and derives the key, and the transport that would go and get it is
 //! #27.
 
 pub mod address;
 pub mod announced;
+pub mod budget;
 pub mod format;
 pub mod presence;
 
@@ -46,9 +52,10 @@ pub mod presence;
 /// them again.
 ///
 /// THIS PARAGRAPH SENT A READER TO #55 FOR WHICH FORMATS ARE DECODED AT ALL AND
-/// THAT HALF IS NOW IN [`format`]. What is still absent here is the decode: the
-/// bound on decoded bytes held at once is 0050 and #50, and it is a different
-/// quantity from the per-image bound [`format`] enforces.
+/// THAT HALF IS NOW IN [`format`]. IT ALSO SENT ONE TO #50 FOR THE BOUND ON
+/// DECODED BYTES HELD AT ONCE, AND THAT HALF IS NOW IN [`budget`], which is a
+/// different quantity from the per-image bound [`format`] enforces. What is
+/// still absent here is the decode itself.
 #[derive(Debug)]
 pub struct DecodedImage {
     _private: (),
