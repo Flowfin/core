@@ -48,6 +48,10 @@ use flowfin_core::playback::cadence::{
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::server::federation::Federation;
+use flowfin_core::server::retry::{
+    Attempts, Jitter, TheWait, WhatAFailureDoes, WhatTheCallDoesNext, WhatTheRequestDoes,
+    WhyTheCallStopped,
+};
 use flowfin_core::server::write_queue::{
     Dropped, Entry, Target, WhatIsAsserted, WhatTheEnqueueDid, WriteQueue,
 };
@@ -493,4 +497,39 @@ fn one_sessions_renewals_are_safe_from_any_thread() {
 #[test]
 fn when_a_renewal_is_due_is_safe_from_any_thread() {
     const _: () = any_thread::<RenewalSchedule>();
+}
+
+#[test]
+fn the_jitter_seam_a_client_supplies_is_safe_from_any_thread() {
+    const _: () = any_thread::<dyn Jitter>();
+}
+
+#[test]
+fn the_attempts_one_call_has_spent_are_safe_from_any_thread() {
+    const _: () = any_thread::<Attempts>();
+}
+
+#[test]
+fn what_a_request_does_to_the_server_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheRequestDoes>();
+}
+
+#[test]
+fn what_a_failure_does_under_the_retry_policy_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatAFailureDoes>();
+}
+
+#[test]
+fn what_a_call_does_after_a_failed_attempt_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheCallDoesNext>();
+}
+
+#[test]
+fn the_wait_before_the_next_attempt_is_safe_from_any_thread() {
+    const _: () = any_thread::<TheWait>();
+}
+
+#[test]
+fn why_a_call_stopped_rather_than_attempting_again_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhyTheCallStopped>();
 }

@@ -30,6 +30,13 @@
 //! core stops asking, and what a client's attempt-now does to both. It holds no
 //! probe, for the same reason [`transport`] holds no socket.
 //!
+//! [`retry`] holds 0038's one policy for every request: which kinds are retried
+//! inside a call and which are handed to a renewal or to [`recovery`]'s
+//! schedule, how many attempts a call may spend, the interval each wait is drawn
+//! over, and the seam that draw enters through. It holds no loop, for the same
+//! reason [`transport`] holds no socket, and it is where both spreads in this
+//! module take their draw.
+//!
 //! [`federation`] holds what 0072 decides: a second host becomes reachable only
 //! through an act a person performed, against one server, naming what it shares,
 //! and revocable without the network. Which hosts may be contacted at all is
@@ -39,6 +46,7 @@ pub mod address;
 pub mod certificate;
 pub mod federation;
 pub mod recovery;
+pub mod retry;
 pub mod transport;
 pub mod write_queue;
 
