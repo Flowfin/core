@@ -676,10 +676,15 @@ impl Failure {
             401 => Self::NotAuthenticated {
                 // A 401 answered a request that carried a token unless the caller
                 // had none to send, and which of the two it was is not in the
-                // status. #30 and #34 are where the caller knows, and until one
-                // of them exists this is the honest half: a 401 the core mapped
-                // is a token presented and rejected wherever a session existed,
-                // and the flag is what carries that difference to #35.
+                // status. THIS COMMENT SAID NO CALLER KNEW YET AND THAT THE FLAG
+                // WAS THE HONEST HALF UNTIL ONE EXISTED. One does:
+                // [`Failure::from_status_with_no_token_presented`] is the door
+                // 0030 opens, where the caller had nothing to present, and this
+                // arm is what every other caller reaches. So the default is a
+                // token presented and rejected because that is what a request
+                // made in a session carried, rather than because the difference
+                // is unavailable, and the flag carries it to #34 and #35 either
+                // way.
                 a_token_was_presented: true,
                 constructed: Constructed(()),
             },
@@ -727,6 +732,32 @@ impl Failure {
                 stopped_at: 0,
                 constructed: Constructed(()),
             },
+        }
+    }
+
+    /// A status, read through 0004's table at a door where the request carried
+    /// no token.
+    ///
+    /// 0030's route is the one that reaches this. A sign-in presents a name and
+    /// a password and has nothing else to present, so a refused credential is
+    /// `not-authenticated` with the payload saying there was no token - which is
+    /// the opposite payload to the rejection 0034 acts on, on the same kind. One
+    /// kind and two payloads is 0004's decision rather than this constructor's,
+    /// and the difference is what #34 and #35 branch on.
+    ///
+    /// Everything else is [`Failure::from_status`] unchanged, so this adds no row
+    /// to the table and no kind to the vocabulary. It is a second entrance to the
+    /// one mapping point 0037 fixes rather than a second mapping: a caller that
+    /// knows something the status does not carry says so here, and nothing else
+    /// about the reading moves.
+    #[must_use]
+    pub fn from_status_with_no_token_presented(status: u16, answered: &Answered<'_>) -> Self {
+        match Self::from_status(status, answered) {
+            Self::NotAuthenticated { .. } => Self::NotAuthenticated {
+                a_token_was_presented: false,
+                constructed: Constructed(()),
+            },
+            otherwise => otherwise,
         }
     }
 
@@ -1089,6 +1120,48 @@ mod tests {
             "an absent film arrived as an absent capability, which tells an \
              operator to upgrade their server over a deleted item"
         );
+    }
+
+    #[test]
+    fn the_door_with_no_token_takes_the_other_payload_and_moves_no_other_row() {
+        // 0030's route. The near miss is a door that reported a refused
+        // credential as a token presented and rejected, which 0034 reads as a
+        // session that has ended and answers with a renewal for a session that
+        // was never established.
+        let refused = Failure::from_status_with_no_token_presented(401, &a_route_call());
+        assert_eq!(refused.kind(), Kind::NotAuthenticated);
+        let Failure::NotAuthenticated {
+            a_token_was_presented,
+            ..
+        } = refused
+        else {
+            panic!("a 401 at the password door mapped onto something else");
+        };
+        assert!(
+            !a_token_was_presented,
+            "a sign-in has no token to present, and saying it had one is the              rejection 0034 acts on arriving from a session that does not exist"
+        );
+
+        let in_a_session = Failure::from_status(401, &a_route_call());
+        let Failure::NotAuthenticated {
+            a_token_was_presented,
+            ..
+        } = in_a_session
+        else {
+            panic!("a 401 in a session mapped onto something else");
+        };
+        assert!(a_token_was_presented);
+
+        // Every other row is the same reading through the same table.
+        for status in [200_u16, 403, 404, 405, 410, 418, 429, 500, 503, 600] {
+            for answered in [a_route_call(), an_item_call()] {
+                assert_eq!(
+                    Failure::from_status_with_no_token_presented(status, &answered),
+                    Failure::from_status(status, &answered),
+                    "the door moved a row that is not the 401"
+                );
+            }
+        }
     }
 
     #[test]
