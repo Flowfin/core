@@ -54,17 +54,17 @@ updates:
       timezone: Etc/UTC
     # A version has to have stood in public before it is proposed here. A
     # compromised release is found and pulled within days far more often than it
-    # survives a week, and a proposal that arrives the hour a version is
-    # published hands that window straight to whoever reads it. The days are
-    # graded by what the move costs to read rather than by taste: a major is the
-    # one nobody should be merging quickly anyway, a patch is where a fix
-    # actually lives and waits the least. Dependabot's security updates do not
-    # wait behind this, so a known advisory is not slowed by it.
+    # survives a week, and a proposal arriving the hour a version is published
+    # hands that window straight to whoever reads it. Dependabot's security
+    # updates do not wait behind this, so a known advisory is not slowed by it.
     cooldown:
+      # One number here, and it is a refusal rather than a preference.
+      # Dependabot answered
+      # `The property '#/updates/0/cooldown/semver-major-days' is not supported
+      # for the package ecosystem 'github-actions'` when this block carried the
+      # graded days the cargo block below carries. It also fits: what is pinned
+      # here is a digest, and a digest has no version for a grading to read.
       default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
     # One open proposal per ecosystem. This is the answer for a proposal nobody
     # merges: the next run recomputes the group and closes the one before it.
     open-pull-requests-limit: 1
