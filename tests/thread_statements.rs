@@ -27,6 +27,9 @@ use flowfin_core::artwork::address::{
 use flowfin_core::artwork::announced::{
     AnnouncedWindow, SharedFetches, WhatTheAnnouncementDid, WhatTheHoldDid, WhatTheWithdrawalDid,
 };
+use flowfin_core::artwork::budget::{
+    Budget, BudgetNotUsable, DecodedBytes, DecodedBytesHeld, WhatTheAskDoes,
+};
 use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
 use flowfin_core::artwork::presence::WhatTheItemHas;
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
@@ -532,4 +535,29 @@ fn the_wait_before_the_next_attempt_is_safe_from_any_thread() {
 #[test]
 fn why_a_call_stopped_rather_than_attempting_again_is_safe_from_any_thread() {
     const _: () = any_thread::<WhyTheCallStopped>();
+}
+
+#[test]
+fn the_decoded_bytes_budget_is_safe_from_any_thread() {
+    const _: () = any_thread::<Budget>();
+}
+
+#[test]
+fn a_budget_a_client_may_not_set_is_safe_from_any_thread() {
+    const _: () = any_thread::<BudgetNotUsable>();
+}
+
+#[test]
+fn the_buffer_one_decode_occupies_is_safe_from_any_thread() {
+    const _: () = any_thread::<DecodedBytes>();
+}
+
+#[test]
+fn what_asking_for_a_decode_does_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheAskDoes>();
+}
+
+#[test]
+fn the_decoded_bytes_bookkeeping_is_safe_from_any_thread() {
+    const _: () = any_thread::<DecodedBytesHeld>();
 }
