@@ -45,15 +45,28 @@
 //!
 //! # What is deliberately not here
 //!
-//! THE ABSENCE IS NOT KEPT, AND #51'S THIRD CONDITION IS ABOUT KEEPING IT. That
-//! condition asks that a second request for a known-absent image make no network
-//! call, which means the first answer was kept.
-//! `docs/decisions/0006-the-cache-contract.md` lists what may be cached and an
-//! absence is none of the five entries, and
+//! THE ABSENCE IS NOT KEPT, AND THIS PARAGRAPH SAID #51'S THIRD CONDITION WAS
+//! ABOUT KEEPING IT. That condition read that a second request for a known-absent
+//! image makes no network call, which was read here as meaning the first answer
+//! had been kept. `docs/decisions/0006-the-cache-contract.md` lists what may be
+//! cached and an absence is none of the five entries, and
 //! `docs/decisions/0043-a-stale-answer-and-the-freshness-rule-per-kind.md`
-//! closes that list by saying a sixth kind is a change to both records. So
-//! keeping one is an edit to two landed records rather than a line written here,
+//! closes that list by saying a sixth kind is a change to both records. Keeping
+//! one is still an edit to two landed records rather than a line written here,
 //! and nothing in this module writes to a store.
+//!
+//! What moved is the condition rather than the records. It was narrowed on
+//! 2026-08-30 to what this core can promise: a second ask for a known-absent
+//! image within one screenful makes no network call BECAUSE THE ANSWER CARRIES
+//! NO ADDRESS FOR ONE TO BE MADE FROM, and nothing about the absence is kept
+//! across sessions or scrolls. That is a property of
+//! [`WhatTheItemHas::NoImageOfThisKind`] rather than of a store: a fetch in this
+//! core is started from an [`ArtworkRequest`], the request is what
+//! [`crate::artwork::address::ArtworkRequest::entry_key`] turns into the key
+//! 0053 coalesces on, and an absence produces neither. The test beside this type
+//! asks exactly that, with the same two asks for an image that does exist beside
+//! it, because an assertion that nothing was fetched proves nothing on its own
+//! in a tree that fetches nothing.
 //!
 //! There is also no request made for the answer that carries one. The transport
 //! is #27 and nothing in this tree opens a connection, so a caller receiving
@@ -140,13 +153,23 @@ impl WhatTheItemHas {
 mod tests {
     //! 0049's sentence about an item with no tag, asked of the three answers.
     //!
-    //! What these cannot ask is #51's third condition. It asks that a second
-    //! request for a known-absent image make no network call, which needs an
-    //! absence to have been kept and a request to have been made, and this tree
-    //! holds neither.
+    //! THE LAST TWO ASK #51'S THIRD CONDITION AS IT WAS NARROWED, and this
+    //! comment said no test here could ask it at all. What it could not ask is
+    //! the condition as first written, which needed an absence to have been kept
+    //! and a request to have been made. The narrowed one is about the answer
+    //! carrying no address, which is here.
+    //!
+    //! WHAT THEY STILL CANNOT ASK IS ANYTHING ABOUT A WIRE. Nothing in this tree
+    //! opens a connection, so "no network call" is asserted as "no request and
+    //! therefore no key to start a fetch from" rather than as a socket that was
+    //! not opened. The second of the two is what keeps that from being vacuous:
+    //! the identical loop over an image that does exist starts one fetch and
+    //! joins it on the second ask.
 
     use super::WhatTheItemHas;
     use crate::artwork::address::{DrawnSize, ImageKind, ItemId, NotUsableInARequest};
+    use crate::artwork::announced::{SharedFetches, WhatTheHoldDid};
+    use crate::cache::key::{KeySpace, ServerPart};
 
     fn item(id: &str) -> ItemId {
         ItemId::from_server(id).expect("the fixture identifier is inside 0049's admitted set")
@@ -154,6 +177,36 @@ mod tests {
 
     fn size() -> DrawnSize {
         DrawnSize::asked_for(300, 450).expect("300 by 450 is 0050's poster and two rungs")
+    }
+
+    fn space<'a>() -> KeySpace<'a> {
+        KeySpace {
+            server: ServerPart::Reported("server-7a1b"),
+            account: "account-3c9d",
+            device: "device-9f2c",
+        }
+    }
+
+    /// Asks for one image twice, holding a fetch for every answer that carries a
+    /// request, and answers how many fetches that started.
+    ///
+    /// One helper for both tests below so that the only difference between them
+    /// is the tag, which is what makes the second one a near miss of the first
+    /// rather than a differently written test that happens to pass.
+    fn two_asks_for(tag: Option<&str>) -> (SharedFetches, Vec<WhatTheHoldDid>) {
+        let space = space();
+        let mut fetches = SharedFetches::none();
+        let mut held = Vec::new();
+
+        for _ in 0..2 {
+            let answer =
+                WhatTheItemHas::of_kind(&item("item-one"), ImageKind::Primary, tag, size());
+            if let Some(request) = answer.request() {
+                held.push(fetches.hold(request.entry_key(&space)));
+            }
+        }
+
+        (fetches, held)
     }
 
     /// An item whose metadata carried no tag for a kind produces no request at
@@ -237,6 +290,45 @@ mod tests {
             WhatTheItemHas::of_kind(&item("a-different-item"), ImageKind::Backdrop, None, size());
 
         assert_eq!(one, another);
+    }
+
+    /// #51's third condition as it was narrowed on 2026-08-30. A second ask for
+    /// a known-absent image within one screenful makes no network call, because
+    /// the answer carries no address for one to be made from.
+    ///
+    /// Nothing is kept between the two asks: the loop holds no state of its own
+    /// and this module writes to no store, so the second answer is derived again
+    /// rather than remembered. What it is derived from is the item's metadata,
+    /// which 0006 does list as a cached kind, so the absence follows from
+    /// something the cache already holds without becoming a sixth kind in it.
+    #[test]
+    fn a_second_ask_for_a_known_absent_image_starts_no_fetch() {
+        let (fetches, held) = two_asks_for(None);
+
+        assert!(held.is_empty(), "an absence produced a request to hold");
+        assert_eq!(fetches.in_flight(), 0);
+    }
+
+    /// The same two asks for an image that does exist, which is what keeps the
+    /// assertion above from being about a loop that fetches nothing whatever it
+    /// is given.
+    ///
+    /// One fetch is started and the second ask joins it rather than starting a
+    /// second, which is 0053 coalescing on the entry key. Change `of_kind` to
+    /// answer with a request where the metadata carried no tag and the test
+    /// above goes red while this one does not move.
+    #[test]
+    fn the_same_two_asks_for_an_image_that_exists_share_one_fetch() {
+        let (fetches, held) = two_asks_for(Some("abc123"));
+
+        assert_eq!(
+            held,
+            [
+                WhatTheHoldDid::StartedTheFetch,
+                WhatTheHoldDid::JoinedTheFetch
+            ]
+        );
+        assert_eq!(fetches.in_flight(), 1);
     }
 
     /// The answer is per kind, over the whole set the type declares.
