@@ -62,6 +62,9 @@ use flowfin_core::session::delegated::{
     NoAttemptMatched, OpenAttempts, Relayable, TieValue, ValueAlreadyOpen, ValueNotUsable,
 };
 use flowfin_core::session::device::{Capabilities, DeviceIdentity, PartNotUsable};
+use flowfin_core::session::password::{
+    AccountName, AnswerRead, FactNotCarried, FactsASessionNeeds, NoSession, Password,
+};
 use flowfin_core::session::quick_connect::{HowTheCallEnded, IssuedExchange, WhileWaiting};
 use flowfin_core::session::renewal::{
     Generation, HowTheRenewalEnded, Rejection, RenewalRoute, RenewalSchedule, Renewals,
@@ -99,6 +102,32 @@ fn a_capability_description_is_safe_from_any_thread() {
 #[test]
 fn a_refused_part_of_an_identity_is_safe_from_any_thread() {
     const _: () = any_thread::<PartNotUsable>();
+}
+
+#[test]
+fn a_password_is_safe_from_any_thread() {
+    const _: () = any_thread::<Password>();
+}
+
+#[test]
+fn an_account_name_is_safe_from_any_thread() {
+    const _: () = any_thread::<AccountName>();
+}
+
+#[test]
+fn what_was_read_out_of_a_sign_in_answer_is_safe_from_any_thread() {
+    const _: () = any_thread::<AnswerRead<'static>>();
+}
+
+#[test]
+fn the_facts_a_session_needs_are_safe_from_any_thread() {
+    const _: () = any_thread::<FactsASessionNeeds<'static>>();
+}
+
+#[test]
+fn an_answer_that_yielded_no_session_is_safe_from_any_thread() {
+    const _: () = any_thread::<NoSession>();
+    const _: () = any_thread::<FactNotCarried>();
 }
 
 #[test]
