@@ -30,6 +30,12 @@
 # is closed, so the state of this queue in six months is the newest reading of
 # each ecosystem rather than a pile of readings nobody took.
 #
+# A version waits before it is proposed. `.github/workflows/zizmor.yml` refuses a
+# block here that names no cooldown, at `dependabot-cooldown`, and it is right to:
+# proposing a version the hour it is published hands the window between a
+# compromised release and its withdrawal straight to whoever reads the proposal.
+# The days are per block below with the reason on them.
+#
 # An update proposal meets the same gate as any other change, with no exemption
 # for any check the gate runs. One hygiene rule reads differently for it and is
 # not turned off: .github/pr-hygiene/hygiene.sh exempts an author that cannot
@@ -46,6 +52,19 @@ updates:
       day: monday
       time: "05:00"
       timezone: Etc/UTC
+    # A version has to have stood in public before it is proposed here. A
+    # compromised release is found and pulled within days far more often than it
+    # survives a week, and a proposal that arrives the hour a version is
+    # published hands that window straight to whoever reads it. The days are
+    # graded by what the move costs to read rather than by taste: a major is the
+    # one nobody should be merging quickly anyway, a patch is where a fix
+    # actually lives and waits the least. Dependabot's security updates do not
+    # wait behind this, so a known advisory is not slowed by it.
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     # One open proposal per ecosystem. This is the answer for a proposal nobody
     # merges: the next run recomputes the group and closes the one before it.
     open-pull-requests-limit: 1
@@ -63,6 +82,19 @@ updates:
       day: monday
       time: "05:00"
       timezone: Etc/UTC
+    # A version has to have stood in public before it is proposed here. A
+    # compromised release is found and pulled within days far more often than it
+    # survives a week, and a proposal that arrives the hour a version is
+    # published hands that window straight to whoever reads it. The days are
+    # graded by what the move costs to read rather than by taste: a major is the
+    # one nobody should be merging quickly anyway, a patch is where a fix
+    # actually lives and waits the least. Dependabot's security updates do not
+    # wait behind this, so a known advisory is not slowed by it.
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     open-pull-requests-limit: 1
     groups:
       cargo:
