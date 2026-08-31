@@ -48,6 +48,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0069. Every host the core may contact](0069-every-host-the-core-may-contact.md)
 - [0071. What may leave through a diagnostic event](0071-what-may-leave-through-a-diagnostic-event.md)
 - [0072. Federation is a deliberate per-server act](0072-federation-is-a-deliberate-per-server-act.md)
+- [0091. What the first release contains, and what it does not](0091-what-the-first-release-contains.md)
 - [0100. The diagnostics interface, and its relation to measurement spans](0100-the-diagnostics-interface.md)
 - [0101. What the core trusts, and what it is built to survive](0101-what-the-core-trusts.md)
 - [0102. The clocks every deadline is measured against](0102-the-clocks-every-deadline-is-measured-against.md)
