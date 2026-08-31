@@ -33,6 +33,9 @@ use flowfin_core::artwork::budget::{
 use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
 use flowfin_core::artwork::presence::WhatTheItemHas;
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
+use flowfin_core::cache::cold_start::{
+    CallAtStart, HowTheSecretReadWent, WhatAStartServes, WhetherItCanBeAnsweredYet,
+};
 use flowfin_core::cache::envelope::{Drops, Entries, WhichCheckFailed};
 use flowfin_core::cache::freshness::{
     Age, Answer, EntryKind, Held, Skew, WhyTheAgeIsUnreadable, WrittenAt,
@@ -200,6 +203,14 @@ fn a_decoded_image_is_safe_from_any_thread() {
 #[test]
 fn the_byte_store_a_client_supplies_is_safe_from_any_thread() {
     const _: () = any_thread::<dyn ByteStore>();
+}
+
+#[test]
+fn what_a_start_serves_before_a_session_is_restored_is_safe_from_any_thread() {
+    const _: () = any_thread::<HowTheSecretReadWent>();
+    const _: () = any_thread::<WhatAStartServes>();
+    const _: () = any_thread::<CallAtStart>();
+    const _: () = any_thread::<WhetherItCanBeAnsweredYet>();
 }
 
 #[test]
