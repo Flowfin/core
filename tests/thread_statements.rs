@@ -59,6 +59,9 @@ use flowfin_core::server::retry::{
     Attempts, Jitter, TheWait, WhatAFailureDoes, WhatTheCallDoesNext, WhatTheRequestDoes,
     WhyTheCallStopped,
 };
+use flowfin_core::server::states::{
+    AgingRequest, ConsecutiveAbandonments, State, WhatAnOutcomeSaysAboutTheServer, WhatToReport,
+};
 use flowfin_core::server::write_queue::{
     Dropped, Entry, Target, WhatIsAsserted, WhatTheEnqueueDid, WriteQueue,
 };
@@ -147,6 +150,15 @@ fn a_base_address_is_safe_from_any_thread() {
 #[test]
 fn an_unusable_address_is_safe_from_any_thread() {
     const _: () = any_thread::<AddressNotUsable>();
+}
+
+#[test]
+fn the_four_states_a_request_ages_through_are_safe_from_any_thread() {
+    const _: () = any_thread::<State>();
+    const _: () = any_thread::<WhatToReport>();
+    const _: () = any_thread::<AgingRequest>();
+    const _: () = any_thread::<WhatAnOutcomeSaysAboutTheServer>();
+    const _: () = any_thread::<ConsecutiveAbandonments>();
 }
 
 #[test]
