@@ -37,6 +37,10 @@ use flowfin_core::cache::envelope::{Drops, Entries, WhichCheckFailed};
 use flowfin_core::cache::freshness::{
     Age, Answer, EntryKind, Held, Skew, WhyTheAgeIsUnreadable, WrittenAt,
 };
+use flowfin_core::cache::notification::{
+    CachedEntry, ListenerState, Notification, WhatAListenerDoesToAThreshold,
+    WhatTheNotificationDoes,
+};
 use flowfin_core::cache::{ByteStore, EntryKey};
 use flowfin_core::clock::Clocks;
 use flowfin_core::diagnostics::redaction::{Correlator, CorrelatorSalt, FieldName, Treatment};
@@ -134,6 +138,19 @@ fn a_decoded_image_is_safe_from_any_thread() {
 #[test]
 fn the_byte_store_a_client_supplies_is_safe_from_any_thread() {
     const _: () = any_thread::<dyn ByteStore>();
+}
+
+#[test]
+fn a_change_the_server_reported_is_safe_from_any_thread() {
+    const _: () = any_thread::<Notification<'static>>();
+    const _: () = any_thread::<CachedEntry<'static>>();
+    const _: () = any_thread::<WhatTheNotificationDoes>();
+}
+
+#[test]
+fn a_listener_state_and_what_it_does_to_a_threshold_are_safe_from_any_thread() {
+    const _: () = any_thread::<ListenerState>();
+    const _: () = any_thread::<WhatAListenerDoesToAThreshold>();
 }
 
 #[test]

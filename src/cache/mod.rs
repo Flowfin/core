@@ -39,6 +39,13 @@
 //! which is #27. Nothing in this tree fetches bytes out of a store and hands
 //! them anywhere.
 //!
+//! [`notification`] holds 0116, which is the second of the three ways 0006 says
+//! an entry stops being trusted and the one [`freshness`] is not: which entries
+//! a change the server reported invalidates, which it shortens to zero, which it
+//! leaves where the table put them, and the prohibition that no state of a
+//! listener ever lengthens a window. It listens to nothing, for the same reason
+//! the demand for freshness has no caller.
+//!
 //! The rest of the sentence is unchanged. The cold-start path is #46, and the
 //! index that survives a restart is #105, so every entry [`freshness`] describes
 //! is one this version wrote completely. Nothing here decides either of those.
@@ -47,6 +54,7 @@ pub mod bound;
 pub mod envelope;
 pub mod freshness;
 pub mod key;
+pub mod notification;
 
 /// The name one cache entry is kept under.
 ///
