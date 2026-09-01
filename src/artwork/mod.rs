@@ -28,6 +28,12 @@
 //! a client is told, and which callers are sharing one entry's fetch so that the
 //! last withdrawal is the one that abandons it.
 //!
+//! Everything 0052 puts in front of the layout, in [`shape`]: the aspect ratio
+//! an item's metadata states for one of the five kinds and states for none of
+//! the other four, the bound the ladder puts on a stated one, and the rectangle
+//! a client reserves in each answer so that an image arriving late cannot move
+//! anything.
+//!
 //! Everything 0050 puts around the decode, in [`budget`]: how many decoded
 //! bytes the core holds at once, what a buffer costs at four bytes a pixel, the
 //! floor 0055 fixes on what a client may set, and the order decodes waiting for
@@ -44,6 +50,7 @@ pub mod announced;
 pub mod budget;
 pub mod format;
 pub mod presence;
+pub mod shape;
 
 /// Pixels the core produced from bytes a server sent.
 ///

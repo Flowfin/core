@@ -35,6 +35,7 @@ allocated, and why a record is superseded rather than edited are in
 - [0047. The queue every write goes through](0047-the-write-queue.md)
 - [0049. The artwork address, the size asked for, and the rounding that shares an entry](0049-the-artwork-address-and-the-size-asked-for.md)
 - [0050. The decoded bytes the core holds at once](0050-the-decoded-bytes-budget.md)
+- [0052. The shape reserved before the bytes](0052-the-shape-reserved-before-the-bytes.md)
 - [0053. Announced tiles, the order they are started in, and the fetch two of them share](0053-announced-tiles-and-the-shared-fetch.md)
 - [0054. Artwork's own tier, the split, and what gives way](0054-artworks-own-tier.md)
 - [0055. The image formats the core decodes, and how the rest are refused](0055-the-image-formats-the-core-decodes.md)
