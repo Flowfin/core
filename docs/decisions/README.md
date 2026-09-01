@@ -62,3 +62,4 @@ allocated, and why a record is superseded rather than edited are in
 - [0115. Creating the core, stopping it, and a host that suspends it](0115-creating-and-stopping-the-core.md)
 - [0116. Learning that something cached has changed](0116-learning-that-something-cached-has-changed.md)
 - [0243. The means a certificate is validated with, and what it costs](0243-the-means-a-certificate-is-validated-with.md)
+- [0272. The route next up is read from](0272-the-route-next-up-is-read-from.md)
