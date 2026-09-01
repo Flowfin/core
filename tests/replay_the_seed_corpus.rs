@@ -76,7 +76,9 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+use flowfin_core::artwork::address::ImageKind;
 use flowfin_core::artwork::format::{Accepted, Refused, admitted};
+use flowfin_core::artwork::shape::{AspectRatio, RatioNotUsable, WhatShapeIsKnown};
 use flowfin_core::cache::envelope::{WhichCheckFailed, open, version_found};
 use flowfin_core::cache::freshness::EntryKind;
 use flowfin_core::server::address::BaseAddress;
@@ -87,7 +89,12 @@ use flowfin_core::server::address::BaseAddress;
 /// call rather than the target list: which of these actually runs is decided by
 /// which directories exist, and a name here without a directory is refused
 /// below.
-const TARGETS: &[&str] = &["artwork-format", "cache-envelope", "server-address"];
+const TARGETS: &[&str] = &[
+    "artwork-format",
+    "artwork-shape",
+    "cache-envelope",
+    "server-address",
+];
 
 fn corpus_root() -> PathBuf {
     // Relative to the manifest rather than to the working directory, for the
@@ -226,6 +233,26 @@ fn replay(target: &str, bytes: &[u8]) -> String {
                 Err(refused) => format!("refused {refused:?} (signature {signature:?})"),
             }
         }
+        "artwork-shape" => {
+            // Both doors 0052 opens, because the ratio is readable on its own
+            // and a caller walking an item's five kinds reaches the other one.
+            // Bytes reach a parser that takes text, so they are read lossily
+            // rather than skipped, for the reason the server-address arm gives.
+            let typed = String::from_utf8_lossy(bytes);
+            let read = match AspectRatio::from_server(&typed) {
+                Ok(ratio) => format!("read {}", ratio.ten_thousandths()),
+                Err(why) => format!("refused {why:?}"),
+            };
+            match WhatShapeIsKnown::of_kind(ImageKind::Primary, Some(&typed)) {
+                WhatShapeIsKnown::Stated(ratio) => {
+                    format!("stated {} ({read})", ratio.ten_thousandths())
+                }
+                WhatShapeIsKnown::NothingStated => format!("nothing stated ({read})"),
+                WhatShapeIsKnown::ARatioThatCannotBeUsed(why) => {
+                    format!("unusable {why:?} ({read})")
+                }
+            }
+        }
         "cache-envelope" => {
             // Every kind, because `Kind` is a refusal only reachable by asking
             // for one the envelope does not name, and a reader asks for exactly
@@ -352,6 +379,43 @@ fn the_named_refusals_are_each_reached_by_a_seed() {
         !image_accepted.is_empty(),
         "every seed under artwork-format is refused, so nothing proves the accepted path still \
          accepts. A corpus of refusals alone passes a target that refuses everything."
+    );
+
+    let mut shape_refusals = BTreeSet::new();
+    let mut shape_read = 0;
+    for (_, bytes) in seeds(&root, "artwork-shape") {
+        match AspectRatio::from_server(&String::from_utf8_lossy(&bytes)) {
+            Ok(_) => shape_read += 1,
+            Err(why) => {
+                shape_refusals.insert(format!("{why:?}"));
+            }
+        }
+    }
+    for why in [
+        RatioNotUsable::NotADecimalNumber,
+        RatioNotUsable::NarrowerThanAnyBoxTheLadderBuilds,
+        RatioNotUsable::WiderThanAnyBoxTheLadderBuilds,
+        RatioNotUsable::StatedForAKindNoSupportedLineStatesOneFor(ImageKind::Backdrop),
+    ] {
+        // One member of that set is not a property of the bytes and no seed can
+        // reach it: it says a ratio was offered for a kind neither supported
+        // line states one for, which is decided by the kind a caller passed and
+        // not by what the value says. It is named here rather than left out of
+        // the loop silently, on the shape the length bound above already takes.
+        if matches!(
+            why,
+            RatioNotUsable::StatedForAKindNoSupportedLineStatesOneFor(_)
+        ) {
+            continue;
+        }
+        assert!(
+            shape_refusals.contains(&format!("{why:?}")),
+            "no seed under artwork-shape reaches {why:?}. The seeds that are there reach              {shape_refusals:?}."
+        );
+    }
+    assert!(
+        shape_read > 0,
+        "every seed under artwork-shape is refused, so nothing proves a ratio a server states          is still read. A corpus of refusals alone passes a parser that refuses everything."
     );
 
     let mut envelope_drops = BTreeSet::new();
