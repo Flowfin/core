@@ -226,7 +226,9 @@ impl WhatShapeIsKnown {
     ///
     /// Where a ratio is stated, the largest rectangle of that shape fitting
     /// inside the box, computed in whole numbers that round down, so it never
-    /// exceeds the box on either edge and never reserves an edge of zero. Where
+    /// exceeds the box on either edge. No edge is zero, and what delivers that
+    /// is the bound the ladder fixes rather than anything in this method: see
+    /// [`fit`]. Where
     /// nothing is stated, and where a stated ratio was refused, the whole box:
     /// the client reserves the space it already asked to draw in, whatever
     /// arrives is drawn inside it, and no layout moves.
@@ -283,14 +285,18 @@ impl ReservedRectangle {
     }
 }
 
-/// One edge, held between one pixel and the box's own edge.
+/// One edge, held inside the box's own edge.
 ///
-/// The floor is the case a bound alone does not cover: a ratio at the far end of
-/// what the ladder admits, inside the smallest box, rounds down to nothing, and
-/// a rectangle of no width is not a rectangle a layout can hold. What that costs
-/// is the exactness of the ratio in exactly that case, and nowhere else.
+/// THERE IS NO FLOOR HERE AND THAT IS DELIBERATE. A rectangle of no width is not
+/// one a layout can hold, and what keeps both edges off zero is the bound rather
+/// than a clamp: the narrowest ratio the ladder admits, inside the smallest box
+/// the ladder builds, is 90 * 234 / 10000, which is 2. A floor was written here
+/// first, and removing it reddened nothing, because nothing can reach it. It is
+/// gone rather than kept, so that a bound widened past what the ladder justifies
+/// reddens the case beside this rather than being rounded up to one pixel and
+/// passing.
 fn fit(value: u64, edge: u32) -> u32 {
-    let bounded = value.clamp(1, u64::from(edge));
+    let bounded = value.min(u64::from(edge));
     u32::try_from(bounded).unwrap_or(edge)
 }
 
@@ -361,6 +367,11 @@ mod tests {
 
     fn poster() -> DrawnSize {
         box_of(300, 450)
+    }
+
+    /// A scaled ratio written back out in the grammar 0052 admits.
+    fn text_of(ten_thousandths: u32) -> String {
+        format!("{}.{:04}", ten_thousandths / SCALE, ten_thousandths % SCALE)
     }
 
     fn refusal(text: &str) -> RatioNotUsable {
@@ -469,8 +480,18 @@ mod tests {
     /// rungs and every ratio the bound admits at its ends and in the middle.
     #[test]
     fn a_reserved_rectangle_never_leaves_the_box_and_never_has_an_edge_of_zero() {
-        let ratios = ["0.0234", "0.6667", "1", "1.7778", "5.4054", "42.6666"];
-        for text in ratios {
+        // The two ends come from the bound rather than being typed, because the
+        // bound is what keeps an edge off zero. A bound widened past what the
+        // ladder justifies is then exercised at its own new ends here.
+        let ends = [
+            text_of(super::NARROWEST),
+            text_of(super::WIDEST),
+            String::from("0.6667"),
+            String::from("1"),
+            String::from("1.7778"),
+            String::from("5.4054"),
+        ];
+        for text in &ends {
             let known = WhatShapeIsKnown::of_kind(ImageKind::Primary, Some(text));
             for width in LADDER {
                 for height in LADDER {

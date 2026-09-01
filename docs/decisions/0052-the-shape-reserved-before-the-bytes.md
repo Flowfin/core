@@ -206,9 +206,16 @@ it.
 
 Where a ratio is stated, the rectangle is the largest one of that shape fitting
 inside the box, computed in whole numbers that round down, so it never exceeds
-the box on either edge. An edge is never reserved as zero: a ratio at the far end
-of the bound inside the smallest box would round to nothing, and a rectangle of
-no width is not a rectangle a layout can hold.
+the box on either edge.
+
+NO EDGE IS EVER ZERO, AND WHAT DELIVERS THAT IS THE BOUND ABOVE RATHER THAN A
+FLOOR. A rectangle of no width is not one a layout can hold, and the narrowest
+ratio the bound admits, inside the smallest box the ladder builds, is 90 times
+234 over 10000, which is two pixels. A floor was written first and taken out
+again, because removing it reddened nothing and a guard nothing can reach is a
+guard nobody knows the direction of. Taking it out is what makes a bound widened
+past what the ladder justifies redden rather than quietly round up to one pixel,
+and the case that watches it is beside the arithmetic.
 
 Where nothing is stated, and where a stated ratio was refused, the rectangle is
 the whole box. That is the stated answer for a server that knows nothing: a
