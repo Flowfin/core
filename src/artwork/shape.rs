@@ -345,7 +345,11 @@ fn ten_thousandths_of(text: &str) -> Result<u32, RatioNotUsable> {
     if value > u64::from(WIDEST) {
         return Err(RatioNotUsable::WiderThanAnyBoxTheLadderBuilds);
     }
-    u32::try_from(value).map_err(|_| RatioNotUsable::WiderThanAnyBoxTheLadderBuilds)
+    // Both bounds above are inside `u32`, so the conversion cannot fail. It is
+    // written as a total expression rather than as an unwrap, and the fallback
+    // is a value the bound already admits, so an unreachable branch is not an
+    // uncovered one either.
+    Ok(u32::try_from(value).unwrap_or(WIDEST))
 }
 
 #[cfg(test)]
