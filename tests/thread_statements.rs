@@ -32,6 +32,9 @@ use flowfin_core::artwork::budget::{
 };
 use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
 use flowfin_core::artwork::presence::WhatTheItemHas;
+use flowfin_core::artwork::shape::{
+    AspectRatio, RatioNotUsable, ReservedRectangle, WhatShapeIsKnown,
+};
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
 use flowfin_core::cache::cold_start::{
     CallAtStart, HowTheSecretReadWent, WhatAStartServes, WhetherItCanBeAnsweredYet,
@@ -334,6 +337,26 @@ fn an_artwork_request_is_safe_from_any_thread() {
 #[test]
 fn what_an_item_has_for_a_kind_is_safe_from_any_thread() {
     const _: () = any_thread::<WhatTheItemHas>();
+}
+
+#[test]
+fn why_a_stated_ratio_is_not_usable_is_safe_from_any_thread() {
+    const _: () = any_thread::<RatioNotUsable>();
+}
+
+#[test]
+fn an_aspect_ratio_is_safe_from_any_thread() {
+    const _: () = any_thread::<AspectRatio>();
+}
+
+#[test]
+fn what_is_known_of_an_images_shape_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatShapeIsKnown>();
+}
+
+#[test]
+fn the_rectangle_reserved_for_an_image_is_safe_from_any_thread() {
+    const _: () = any_thread::<ReservedRectangle>();
 }
 
 #[test]

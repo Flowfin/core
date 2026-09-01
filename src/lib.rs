@@ -194,6 +194,10 @@ const _: () = {
     any_thread::<artwork::budget::DecodedBytes>();
     any_thread::<artwork::budget::WhatTheAskDoes>();
     any_thread::<artwork::budget::DecodedBytesHeld>();
+    any_thread::<artwork::shape::RatioNotUsable>();
+    any_thread::<artwork::shape::AspectRatio>();
+    any_thread::<artwork::shape::WhatShapeIsKnown>();
+    any_thread::<artwork::shape::ReservedRectangle>();
     any_thread::<playback::Ticks>();
     any_thread::<playback::AdmittedPosition>();
     any_thread::<playback::cadence::ReportsWithoutWaiting>();
