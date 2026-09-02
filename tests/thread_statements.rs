@@ -54,6 +54,9 @@ use flowfin_core::diagnostics::{Diagnostics, DiagnosticsSink};
 use flowfin_core::failure::{
     Answered, Capability, Failure, FaultSite, Kind, ReadingSite, TransportOutcome,
 };
+use flowfin_core::lifecycle::{
+    HowTheStopEnded, Lane, Lifetime, StopBound, Supplied, WhatACallDoes, WhatIsPresent,
+};
 use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::playback::cadence::{
     ReportsWithoutWaiting, TheInterval, WhatItDoesToTheInterval,
@@ -216,6 +219,17 @@ fn the_four_states_a_request_ages_through_are_safe_from_any_thread() {
     const _: () = any_thread::<AgingRequest>();
     const _: () = any_thread::<WhatAnOutcomeSaysAboutTheServer>();
     const _: () = any_thread::<ConsecutiveAbandonments>();
+}
+
+#[test]
+fn the_core_lifetime_and_what_creation_takes_are_safe_from_any_thread() {
+    const _: () = any_thread::<Lane>();
+    const _: () = any_thread::<HowTheStopEnded>();
+    const _: () = any_thread::<StopBound>();
+    const _: () = any_thread::<WhatIsPresent>();
+    const _: () = any_thread::<Supplied<'static>>();
+    const _: () = any_thread::<WhatACallDoes>();
+    const _: () = any_thread::<Lifetime>();
 }
 
 #[test]
