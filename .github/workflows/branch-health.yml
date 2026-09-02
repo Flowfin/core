@@ -1,0 +1,108 @@
+# A workflow standing red on the default branch, reported (#90).
+#
+# WHAT THIS ADDS THAT NO OTHER LEG DOES. Every other check in this gate reports
+# on a pull request, where somebody is waiting on it. A run that only concludes
+# after a merge or on a schedule has nobody waiting on it, so it can stay red for
+# weeks with every pull request green beside it, and the legs that only run after
+# a merge are exactly the ones nobody watches. Nothing in this repository read a
+# conclusion on the default branch before this landed.
+#
+# IT OPENS AN ISSUE AND IT DOES NOT SEND A NOTIFICATION. A notification is read
+# once, by whoever happens to be looking, and then it is gone. An issue survives
+# being missed, which is the whole property #90 asks for.
+#
+# IT REPORTS AND IT GATES NOTHING, AND ITS GREEN STILL MEANS SOMETHING. A red
+# workflow does not fail this run - it opens an issue. What fails this run is
+# being unable to produce a report at all: a listing that could not be read, rows
+# in a shape the script does not parse, a registry that names nothing. So the
+# green of this check asserts that a report exists for this run, which is the
+# condition #26 sets for a reporting leg whose name may be required, and it is
+# the opposite of the one leg in this gate that is green whatever it found.
+#
+# IT RUNS ON EVERY PULL REQUEST AS WELL AS ON THE SCHEDULE, AND THAT IS NOT
+# DECORATION. A leg that only runs on its own schedule is the exact thing this
+# leg exists to catch: a change that breaks the script would be discovered a day
+# later by a run nobody is waiting on, and a broken script exits before it
+# reports, so it cannot report itself. Running the fixtures and the read on every
+# pull request puts the failure in front of the change that caused it. The
+# script decides internally what a run may do rather than being skipped by a
+# filter: it reads and reports on every event, and it opens an issue only on the
+# schedule and on a manual run, because an issue opened while judging a pull
+# request would be a reading of the default branch that the change in front of it
+# did not cause.
+#
+# THE CHECK-RUN NAME IS `branch-health`, ON BOTH THE WORKFLOW AND THE JOB. GitHub
+# takes it from the job's `name:` and falls back to the job id, so a ruleset
+# matching the literal cannot be detached by a rename here. #26 is where the names
+# a ruleset requires are decided, and this one is a candidate for that list rather
+# than an exclusion from it, for the reason in the paragraph above: it reports on
+# every pull request head, it decides internally whether it has work to do, and
+# its green carries an assertion.
+#
+# THE NAME IS NOT THE ONE THE GATE THIS BOARD IS MEASURED AGAINST USES. There the
+# check reports as `Report any workflow that concluded non-success on the default
+# branch`, which is a sentence rather than a name, and `docs/gate-parity.md`
+# carries the row. Here every check-run name is a short identifier, and a name a
+# ruleset matches is worth keeping in the shape the rest of the list is in.
+#
+# NO TOOLCHAIN IS INSTALLED AND NOTHING IS COMPILED. This leg reads the platform
+# and never the tree, so it checks nothing out beyond the script it runs and it
+# has no opinion about which compiler this repository pins.
+name: branch-health
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  # Daily. What this watches changes when a scheduled or post-merge run
+  # concludes, which happens on its own cadence rather than on the repository's,
+  # so a weekly report would leave a red leg unreported for six days after it
+  # went red. Offset off the hour for the reason every other cron in this tree
+  # is: the top of an hour is where every scheduled job on the platform queues at
+  # once.
+  schedule:
+    - cron: "17 5 * * *"
+  # So a person who has just repaired a red leg can see the report agree without
+  # waiting for tomorrow, and so the issue-opening half can be exercised
+  # deliberately rather than only by the schedule.
+  workflow_dispatch:
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: branch-health-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  branch-health:
+    name: branch-health
+    runs-on: ubuntu-latest
+    # Generous against the platform being slow to answer rather than against the
+    # work, which is one request per workflow in the registry and no build.
+    timeout-minutes: 15
+    permissions:
+      contents: read # check out the script this job runs
+      actions: read # read the run listings and the workflow registry this reports on
+      issues: write # open the issue a workflow standing red obliges
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      - name: Prove the fixtures, then report what the default branch concluded
+        env:
+          # The client this script reads the platform with takes its credential
+          # from here. It is the run's own token rather than a stored one, so the
+          # permissions above are the whole of what this job can do.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/branch-health/branch-health.sh check
