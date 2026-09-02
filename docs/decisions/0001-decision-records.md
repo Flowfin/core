@@ -4,6 +4,8 @@ Date: 2026-08-09
 
 Status: accepted. Supersedes nothing. Superseded by nothing.
 
+Narrowed-by: 0267, on the third permitted edit, the pointer to a later record, which takes a fixed form and becomes a pair of fields where the later record narrows a clause
+
 Issue: #2
 
 ## The decision
