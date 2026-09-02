@@ -55,25 +55,27 @@
 //! leaves the origin a request was sent to. It sends nothing and refuses no
 //! request, for the same reason [`transport`] holds no socket, and its own
 //! documentation says which issue each half of that waits on.
+//!
+//! [`library`] holds 0039's answer shape: the offset and the count a paged read
+//! is asked for by, the three numbers an answer carries, whether another page
+//! exists derived from them rather than stored beside them, and the read that
+//! takes no paging parameters at all. It makes no request, for the same reason
+//! [`transport`] holds no socket.
+//!
+//! THIS FILE CARRIED A `QueryResult` NAME UNTIL 0039 WAS BUILT. It was one of
+//! the placeholders this crate uses for a type whose issue has not been worked:
+//! a name with 0009's statement about its kind on it, documented as being #39's
+//! to decide. #39 decided it, so what stood here is [`library::Page`] and the
+//! placeholder is gone rather than left beside the answer, because two names for
+//! one answer is the drift a shared core exists to remove.
 
 pub mod address;
 pub mod certificate;
 pub mod destinations;
 pub mod federation;
+pub mod library;
 pub mod recovery;
 pub mod retry;
 pub mod states;
 pub mod transport;
 pub mod write_queue;
-
-/// An answer the core has already received and handed back.
-///
-/// Thread safety, from 0009: a query result is immutable once it has been handed
-/// back. There is no shared mutable state to protect, and the core keeps no
-/// reference through which it could change one.
-///
-/// What a client can ask for, and what comes back, is #39.
-#[derive(Debug)]
-pub struct QueryResult {
-    _private: (),
-}
