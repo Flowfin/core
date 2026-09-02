@@ -121,11 +121,11 @@ const ARTWORK_GAVE_WAY: EventName = EventName::declared("cache.artwork-gave-way"
 /// They are constants beside the identities they appear under rather than
 /// entries in a list somewhere else, which is 0100's placement for an event's
 /// identity applied to the names on it.
-const RELEASED_BYTES: FieldName = FieldName::carried_whole("released-bytes");
-const RELEASED_ENTRIES: FieldName = FieldName::carried_whole("released-entries");
-const FOR_TIER: FieldName = FieldName::carried_whole("for-tier");
-const CONSECUTIVE_REFUSALS: FieldName = FieldName::carried_whole("consecutive-refusals");
-const SUSPENDED_FOR: FieldName = FieldName::carried_whole("suspended-for");
+pub(crate) const RELEASED_BYTES: FieldName = FieldName::carried_whole("released-bytes");
+pub(crate) const RELEASED_ENTRIES: FieldName = FieldName::carried_whole("released-entries");
+pub(crate) const FOR_TIER: FieldName = FieldName::carried_whole("for-tier");
+pub(crate) const CONSECUTIVE_REFUSALS: FieldName = FieldName::carried_whole("consecutive-refusals");
+pub(crate) const SUSPENDED_FOR: FieldName = FieldName::carried_whole("suspended-for");
 
 /// Which of the two accountings an entry belongs to.
 ///
