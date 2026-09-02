@@ -237,6 +237,25 @@ each other.
 **`dependency-review`** reads the dependency diff of a pull request against the
 advisory database.
 
+**`branch-health`** is the one check here whose subject is not this tree. It walks
+the workflow registry, reads each workflow's most recent runs on the default
+branch, and reports any whose latest conclusion is not success, opening an issue
+per such workflow rather than sending a notification, because a notification is
+read once and an issue survives being missed. Every other check reports on a pull
+request, where somebody is waiting on it; a run that concludes only after a merge
+or on a schedule has nobody waiting on it and can stay red for weeks with every
+pull request green beside it. What it refuses is being unable to produce a report
+at all - a listing it could not read, rows in a shape it does not parse, a
+registry naming nothing - and never a red workflow, so its own run does not go
+red for what it found and cannot end up reporting itself forever. It prints the
+registry entry by entry with what it read of each, so a workflow with no run on
+the default branch is named as one this run did NOT examine rather than counted
+as healthy, and it prints how many of each workflow's runs it looked at against
+how many exist. `.github/branch-health/branch-health.sh` holds the rules and the
+fixtures that prove them. It is not a third member of the pair below: those two
+return zero whatever they found, and this one refuses a run that produced no
+report.
+
 Two runs report and refuse nothing, which is deliberate rather than an oversight.
 **`External addresses in documents`** requests the addresses documents name and
 prints what answered; an address outside this repository that is down for an hour
