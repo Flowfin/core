@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "updated": "2026-09-02",
+  "about": [
+    "Every scanner pointed at this repository will eventually report something that is not exploitable here, or not reachable from any path this core takes. The choices are to fix it, to suppress it silently, or to say publicly why it does not apply. This document is the third, and it is the only one a downstream consumer can act on.",
+    "It carries two kinds of entry, because there are two ways a finding stops reaching the gate and they do not have the same shape. A `findings` entry is a finding a scanner raised against this repository and somebody dismissed; it has an identifier, so it carries a per-finding disposition. An `exclusions` entry is a class taken out of what a scanner is pointed at; it has no identifier and no list of what would have been found, so it carries a scope, and it carries what is consequently NOT being looked for. That last field is the one a consumer needs and the one an author will otherwise leave out.",
+    "Both kinds live here rather than in two documents, because a consumer reads one thing and needs to see both what was examined and found not to apply, and what was never examined. A document holding only dismissals would let a reader conclude that everything else was looked at and came back clean, and where a class was excluded that conclusion is false and nothing would say so.",
+    "THIS IS NOT AN OPENVEX DOCUMENT AND IT DOES NOT CLAIM TO BE ONE. No advisory against a dependency of this repository has been raised yet, so there is nothing here for OpenVEX's vocabulary to describe; every `findings` entry below is a policy check rather than a vulnerability. Where `status`, `justification` and `impact` appear they are named after OpenVEX's fields so that projecting this document is a mapping rather than a translation, and no such projection has been produced. The shape a dependency advisory takes here is decided when the first one arrives, and not before.",
+    "The scanner configurations this repository holds are not listed here. `.github/statements/statements.sh` derives them and refuses a directive with no entry below, which is what stops this list drifting against the thing it describes."
+  ],
+  "findings": [
+    {
+      "id": "scorecard/BranchProtectionID",
+      "scanner": "Scorecard",
+      "subject": "the branch protection this repository sets on its default branch",
+      "status": "not_applicable",
+      "justification": "The check asks for required approvers, code owners, stale-review dismissal and last-push approval. Every one of those names a second account, and this repository has one maintainer, so a rule nobody can satisfy is switched off rather than left red forever.",
+      "impact": "The part of the check that is about being up to date with the base is met by a stronger route than the setting: the branch-health watcher builds the merge locally against the current base and judges the result, rather than asking whether a branch pointer is behind.",
+      "retires_when": "A second account can approve a change on this repository. Every clause above becomes satisfiable in the same moment."
+    },
+    {
+      "id": "scorecard/CodeReviewID",
+      "scanner": "Scorecard",
+      "subject": "whether a change reaching the default branch was approved by somebody other than its author",
+      "status": "not_applicable",
+      "justification": "There is one maintainer here, so the check is unsatisfiable by construction rather than unmet by choice.",
+      "impact": "Nothing stands in place of a second reader. Every pull request body on this board says plainly whether anybody other than the author has read the change, and where nobody has it says so and lets its evidence stand in place of a review. A negative disclosure is what is offered here, not a substitute control.",
+      "retires_when": "A second account reads changes on this repository."
+    },
+    {
+      "id": "scorecard/CIIBestPracticesID",
+      "scanner": "Scorecard",
+      "subject": "whether this repository holds an OpenSSF Best Practices badge",
+      "status": "not_applicable",
+      "justification": "The badge criteria include a second reviewer and a vulnerability-response process with a named team. Neither exists for a project with one maintainer, so the badge is unobtainable rather than unclaimed.",
+      "impact": "A consumer looking for the assurances the badge stands for does not get them from a badge here. What this repository offers instead is the gate, which is derivable rather than asserted, and SECURITY.md, which says how to report something.",
+      "retires_when": "The project has the second reviewer and the named response team the criteria ask for, at which point the badge is applied for rather than dismissed."
+    },
+    {
+      "id": "scorecard/FuzzingID",
+      "scanner": "Scorecard",
+      "subject": "whether a fuzzing harness for this repository is registered with OSS-Fuzz or an equivalent",
+      "status": "not_applicable",
+      "justification": "There is no untrusted input surface in this tree today that a fuzzer would reach, and onboarding to OSS-Fuzz needs maintainers who can be paged.",
+      "impact": "THIS DISPOSITION IS TRUE OF THE TREE AS IT STANDS AND NOT OF THE TREE THIS BOARD HAS PLANNED. 0101 puts a server's answers and an artwork byte stream on the untrusted list, 0055 calls the decoder the most attacked surface this repository will carry, and issue #86 is open to fuzz every parser reachable from that list and replay the seed corpus inside the gating build. A consumer reading a permanent dismissal here would take the absence of a fuzzer for a decision rather than for a state, and it is a state.",
+      "retires_when": "A parser reachable from 0101's untrusted list lands in this tree, which is what #86 is open for. The dismissal does not expire on its own and nothing raises the finding again when that happens, which is why the condition is written here rather than left in the dismissal."
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "shellcheck/SC2016",
+      "scanner": "shellcheck",
+      "configuration": ".github/shell-analysis/excluded-rules",
+      "rule": "SC2016",
+      "scope": "the rule alone, across every tracked shell file the analysis reads",
+      "reason": "Every rule in this gate is an awk or sed program held in single quotes, and every fixture is a piece of markdown holding backticks, so an unexpanded expression inside single quotes is the ordinary case here rather than a mistake.",
+      "not_looked_for": "A single-quoted string that was meant to interpolate a shell variable and silently does not. Nothing else refuses one, so a value that should have been expanded and was not passes every route in this repository.",
+      "retires_when": "The checks stop carrying another language's source as literal data."
+    },
+    {
+      "id": "shellcheck/SC2094",
+      "scanner": "shellcheck",
+      "configuration": ".github/shell-analysis/excluded-rules",
+      "rule": "SC2094",
+      "scope": "the rule alone, across every tracked shell file the analysis reads",
+      "reason": "It is raised twice on one line of .github/doc-paths/doc-paths.sh, where a document's path is passed as an argument and redirected as standard input on the same command. Nothing in that pipeline writes the file it reads, and the analyser cannot see that the argument is a label rather than a destination.",
+      "not_looked_for": "A command in this tree that genuinely does read and write one file in one pipeline, which is the corruption the rule exists for. It would pass unremarked anywhere in the shell this gate is written in.",
+      "retires_when": "A command in this tree does read and write one file in one pipeline, at which point the exclusion has to be argued rather than kept."
+    },
+    {
+      "id": "zizmor/pedantic-persona",
+      "scanner": "zizmor",
+      "configuration": ".github/workflows/zizmor.yml",
+      "rule": null,
+      "scope": "one of the scanner's two personas, across every workflow file it reads. The gate runs the regular persona at --min-severity=low; the pedantic persona is not run.",
+      "reason": "The regular persona is the one the scanner documents for continuous integration. The pedantic persona adds low-severity hygiene findings - undocumented permissions, missing concurrency, pin-comment mismatches, unnamed jobs - which are stylistic rather than security-blocking, and some are context-blind: it would demand run-cancelling concurrency on a workflow that must never be cancelled part way through.",
+      "not_looked_for": "Every pedantic-persona finding, on every workflow in this repository. No advisory or hygiene finding from that persona will appear in this document or in the code-scanning tab at all, so a consumer reading a clean zizmor result is reading a clean REGULAR-persona result and nothing more.",
+      "retires_when": "The pedantic backlog is worth gating on this board. It is not tracked as an issue here; the argument for leaving it ungated was made on the repository these guards were adapted from, at Flowfin/jellyfin-plugin-sso#263."
+    },
+    {
+      "id": "unicode-guard/U+FEFF",
+      "scanner": "unicode-guard",
+      "configuration": ".github/workflows/unicode-guard.yml",
+      "rule": null,
+      "scope": "one codepoint, U+FEFF, absent from the set the guard's pattern refuses, across every tracked text file the guard reads",
+      "reason": "A leading UTF-8 byte order mark is legitimate and appears in files this tree may carry, so banning the codepoint outright would refuse honest work, and the bidirectional reordering attack the guard exists for does not rely on it.",
+      "not_looked_for": "A U+FEFF anywhere other than at the start of a file, where it is a zero-width no-break space and is as invisible as the codepoints beside it in the pattern. The exclusion is written on the codepoint rather than on its position, so the guard does not distinguish the legitimate leading mark from one in the middle of a line.",
+      "retires_when": "The guard can tell a leading byte order mark from the same codepoint elsewhere in a file, at which point the position is excluded rather than the codepoint."
+    }
+  ]
+}
