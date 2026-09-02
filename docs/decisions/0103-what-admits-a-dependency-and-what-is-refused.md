@@ -4,6 +4,8 @@ Date: 2026-08-24
 
 Status: accepted. Supersedes nothing. Superseded by nothing.
 
+Narrowed-by: 0243, on the fourth behaviour refused outright, a dependency that writes to a log
+
 Issue: #103
 
 ## The decision

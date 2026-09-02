@@ -1,0 +1,64 @@
+# A narrowing is named in both directions (#267).
+#
+# 0267 decides that a record narrowing one clause of an earlier one carries a
+# `Narrows:` line and the record it narrows carries a `Narrowed-by:` line, each
+# naming the other and each naming the clause. A pointer only one side carries
+# rots the first time a record is renumbered or withdrawn, and it rots in silence,
+# so the pairing is read rather than trusted.
+#
+# The check-run name is exactly `A narrowing is named in both directions`, on the
+# job. GitHub takes that name from the job's `name:` and falls back to the job id,
+# and a ruleset matches the literal, so the name a requirement would be attached
+# to is visible in this file rather than derived from it.
+#
+# `.github/decision-records/decision-records.sh` holds the rules and the fixtures.
+# Every run proves every rule against its own violating record and its own near
+# miss before it judges the tree, so a rule cannot pass its fixture and refuse
+# something else in the gate.
+#
+# The job carries no `if:` and no path filter, for the reason
+# .github/workflows/build.yml already gives: GitHub creates a check run for a job
+# it started and then skipped, carrying the same name a job that did the work
+# would. A path filter would be wrong here for a second reason: the failure this
+# check exists for is a pointer at a record that moved, and the change that moves
+# a record is not the change that opened the paragraph naming it.
+#
+# Nothing here compiles. A pattern over tracked text needs no toolchain, so this
+# check has a verdict on a tree the compiler cannot build.
+name: decision-records
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: decision-records-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  narrowing:
+    name: A narrowing is named in both directions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # check out the records the rules read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      - name: Prove every rule bites, then apply the rule set
+        run: bash .github/decision-records/decision-records.sh check

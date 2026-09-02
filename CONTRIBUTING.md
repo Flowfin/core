@@ -167,6 +167,18 @@ it; where none does, the run prints that the comparison was not made.
 span that names a path not tracked in this tree. `.github/doc-paths/doc-paths.sh`
 carries what it reads and, on every run, the list of what it does not.
 
+**`A narrowing is named in both directions`** refuses a `Narrows:` or
+`Narrowed-by:` field in a decision record that names a record which does not
+exist, that names a record and no clause, that sits below the first heading, or
+that the record it names does not name back. Both fields are 0267's, which is
+where the shape and its reasons are;
+`.github/decision-records/decision-records.sh` holds the rules and proves every
+one of them against its own violating record and its own near miss before it
+judges anything. What it cannot reach is printed on every run: whether the clause
+a field names is the clause that actually moved is a judgement no reading of the
+text makes, and a later record that narrows an earlier one and writes no field at
+all is silent to every rule in it.
+
 **`Analyse the shell the gate runs (shellcheck)`** analyses every tracked shell
 file. The rules it does not refuse are in `.github/shell-analysis/excluded-rules`
 with the reason for each.
