@@ -166,7 +166,7 @@ const ENTRY_DROPPED: EventName = EventName::declared("cache.entry-dropped");
 /// derived from an address, an account and a device under 0041, so two people
 /// running the same build against the same server do not hold the same one,
 /// which is 0068's question answered against this field.
-const ENTRY: FieldName = FieldName::reduced("entry");
+pub(crate) const ENTRY: FieldName = FieldName::reduced("entry");
 
 /// What was expected, which check failed, and the version that was there.
 ///
@@ -174,9 +174,9 @@ const ENTRY: FieldName = FieldName::reduced("entry");
 /// declares, a reading is one of five names, and the version is a number this
 /// build or another build of this core wrote; none of them can differ between
 /// two people running the same build against the same server.
-const ENTRY_KIND: FieldName = FieldName::carried_whole("entry-kind");
-const CHECK: FieldName = FieldName::carried_whole("check");
-const VERSION_FOUND: FieldName = FieldName::carried_whole("version-found");
+pub(crate) const ENTRY_KIND: FieldName = FieldName::carried_whole("entry-kind");
+pub(crate) const CHECK: FieldName = FieldName::carried_whole("check");
+pub(crate) const VERSION_FOUND: FieldName = FieldName::carried_whole("version-found");
 
 /// How many entries this run dropped, separated by which reading failed.
 ///

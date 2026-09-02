@@ -25,6 +25,23 @@
 //! invented at the one call site that needed it. [`StopBound`] carries the
 //! default and no floor, and says so where somebody setting one meets it.
 //!
+//!
+//! # The rule as data, and why it is gathered here
+//!
+//! `docs/decisions/0071-what-may-leave-through-a-diagnostic-event.md` refuses a
+//! diagnostics bundle assembled by the core, because 0068 and 0100 both fix that
+//! an event is handed over and forgotten in the same call, so there is no store
+//! of past events here to assemble one out of. What that record asks the core for
+//! instead is the rule as data: for each field name it has ever emitted, which of
+//! the three treatments it applies, so that a client assembling a bundle out of
+//! what its own sink kept can include the statement verbatim and whoever is about
+//! to send it can read what is not in it.
+//!
+//! It is gathered here because a field name deliberately lives beside the event
+//! identity that carries it, which is 0100's placement, so the only place that
+//! sees all of them is the one that sees every subsystem. That is creation, and
+//! this is the module creation's own answers are in.
+//!
 //! # Why creation reaching nothing is a property rather than a description
 //!
 //! 0115 refuses a creation call that restores a session, opens a connection,
@@ -37,7 +54,10 @@
 use core::time::Duration;
 
 use crate::cache::ByteStore;
+use crate::cache::bound;
+use crate::cache::envelope;
 use crate::diagnostics::DiagnosticsSink;
+use crate::diagnostics::redaction::FieldName;
 use crate::failure::Failure;
 use crate::session::SecretStore;
 
@@ -450,6 +470,44 @@ impl Lifetime {
         }
         WhatACallDoes::GoesAhead
     }
+}
+
+/// Every field name this build of the core emits, with the treatment each one
+/// carries.
+///
+/// This is 0071's rule as data. A client puts it verbatim into a bundle it
+/// assembled out of what its own sink kept, so that whoever is about to send that
+/// bundle can read which values never appear in it, which appear only as a
+/// correlator, and which are carried unchanged.
+///
+/// THE STATEMENT IS ABOUT WHAT THE CORE DID AND NOT ABOUT WHAT A SINK DID
+/// AFTERWARDS, which is 0071's own sentence. A client that writes events out into
+/// a log file of its own has made its own decisions, and a bundle carrying this
+/// says so rather than implying a guarantee across a boundary the core cannot
+/// see.
+///
+/// WHAT NOTHING HERE REFUSES IS A NAME DECLARED AND NOT LISTED. A field name is a
+/// constant beside the event identity that carries it, which is where 0100 puts
+/// it and where 0071 wants it, so a subsystem can declare one and emit it without
+/// this list moving. Then the statement is short by that name and reads as
+/// complete, which is the one way it can be wrong in the direction that matters.
+/// No reading of this tree catches it: what would is a check whose subject is
+/// every construction of [`FieldName`] anywhere under `src/`, and this repository
+/// has none. It is the same bound the name-list rules in
+/// `.github/invariants/rules` print about themselves.
+#[must_use]
+pub const fn every_field_name_the_core_emits() -> &'static [FieldName] {
+    &[
+        bound::RELEASED_BYTES,
+        bound::RELEASED_ENTRIES,
+        bound::FOR_TIER,
+        bound::CONSECUTIVE_REFUSALS,
+        bound::SUSPENDED_FOR,
+        envelope::ENTRY,
+        envelope::ENTRY_KIND,
+        envelope::CHECK,
+        envelope::VERSION_FOUND,
+    ]
 }
 
 #[cfg(test)]
