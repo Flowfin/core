@@ -47,6 +47,25 @@
 # which names this workflow as recovered and opens nothing. The issue stays open
 # until a person closes it, because the report does not close what it opened.
 #
+# WHAT A PULL LEAVES BEHIND, WHICH IS NOT THE CONCLUSION IT WAS ASKED FOR. A run
+# of this workflow reports a check-run against whatever commit the default branch
+# pointed at when it was dispatched, and a check-run is not replaced by a later
+# one of the same name. So a pull for `failure` stamps that commit permanently,
+# and the second pull for `success` adds a second check-run beside the first
+# rather than clearing it. Measured on the commit this file landed on:
+#
+#     H=f13c5e341b8d4d3e5eeaf8d2309bef973ea42adc
+#     gh api "repos/Flowfin/core/commits/$H/check-runs?per_page=100" --jq '.check_runs[] | select(.name=="branch-health-lever") | "\(.conclusion) \(.started_at)"'
+#     success 2026-09-02T09:57:46Z
+#     failure 2026-09-02T09:54:16Z
+#
+# The report is unaffected, and that is a fact about the report rather than a
+# reason the stamp does not matter: it reads each workflow's run listing and
+# takes the newest conclusion, so it saw the recovery. What does read badly is
+# anything that asks a commit for its check-runs and treats any failure among
+# them as the verdict, which is how a merge button and most dashboards read one.
+# Pull this when the branch is at a commit you are willing to leave marked.
+
 # NO TOOLCHAIN IS INSTALLED AND NOTHING IS CHECKED OUT. The conclusion is the
 # whole product of this run, so it reads neither the tree nor the platform.
 name: branch-health-lever
