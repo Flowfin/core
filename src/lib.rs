@@ -27,7 +27,13 @@
 //! the one source all three clocks reach the core through, for the same reason:
 //! `docs/decisions/0102-the-clocks-every-deadline-is-measured-against.md` states
 //! a rule per clock, and a reading taken anywhere else would be a deadline no
-//! test can move.
+//! test can move. [`lifecycle`] holds what
+//! `docs/decisions/0115-creating-and-stopping-the-core.md` decides about the
+//! core's own lifetime: what a client hands to creation, which of those the core
+//! has, the bound a stop is given, which lane a stop that expired names, and
+//! what a call does once a stop has been asked for. It is beside [`Core`] rather
+//! than inside one of the six because its subject is the core itself, and it
+//! starts no thread, for the same reason `server::transport` holds no socket.
 //!
 //! # What is deliberately not here
 //!
@@ -86,6 +92,7 @@ pub mod cache;
 pub mod clock;
 pub mod diagnostics;
 pub mod failure;
+pub mod lifecycle;
 pub mod measurement;
 pub mod playback;
 pub mod server;
@@ -112,6 +119,13 @@ const fn any_thread<T: Send + Sync>() {}
 
 const _: () = {
     any_thread::<Core>();
+    any_thread::<lifecycle::Lane>();
+    any_thread::<lifecycle::HowTheStopEnded>();
+    any_thread::<lifecycle::StopBound>();
+    any_thread::<lifecycle::WhatIsPresent>();
+    any_thread::<lifecycle::Supplied<'static>>();
+    any_thread::<lifecycle::WhatACallDoes>();
+    any_thread::<lifecycle::Lifetime>();
     any_thread::<session::Session>();
     any_thread::<session::device::DeviceIdentity>();
     any_thread::<session::device::Capabilities>();
