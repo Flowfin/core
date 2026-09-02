@@ -76,7 +76,7 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use flowfin_core::artwork::address::ImageKind;
+use flowfin_core::artwork::address::{ImageKind, ImageTag, ItemId, NotUsableInARequest};
 use flowfin_core::artwork::format::{Accepted, Refused, admitted};
 use flowfin_core::artwork::shape::{AspectRatio, RatioNotUsable, WhatShapeIsKnown};
 use flowfin_core::cache::envelope::{WhichCheckFailed, open, version_found};
@@ -91,6 +91,7 @@ use flowfin_core::server::address::BaseAddress;
 /// below.
 const TARGETS: &[&str] = &[
     "artwork-format",
+    "artwork-identifier",
     "artwork-shape",
     "cache-envelope",
     "server-address",
@@ -233,6 +234,30 @@ fn replay(target: &str, bytes: &[u8]) -> String {
                 Err(refused) => format!("refused {refused:?} (signature {signature:?})"),
             }
         }
+        "artwork-identifier" => {
+            // Both values 0049 refuses on their bytes before either is written
+            // into a request, and both doors rather than one: they call one
+            // function today, and replaying only the identifier is what would
+            // pass on the day the tag stops sharing it. Bytes reach a parser
+            // that takes text, so they are read lossily rather than skipped, for
+            // the reason the server-address arm gives.
+            //
+            // THE LENGTH AND NEVER THE VALUE, which is the one decision in this
+            // arm. 0068 places a server-supplied identifier in the personal set
+            // and `NotUsableInARequest` carries the position rather than the
+            // byte for that reason; an answer built here out of the admitted
+            // value would put back into a report exactly what that type is
+            // shaped to keep out of one.
+            let sent = String::from_utf8_lossy(bytes);
+            let identifier = match ItemId::from_server(&sent) {
+                Ok(id) => format!("item of {} byte(s)", id.as_str().len()),
+                Err(why) => format!("refused {why:?}"),
+            };
+            match ImageTag::from_server(&sent) {
+                Ok(tag) => format!("tag of {} byte(s) ({identifier})", tag.as_str().len()),
+                Err(why) => format!("refused {why:?} ({identifier})"),
+            }
+        }
         "artwork-shape" => {
             // Both doors 0052 opens, because the ratio is readable on its own
             // and a caller walking an item's five kinds reaches the other one.
@@ -334,6 +359,57 @@ fn every_seed_is_replayed_and_every_target_answers() {
     );
 }
 
+/// What a refused identifier or tag is, by name, for every member of that set.
+///
+/// The blocks below compare a member against the debug form of the value a seed
+/// produced. `NotUsableInARequest::ByteAt` carries the position the refusal
+/// stopped at, so its debug form differs per seed and no fixed string could ever
+/// be found in a set of them. This is a total function over the type instead: a
+/// member added tomorrow is a compile error here rather than a member nothing
+/// asserts a seed for, which is the property the other blocks get from reading
+/// their sets out of the crate.
+fn what_a_refused_identifier_is(why: NotUsableInARequest) -> &'static str {
+    match why {
+        NotUsableInARequest::Empty => "nothing was there",
+        NotUsableInARequest::ByteAt(_) => "a byte outside the admitted set",
+    }
+}
+
+/// The identifier corpus reaches both members of that set and admits something.
+///
+/// A block of its own rather than twenty more lines inside the test below.
+/// The analyser refuses a function past a hundred lines, and the repair that
+/// keeps one test asserting one property over every closed set is a named
+/// block rather than a waiver written beside the lint.
+fn the_identifier_corpus_reaches_every_refusal(root: &Path) {
+    let mut identifier_refusals = BTreeSet::new();
+    let mut identifiers_admitted = 0;
+    for (_, bytes) in seeds(root, "artwork-identifier") {
+        match ItemId::from_server(&String::from_utf8_lossy(&bytes)) {
+            Ok(_) => identifiers_admitted += 1,
+            Err(why) => {
+                identifier_refusals.insert(what_a_refused_identifier_is(why));
+            }
+        }
+    }
+    for why in [NotUsableInARequest::Empty, NotUsableInARequest::ByteAt(0)] {
+        // Every member is reachable by a seed here, so nothing is skipped and
+        // there is no `continue` above this assertion to read past.
+        let named = what_a_refused_identifier_is(why);
+        assert!(
+            identifier_refusals.contains(named),
+            "no seed under artwork-identifier reaches {named:?}. The seeds that are there reach \
+             {identifier_refusals:?}."
+        );
+    }
+    assert!(
+        identifiers_admitted > 0,
+        "every seed under artwork-identifier is refused, so nothing proves an identifier a \
+         server sent is still admitted. A corpus of refusals alone passes a parser that \
+         refuses everything."
+    );
+}
+
 /// The corpus reaches every member of each closed refusal set.
 ///
 /// This is what stops a corpus decaying into a list of inputs that all fail the
@@ -380,6 +456,8 @@ fn the_named_refusals_are_each_reached_by_a_seed() {
         "every seed under artwork-format is refused, so nothing proves the accepted path still \
          accepts. A corpus of refusals alone passes a target that refuses everything."
     );
+
+    the_identifier_corpus_reaches_every_refusal(&root);
 
     let mut shape_refusals = BTreeSet::new();
     let mut shape_read = 0;
