@@ -6,6 +6,8 @@ Status: accepted. Supersedes nothing. Superseded by nothing.
 
 Narrowed-by: 0267, on the third permitted edit, the pointer to a later record, which takes a fixed form and becomes a pair of fields where the later record narrows a clause
 
+Narrowed-by: 0269, on the rule that a record is never edited in place, which does not reach a pasted output deleted so that only the command that produced it is left
+
 Issue: #2
 
 ## The decision

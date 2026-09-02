@@ -65,4 +65,5 @@ allocated, and why a record is superseded rather than edited are in
 - [0243. The means a certificate is validated with, and what it costs](0243-the-means-a-certificate-is-validated-with.md)
 - [0267. A record that narrows one clause of another](0267-a-record-that-narrows-one-clause-of-another.md)
 - [0268. A conjunctive licence expression, and the term the set does not name](0268-a-conjunctive-licence-expression.md)
+- [0269. A reading a record pasted, after the tree has moved](0269-a-reading-a-record-pasted-that-has-moved.md)
 - [0272. The route next up is read from](0272-the-route-next-up-is-read-from.md)

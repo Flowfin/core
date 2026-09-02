@@ -137,9 +137,6 @@ tracing library, and 0112 refuses a cross-platform media framework on size on
 every target:
 
     git grep -l '#103' -- docs/decisions
-    docs/decisions/0041-how-a-cache-key-is-built.md
-    docs/decisions/0061-the-span-facility.md
-    docs/decisions/0112-where-the-platform-decoder-begins.md
 
 ## A dependency a record already standing requires
 
