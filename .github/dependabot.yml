@@ -1,0 +1,104 @@
+# How dependency updates arrive, and the gate they meet (#108).
+#
+# A committed lockfile makes the resolved graph reproducible and the dependency
+# leg reddens a build on a known advisory inside it. Neither of those tells
+# anybody that a dependency moved. A lockfile nobody updates is reproducible right
+# up to the day an advisory lands against something inside it, and after that it
+# is reproducibly vulnerable with a green gate saying so every time. This file is
+# what proposes the move before that day rather than after it.
+#
+# Two ecosystems, which is what this repository actually has. The workflow files
+# are pinned by digest and a digest pin is the one kind that cannot be updated by
+# reading a version number, so nothing but a resolver knows a pin is behind. The
+# crate graph is the second, declared by Cargo.toml and fixed by Cargo.lock.
+# Neither list is written twice: the ecosystems below are the directories those
+# two manifests live in.
+#
+# Weekly rather than daily. A proposal is read by a person against
+# docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md, because
+# nothing in this repository machine-reads the clause line beside a manifest
+# entry, and a cadence that outruns the reading turns review into a merge button.
+#
+# Grouped by ecosystem rather than one proposal per package, for the same reason.
+# One pull request per package on a weekly cadence is a queue somebody clears by
+# clicking, and a merge button is not review. A grouped proposal is one diff with
+# one gate run against it, which is the thing a person can actually read.
+#
+# A proposal nobody merges within its cadence is closed by the next one rather
+# than accumulating. That is what the limit of one open proposal per ecosystem
+# below buys: the group is recomputed on the next run and the superseded proposal
+# is closed, so the state of this queue in six months is the newest reading of
+# each ecosystem rather than a pile of readings nobody took.
+#
+# A version waits before it is proposed. `.github/workflows/zizmor.yml` refuses a
+# block here that names no cooldown, at `dependabot-cooldown`, and it is right to:
+# proposing a version the hour it is published hands the window between a
+# compromised release and its withdrawal straight to whoever reads the proposal.
+# The days are per block below with the reason on them.
+#
+# An update proposal meets the same gate as any other change, with no exemption
+# for any check the gate runs. One hygiene rule reads differently for it and is
+# not turned off: .github/pr-hygiene/hygiene.sh exempts an author that cannot
+# write a body from naming an issue, by author identity, for that rule alone. What
+# stands behind such a proposal is the person who reads it against 0103, which is
+# what that record already says stands behind an update.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Etc/UTC
+    # A version has to have stood in public before it is proposed here. A
+    # compromised release is found and pulled within days far more often than it
+    # survives a week, and a proposal arriving the hour a version is published
+    # hands that window straight to whoever reads it. Dependabot's security
+    # updates do not wait behind this, so a known advisory is not slowed by it.
+    cooldown:
+      # One number here, and it is a refusal rather than a preference.
+      # Dependabot answered
+      # `The property '#/updates/0/cooldown/semver-major-days' is not supported
+      # for the package ecosystem 'github-actions'` when this block carried the
+      # graded days the cargo block below carries. It also fits: what is pinned
+      # here is a digest, and a digest has no version for a grading to read.
+      default-days: 7
+    # One open proposal per ecosystem. This is the answer for a proposal nobody
+    # merges: the next run recomputes the group and closes the one before it.
+    open-pull-requests-limit: 1
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - ci
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Etc/UTC
+    # A version has to have stood in public before it is proposed here. A
+    # compromised release is found and pulled within days far more often than it
+    # survives a week, and a proposal that arrives the hour a version is
+    # published hands that window straight to whoever reads it. The days are
+    # graded by what the move costs to read rather than by taste: a major is the
+    # one nobody should be merging quickly anyway, a patch is where a fix
+    # actually lives and waits the least. Dependabot's security updates do not
+    # wait behind this, so a known advisory is not slowed by it.
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 1
+    groups:
+      cargo:
+        patterns:
+          - "*"
+    labels:
+      - ci

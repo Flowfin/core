@@ -167,6 +167,32 @@ it; where none does, the run prints that the comparison was not made.
 span that names a path not tracked in this tree. `.github/doc-paths/doc-paths.sh`
 carries what it reads and, on every run, the list of what it does not.
 
+**`A narrowing is named in both directions`** refuses a `Narrows:` or
+`Narrowed-by:` field in a decision record that names a record which does not
+exist, that names a record and no clause, that sits below the first heading, or
+that the record it names does not name back. Both fields are 0267's, which is
+where the shape and its reasons are;
+`.github/decision-records/decision-records.sh` holds the rules and proves every
+one of them against its own violating record and its own near miss before it
+judges anything. What it cannot reach is printed on every run: whether the clause
+a field names is the clause that actually moved is a judgement no reading of the
+text makes, and a later record that narrows an earlier one and writes no field at
+all is silent to every rule in it.
+
+**`Every scanner exclusion has a statement`** validates
+`security/statements.json`, which says publicly why a finding this repository does
+not fix does not apply, and compares it against the exclusion registers the tree
+carries. A malformed document is refused before any rule reads it, an entry
+missing a field or carrying one blank is refused, and the comparison runs in both
+directions: a directive a register excludes with no statement, and a statement for
+a directive no register excludes any more. The registers are derived rather than
+listed, so one added tomorrow is read on the day it lands.
+`.github/statements/statements.sh` proves every rule against its own violating
+document and its own near miss before it judges anything, and prints what it
+cannot reach: whether a statement is true, an exclusion that is not a directive in
+a register, and a finding dismissed on the code-scanning surface, which is a state
+on the repository rather than a byte in the tree.
+
 **`Analyse the shell the gate runs (shellcheck)`** analyses every tracked shell
 file. The rules it does not refuse are in `.github/shell-analysis/excluded-rules`
 with the reason for each.
@@ -236,6 +262,25 @@ each other.
 
 **`dependency-review`** reads the dependency diff of a pull request against the
 advisory database.
+
+**`branch-health`** is the one check here whose subject is not this tree. It walks
+the workflow registry, reads each workflow's most recent runs on the default
+branch, and reports any whose latest conclusion is not success, opening an issue
+per such workflow rather than sending a notification, because a notification is
+read once and an issue survives being missed. Every other check reports on a pull
+request, where somebody is waiting on it; a run that concludes only after a merge
+or on a schedule has nobody waiting on it and can stay red for weeks with every
+pull request green beside it. What it refuses is being unable to produce a report
+at all - a listing it could not read, rows in a shape it does not parse, a
+registry naming nothing - and never a red workflow, so its own run does not go
+red for what it found and cannot end up reporting itself forever. It prints the
+registry entry by entry with what it read of each, so a workflow with no run on
+the default branch is named as one this run did NOT examine rather than counted
+as healthy, and it prints how many of each workflow's runs it looked at against
+how many exist. `.github/branch-health/branch-health.sh` holds the rules and the
+fixtures that prove them. It is not a third member of the pair below: those two
+return zero whatever they found, and this one refuses a run that produced no
+report.
 
 Two runs report and refuse nothing, which is deliberate rather than an oversight.
 **`External addresses in documents`** requests the addresses documents name and

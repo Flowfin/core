@@ -2,7 +2,7 @@
 
 Date: 2026-08-27
 
-Status: accepted. Supersedes nothing. Superseded by nothing.
+Status: accepted. Supersedes nothing. Superseded by 0272.
 
 Issue: #10
 

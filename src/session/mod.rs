@@ -18,12 +18,24 @@
 //! rather than beside a route because there is no route - the address, the
 //! detection and the exchange are requests, and the transport is #27.
 //!
+//! [`password`] holds the part of 0030 a type and a closure over three values
+//! settle: that the password reaches one writer and is spent there, that the
+//! account name is kept as it was typed, and which answers yield the facts 0005
+//! says a session holds. It presents nothing to anything, for the same reason
+//! [`delegated`] has no route.
+//!
 //! [`quick_connect`] holds the part of 0031 one clock reading and a
 //! construction settle: when the next question about an exchange is due, that
 //! the interval does not move however many have been asked, which of the four
 //! endings fails the caller, and which of the two values the server issued
 //! crosses to the client. It asks no server anything, for the same reason
 //! [`delegated`] does not.
+//!
+//! [`sign_out`] holds the part of 0114 a type, a table and a pair of counts
+//! settle: that the server half of a sign-out cannot be reached before the local
+//! half is done, which of the two acts removes what, how each kind of work in
+//! flight ends, and what a removal that could not be completed reports. It signs
+//! nothing out, because there is no session in this tree to end.
 //!
 //! [`renewal`] holds the part of 0034 a counter and one clock reading settle:
 //! the generation a rejection is answered against, which rejection starts the
@@ -33,8 +45,10 @@
 
 pub mod delegated;
 pub mod device;
+pub mod password;
 pub mod quick_connect;
 pub mod renewal;
+pub mod sign_out;
 
 /// One signed-in session against one server.
 ///

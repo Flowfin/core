@@ -27,12 +27,25 @@ use flowfin_core::artwork::address::{
 use flowfin_core::artwork::announced::{
     AnnouncedWindow, SharedFetches, WhatTheAnnouncementDid, WhatTheHoldDid, WhatTheWithdrawalDid,
 };
+use flowfin_core::artwork::budget::{
+    Budget, BudgetNotUsable, DecodedBytes, DecodedBytesHeld, WhatTheAskDoes,
+};
 use flowfin_core::artwork::format::{Accepted, Admitted, DeclaredDimensions, Refused};
 use flowfin_core::artwork::presence::WhatTheItemHas;
+use flowfin_core::artwork::shape::{
+    AspectRatio, RatioNotUsable, ReservedRectangle, WhatShapeIsKnown,
+};
 use flowfin_core::cache::bound::{CacheBounds, Tier, TieredCache};
+use flowfin_core::cache::cold_start::{
+    CallAtStart, HowTheSecretReadWent, WhatAStartServes, WhetherItCanBeAnsweredYet,
+};
 use flowfin_core::cache::envelope::{Drops, Entries, WhichCheckFailed};
 use flowfin_core::cache::freshness::{
     Age, Answer, EntryKind, Held, Skew, WhyTheAgeIsUnreadable, WrittenAt,
+};
+use flowfin_core::cache::notification::{
+    CachedEntry, ListenerState, Notification, WhatAListenerDoesToAThreshold,
+    WhatTheNotificationDoes,
 };
 use flowfin_core::cache::{ByteStore, EntryKey};
 use flowfin_core::clock::Clocks;
@@ -46,9 +59,19 @@ use flowfin_core::playback::cadence::{
     ReportsWithoutWaiting, TheInterval, WhatItDoesToTheInterval,
 };
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
+use flowfin_core::server::destinations::{
+    AdmittedOrigin, Destinations, WhatARedirectDoes, WhatConfiguringDid,
+};
 use flowfin_core::server::federation::Federation;
 use flowfin_core::server::library::{
     LibraryRead, NotAPagedRead, Page, PageRequest, WhatAskingForAPageDid, WhatTheReadAnswers,
+};
+use flowfin_core::server::retry::{
+    Attempts, Jitter, TheWait, WhatAFailureDoes, WhatTheCallDoesNext, WhatTheRequestDoes,
+    WhyTheCallStopped,
+};
+use flowfin_core::server::states::{
+    AgingRequest, ConsecutiveAbandonments, State, WhatAnOutcomeSaysAboutTheServer, WhatToReport,
 };
 use flowfin_core::server::write_queue::{
     Dropped, Entry, Target, WhatIsAsserted, WhatTheEnqueueDid, WriteQueue,
@@ -57,10 +80,17 @@ use flowfin_core::session::delegated::{
     NoAttemptMatched, OpenAttempts, Relayable, TieValue, ValueAlreadyOpen, ValueNotUsable,
 };
 use flowfin_core::session::device::{Capabilities, DeviceIdentity, PartNotUsable};
+use flowfin_core::session::password::{
+    AccountName, AnswerRead, FactNotCarried, FactsASessionNeeds, NoSession, Password,
+};
 use flowfin_core::session::quick_connect::{HowTheCallEnded, IssuedExchange, WhileWaiting};
 use flowfin_core::session::renewal::{
     Generation, HowTheRenewalEnded, Rejection, RenewalRoute, RenewalSchedule, Renewals,
     WhatARejectedCallDoes, WhatTheOutcomeDoes,
+};
+use flowfin_core::session::sign_out::{
+    Act, HowItEnds, LocalHalf, Removal, TellingTheServer, WhatIsTakenAway, WhatTheClientIsTold,
+    WhySigningOut, WorkInFlight,
 };
 use flowfin_core::session::{SecretStore, Session};
 
@@ -82,6 +112,23 @@ fn a_session_handle_is_safe_from_any_thread() {
 }
 
 #[test]
+fn the_two_acts_that_end_a_session_are_safe_from_any_thread() {
+    const _: () = any_thread::<Act>();
+    const _: () = any_thread::<WhatIsTakenAway>();
+    const _: () = any_thread::<WorkInFlight>();
+    const _: () = any_thread::<HowItEnds>();
+}
+
+#[test]
+fn the_halves_of_a_sign_out_are_safe_from_any_thread() {
+    const _: () = any_thread::<WhySigningOut>();
+    const _: () = any_thread::<LocalHalf>();
+    const _: () = any_thread::<TellingTheServer>();
+    const _: () = any_thread::<WhatTheClientIsTold>();
+    const _: () = any_thread::<Removal>();
+}
+
+#[test]
 fn a_device_identity_is_safe_from_any_thread() {
     const _: () = any_thread::<DeviceIdentity>();
 }
@@ -94,6 +141,32 @@ fn a_capability_description_is_safe_from_any_thread() {
 #[test]
 fn a_refused_part_of_an_identity_is_safe_from_any_thread() {
     const _: () = any_thread::<PartNotUsable>();
+}
+
+#[test]
+fn a_password_is_safe_from_any_thread() {
+    const _: () = any_thread::<Password>();
+}
+
+#[test]
+fn an_account_name_is_safe_from_any_thread() {
+    const _: () = any_thread::<AccountName>();
+}
+
+#[test]
+fn what_was_read_out_of_a_sign_in_answer_is_safe_from_any_thread() {
+    const _: () = any_thread::<AnswerRead<'static>>();
+}
+
+#[test]
+fn the_facts_a_session_needs_are_safe_from_any_thread() {
+    const _: () = any_thread::<FactsASessionNeeds<'static>>();
+}
+
+#[test]
+fn an_answer_that_yielded_no_session_is_safe_from_any_thread() {
+    const _: () = any_thread::<NoSession>();
+    const _: () = any_thread::<FactNotCarried>();
 }
 
 #[test]
@@ -137,8 +210,25 @@ fn an_unusable_address_is_safe_from_any_thread() {
 }
 
 #[test]
+fn the_four_states_a_request_ages_through_are_safe_from_any_thread() {
+    const _: () = any_thread::<State>();
+    const _: () = any_thread::<WhatToReport>();
+    const _: () = any_thread::<AgingRequest>();
+    const _: () = any_thread::<WhatAnOutcomeSaysAboutTheServer>();
+    const _: () = any_thread::<ConsecutiveAbandonments>();
+}
+
+#[test]
 fn the_federation_register_is_safe_from_any_thread() {
     const _: () = any_thread::<Federation<'static>>();
+}
+
+#[test]
+fn the_set_of_destinations_and_what_it_answers_are_safe_from_any_thread() {
+    const _: () = any_thread::<Destinations>();
+    const _: () = any_thread::<AdmittedOrigin>();
+    const _: () = any_thread::<WhatConfiguringDid>();
+    const _: () = any_thread::<WhatARedirectDoes>();
 }
 
 #[test]
@@ -154,6 +244,27 @@ fn a_decoded_image_is_safe_from_any_thread() {
 #[test]
 fn the_byte_store_a_client_supplies_is_safe_from_any_thread() {
     const _: () = any_thread::<dyn ByteStore>();
+}
+
+#[test]
+fn what_a_start_serves_before_a_session_is_restored_is_safe_from_any_thread() {
+    const _: () = any_thread::<HowTheSecretReadWent>();
+    const _: () = any_thread::<WhatAStartServes>();
+    const _: () = any_thread::<CallAtStart>();
+    const _: () = any_thread::<WhetherItCanBeAnsweredYet>();
+}
+
+#[test]
+fn a_change_the_server_reported_is_safe_from_any_thread() {
+    const _: () = any_thread::<Notification<'static>>();
+    const _: () = any_thread::<CachedEntry<'static>>();
+    const _: () = any_thread::<WhatTheNotificationDoes>();
+}
+
+#[test]
+fn a_listener_state_and_what_it_does_to_a_threshold_are_safe_from_any_thread() {
+    const _: () = any_thread::<ListenerState>();
+    const _: () = any_thread::<WhatAListenerDoesToAThreshold>();
 }
 
 #[test]
@@ -264,6 +375,26 @@ fn an_artwork_request_is_safe_from_any_thread() {
 #[test]
 fn what_an_item_has_for_a_kind_is_safe_from_any_thread() {
     const _: () = any_thread::<WhatTheItemHas>();
+}
+
+#[test]
+fn why_a_stated_ratio_is_not_usable_is_safe_from_any_thread() {
+    const _: () = any_thread::<RatioNotUsable>();
+}
+
+#[test]
+fn an_aspect_ratio_is_safe_from_any_thread() {
+    const _: () = any_thread::<AspectRatio>();
+}
+
+#[test]
+fn what_is_known_of_an_images_shape_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatShapeIsKnown>();
+}
+
+#[test]
+fn the_rectangle_reserved_for_an_image_is_safe_from_any_thread() {
+    const _: () = any_thread::<ReservedRectangle>();
 }
 
 #[test]
@@ -520,4 +651,64 @@ fn one_sessions_renewals_are_safe_from_any_thread() {
 #[test]
 fn when_a_renewal_is_due_is_safe_from_any_thread() {
     const _: () = any_thread::<RenewalSchedule>();
+}
+
+#[test]
+fn the_jitter_seam_a_client_supplies_is_safe_from_any_thread() {
+    const _: () = any_thread::<dyn Jitter>();
+}
+
+#[test]
+fn the_attempts_one_call_has_spent_are_safe_from_any_thread() {
+    const _: () = any_thread::<Attempts>();
+}
+
+#[test]
+fn what_a_request_does_to_the_server_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheRequestDoes>();
+}
+
+#[test]
+fn what_a_failure_does_under_the_retry_policy_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatAFailureDoes>();
+}
+
+#[test]
+fn what_a_call_does_after_a_failed_attempt_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheCallDoesNext>();
+}
+
+#[test]
+fn the_wait_before_the_next_attempt_is_safe_from_any_thread() {
+    const _: () = any_thread::<TheWait>();
+}
+
+#[test]
+fn why_a_call_stopped_rather_than_attempting_again_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhyTheCallStopped>();
+}
+
+#[test]
+fn the_decoded_bytes_budget_is_safe_from_any_thread() {
+    const _: () = any_thread::<Budget>();
+}
+
+#[test]
+fn a_budget_a_client_may_not_set_is_safe_from_any_thread() {
+    const _: () = any_thread::<BudgetNotUsable>();
+}
+
+#[test]
+fn the_buffer_one_decode_occupies_is_safe_from_any_thread() {
+    const _: () = any_thread::<DecodedBytes>();
+}
+
+#[test]
+fn what_asking_for_a_decode_does_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatTheAskDoes>();
+}
+
+#[test]
+fn the_decoded_bytes_bookkeeping_is_safe_from_any_thread() {
+    const _: () = any_thread::<DecodedBytesHeld>();
 }

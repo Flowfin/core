@@ -21,6 +21,9 @@
 #   PR_BODY_FILE        a file holding its body verbatim
 #   CHANGED_PATHS_FILE  a file holding one changed path per line
 #   GH_REPO             owner/name, for the issue lookups
+#   PR_AUTHOR           the login that opened it, for the exemption below. Unset
+#                       or empty is read as an author that can write a body, so a
+#                       run that could not read one refuses exactly as before.
 #
 # What this file does NOT judge, so that a green run cannot be read as covering it:
 #
@@ -125,6 +128,36 @@ issue_refs() {
   ' | sort -un
 }
 
+# Whether the login in $1 belongs to an author that cannot write a pull-request
+# body (#108).
+#
+# It exempts that author from `names-an-issue` and from nothing else. The rule
+# exists so that a change somebody wrote names the work it serves; an update
+# proposal has no such author and cannot acquire one, so applying the rule to it
+# does not enforce that promise, it only paints a permanent red on every proposal
+# forever, which teaches a reader that red here means nothing. What stands behind
+# such a proposal instead is a person reading it against
+# `docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md`, which is
+# what that record already says stands behind an update, since nothing in this
+# repository machine-reads the clause line beside a manifest entry.
+#
+# An explicit list of logins rather than a `*[bot]` pattern, for the reason
+# `.github/workflows/dco.yml` gives at the same exemption: a pattern lets a person
+# self-exempt by choosing a `[bot]`-shaped name, and the whole value of an
+# identity exemption is that the identity cannot be chosen by the party it
+# excuses. GitHub reserves the `[bot]` suffix, so these two strings are not
+# available to a person, and a third one is added here by somebody arguing for it
+# rather than by a pattern widening on its own.
+#
+# The comparison is exact and case-sensitive. `Dependabot[bot]`, a trailing space
+# and `not-dependabot[bot]` are all different strings and none of them is exempt.
+author_cannot_write_a_body() {
+  case "${1:-}" in
+    "dependabot[bot]" | "github-actions[bot]") return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # What the author wrote, as opposed to what the template put on the page.
 #
 # Empty here means empty of the author: HTML comments removed, then headings and
@@ -201,6 +234,12 @@ paths_outside() {
 
 selftest_failures=0
 
+# The exemption above as a word, so a fixture reads the same way as every other
+# one here. `assert_out` compares text and the rule answers with an exit code.
+exemption_verdict() {
+  if author_cannot_write_a_body "$1"; then echo exempt; else echo refused; fi
+}
+
 assert_out() {
   local what="$1" expected="$2" actual="$3"
   if [ "$expected" = "$actual" ]; then
@@ -260,6 +299,30 @@ selftest() {
   assert_out "passes: a word before the hash that is not a repository" \
     "12" "$(printf 'issue#12 in an ordinary sentence.\n' | issue_refs Flowfin/core)"
 
+  echo "== names-an-issue: the author that cannot write a body =="
+  assert_out "exempt: the update proposer, which is the author this was widened for" \
+    "exempt" "$(exemption_verdict 'dependabot[bot]')"
+  assert_out "exempt: the actions runner, the second identity dco.yml already names" \
+    "exempt" "$(exemption_verdict 'github-actions[bot]')"
+  assert_out "refused: an ordinary contributor" \
+    "refused" "$(exemption_verdict 'iderex')"
+  assert_out "refused: a login crafted to end in the reserved suffix" \
+    "refused" "$(exemption_verdict 'not-dependabot[bot]')"
+  assert_out "refused: the exempt login written in a different case" \
+    "refused" "$(exemption_verdict 'Dependabot[bot]')"
+  assert_out "refused: the exempt login with a trailing space" \
+    "refused" "$(exemption_verdict 'dependabot[bot] ')"
+  assert_out "refused: no author read at all, which is the fail-closed direction" \
+    "refused" "$(exemption_verdict '')"
+
+  echo "== a number that names no issue here =="
+  assert_out "reads its scope: the issue answered" \
+    "found" "$(lookup_verdict yes not-asked)"
+  assert_out "declares no scope: the issue did not answer and the repository did" \
+    "absent" "$(lookup_verdict no yes)"
+  assert_out "refuses: neither answered, so nothing was learned about the number" \
+    "unreadable" "$(lookup_verdict no no)"
+
   echo "== body-not-empty =="
   assert_out "bites: the template with the issue number filled in and nothing written" \
     "" "$(skeleton | body_prose)"
@@ -310,23 +373,77 @@ selftest() {
 
 # One issue body, or a non-zero exit. A lookup that failed is not an issue that
 # declares no scope, and reading it as one would turn an outage into a pass.
+#
+# The tool's own message is silenced because this run says what happened on its
+# own line either way, and an ordinary body quoting release notes would otherwise
+# print one `Not Found` per quoted number above a line that says the run is fine.
+# Nothing is hidden by that: a lookup that could not be made produces an error
+# line of this file's own, naming the number and saying the comparison was not
+# made.
 issue_body() {
-  gh api "repos/${GH_REPO}/issues/$1" --jq '.body // ""'
+  gh api "repos/${GH_REPO}/issues/$1" --jq '.body // ""' 2>/dev/null
+}
+
+# Whether the repository itself answers, asked only after a lookup has already
+# failed.
+#
+# It is the cheapest question that separates the two reasons an issue lookup can
+# fail. If this answers, the route, the token and the repository are all fine, so
+# the number named nothing here; if it does not, nothing was learned about the
+# number at all.
+repository_answers() {
+  gh api "repos/${GH_REPO}" --jq '.full_name' > /dev/null 2>&1
+}
+
+# What a failed issue lookup means, from whether the issue answered and whether
+# the repository did.
+#
+# `found`, `absent` or `unreadable`, and the three are kept apart because two of
+# them were collapsed and the collapse fails closed on ordinary work. A body may
+# quote another repository's release notes, which carry bare `#<number>`
+# references to issues over there; `issue_refs` reads every bare reference as one
+# here, because nothing in the text can say otherwise, and the lookup is the only
+# thing that can. A 404 is a definite answer to that question and an outage is
+# not, so ONLY the outage refuses.
+#
+# This is the same distinction `record/finding/` in the operations tree names for
+# a register: "about somewhere else" and "cannot be placed" are opposite
+# statements, and collapsing them discards the first as if it were the second.
+#
+# It takes two words rather than running the lookups itself so that the fixtures
+# below judge the rule without a network. What is NOT fixtured is the mapping
+# from a `gh` exit code onto those two words, which is the line above and below
+# this function.
+lookup_verdict() {
+  local issue_answered="$1" repository_answered="$2"
+  if [ "$issue_answered" = "yes" ]; then
+    echo found
+    return
+  fi
+  if [ "$repository_answered" = "yes" ]; then
+    echo absent
+    return
+  fi
+  echo unreadable
 }
 
 check() {
   local failures=0
   local body_file="${PR_BODY_FILE}" paths_file="${CHANGED_PATHS_FILE}"
+  local author="${PR_AUTHOR:-}"
 
   echo "Pull request #${PR_NUMBER} on ${GH_REPO}."
   echo "Examined: the body as sent, and $(awk 'END { print NR }' "$paths_file") changed path(s)."
+  echo "Opened by: ${author:-<not read>}."
   echo
 
   local refs
   refs="$(issue_refs < "$body_file")"
 
   echo "-- names-an-issue"
-  if [ -z "$refs" ]; then
+  if [ -z "$refs" ] && author_cannot_write_a_body "$author"; then
+    echo "EXEMPT: ${author} cannot write a pull-request body, so this rule is not applied to it and no other rule below is relaxed. A proposal from this author is read by a person against docs/decisions/0103-what-admits-a-dependency-and-what-is-refused.md, which is what stands behind an update here; nothing in this repository machine-reads the clause line beside a manifest entry."
+  elif [ -z "$refs" ]; then
     echo "::error::This pull request names no issue. Write the issue it belongs to in the body as #<number>. A reference inside an HTML comment is not one, the template's 'Closes #' carries no number, and a number written as owner/repo#<number> names an issue on that repository rather than one here."
     failures=$((failures + 1))
   else
@@ -349,11 +466,26 @@ check() {
   : > "$scope_file"
   local n
   for n in $refs; do
-    local b p
-    if ! b="$(issue_body "$n")"; then
-      echo "::error::Could not read issue #${n}. The scope comparison cannot be made, and this run will not pass in place of it."
+    local b p answered repository verdict
+    repository=not-asked
+    if b="$(issue_body "$n")"; then
+      answered=yes
+    else
+      answered=no
+      b=""
+      # Only here, which is what keeps a body naming twenty issues to twenty
+      # calls rather than forty.
+      if repository_answers; then repository=yes; else repository=no; fi
+    fi
+    verdict="$(lookup_verdict "$answered" "$repository")"
+    if [ "$verdict" = "unreadable" ]; then
+      echo "::error::Could not read issue #${n}, and this repository did not answer either, so nothing was learned about that number. The scope comparison cannot be made, and this run will not pass in place of it."
       rm -f "$scope_file"
       return 1
+    fi
+    if [ "$verdict" = "absent" ]; then
+      echo "      #${n} names no issue on this repository, so it declares no scope. A body quoting another repository's release notes carries bare references to issues over there, and nothing in the text tells one from a reference here."
+      continue
     fi
     p="$(printf '%s' "$b" | scope_prefixes)"
     if [ -n "$p" ]; then

@@ -22,6 +22,10 @@ The core validates that the machine which answered is the one the address named,
 using the platform's own trust store and the platform's own path building. What
 that means in detail is the platform's, and the core does not reimplement it.
 
+0243 names the means this requirement is met through, per platform, and records
+that the logging facade that means carries is admitted under 0103's fourth
+behaviour as narrowed there. Nothing in this record moves.
+
 A refusal is `certificate-rejected` from 0004, which already fixes its payload as
 the address, a reason class, and the presented certificate's fingerprint, and
 already fixes its retry property as no until a person decides. This record fixes

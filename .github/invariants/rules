@@ -120,3 +120,11 @@ grounds: docs/decisions/0068-the-data-locality-position.md
 prevents: A telemetry, analytics or crash-reporting package arriving in the graph, which 0068 rules out and which is normally added as a dependency rather than as a decision, so the decision never gets made. The subject is the committed lockfile, so a reporter pulled in by something else is judged the same way one written by hand is. It is a name list rather than a purpose test: a reporter published under a name nobody has written here is not refused.
 fixture: name = "sentry"
 clean: name = "metrics"
+
+id: no-logger-installed
+pattern: (^|[^A-Za-z_])(set_logger|set_boxed_logger|set_logger_racy|set_global_default|set_default_dispatch)
+paths: src/
+grounds: docs/decisions/0243-the-means-a-certificate-is-validated-with.md
+prevents: A logger registered behind the logging facade 0243 admits. That record narrows 0103's fourth refused behaviour from linking a facade to writing to a log, and the whole narrowing rests on the facade's default sink writing nothing, which stops being true the moment something is registered behind it. The second exit for the values 0071 classifies field by field is then open with nothing having caught the change, and a record two levels away saying the case was considered. It is a name list rather than a purpose test: the five names are the registration calls of the facade this graph carries and of its neighbour, so a registration written through a name nobody listed walks past it, and a logger implementation arriving in the graph is 0103's question rather than this rule's.
+fixture: log::set_boxed_logger(Box::new(EventSinkLogger))?;
+clean: sink.event(&event); // the sink is the client's, and no logger stands behind it

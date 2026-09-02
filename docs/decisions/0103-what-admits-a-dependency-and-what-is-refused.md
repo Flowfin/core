@@ -4,6 +4,8 @@ Date: 2026-08-24
 
 Status: accepted. Supersedes nothing. Superseded by nothing.
 
+Narrowed-by: 0243, on the fourth behaviour refused outright, a dependency that writes to a log
+
 Issue: #103
 
 ## The decision
@@ -117,6 +119,12 @@ A dependency that writes to a log. 0100 and 0071 decide what leaves the core and
 in what shape, and a node writing to a global logger is a second exit for exactly
 the values 0071 classifies field by field.
 
+0243 goes further on this fourth behaviour and narrows it: what is refused is
+writing to a log, and linking a logging facade whose sink is absent is not that,
+on the condition that the core installs no logger and states that it installs
+none. The reasoning, the readings it rests on and what it costs are in that
+record. Nothing else in this one moves.
+
 A fifth ground, which 0061 supplied by refusing a real candidate rather than being
 argued from a principle. A dependency that carries its own field-bearing surface
 makes a rule in another record reach a second place: a tracing library's spans
@@ -129,9 +137,6 @@ tracing library, and 0112 refuses a cross-platform media framework on size on
 every target:
 
     git grep -l '#103' -- docs/decisions
-    docs/decisions/0041-how-a-cache-key-is-built.md
-    docs/decisions/0061-the-span-facility.md
-    docs/decisions/0112-where-the-platform-decoder-begins.md
 
 ## A dependency a record already standing requires
 

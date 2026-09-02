@@ -30,10 +30,31 @@
 //! core stops asking, and what a client's attempt-now does to both. It holds no
 //! probe, for the same reason [`transport`] holds no socket.
 //!
+//! [`retry`] holds 0038's one policy for every request: which kinds are retried
+//! inside a call and which are handed to a renewal or to [`recovery`]'s
+//! schedule, how many attempts a call may spend, the interval each wait is drawn
+//! over, and the seam that draw enters through. It holds no loop, for the same
+//! reason [`transport`] holds no socket, and it is where both spreads in this
+//! module take their draw.
+//!
+//! [`states`] holds 0007's four states: how long a request may be outstanding
+//! before it is late, when it is abandoned, that each of those is said once and
+//! never unsaid, which transport outcomes are evidence the server is absent, and
+//! how many abandonments with no success between them make the server
+//! unreachable rather than the request unlucky. It makes no request, for the
+//! same reason [`transport`] holds no socket, and where the last of its states
+//! hands over to is [`recovery`].
+//!
 //! [`federation`] holds what 0072 decides: a second host becomes reachable only
 //! through an act a person performed, against one server, naming what it shares,
 //! and revocable without the network. Which hosts may be contacted at all is
 //! 0069 and #69, and this is the register that would add one to that list.
+//!
+//! [`destinations`] holds that list: the origins the operator configured, the
+//! comparison an origin is admitted by, and what 0069 does with a redirect that
+//! leaves the origin a request was sent to. It sends nothing and refuses no
+//! request, for the same reason [`transport`] holds no socket, and its own
+//! documentation says which issue each half of that waits on.
 //!
 //! [`library`] holds 0039's answer shape: the offset and the count a paged read
 //! is asked for by, the three numbers an answer carries, whether another page
@@ -50,8 +71,11 @@
 
 pub mod address;
 pub mod certificate;
+pub mod destinations;
 pub mod federation;
 pub mod library;
 pub mod recovery;
+pub mod retry;
+pub mod states;
 pub mod transport;
 pub mod write_queue;

@@ -1,0 +1,138 @@
+# A workflow that concludes non-success on the default branch on purpose, so the
+# issue-opening half of the branch-health report can be watched (#90).
+#
+# WHAT THIS IS FOR, AND IT IS ONE SENTENCE. #90 asks that a deliberately failed
+# workflow produce an issue. `.github/branch-health/branch-health.sh` derives the
+# titles it would open from fixtures, and every rule between the listing and that
+# derivation bites against text it carries itself. What no fixture in this tree
+# can reach is the step after the derivation: a call to the platform that either
+# creates an issue or does not. Watching that step needs a workflow on the
+# default branch whose latest run concluded something other than success, and
+# until this file landed there was none. That absence was written into #90 three
+# times as a condition nobody had met, and this is the thing that was missing
+# rather than a second reading of it.
+#
+# WHY THIS IS A WORKFLOW AND NOT A FIXTURE. A fixture proves a rule over bytes.
+# The subject here is the platform accepting `gh issue create` under the token
+# and the permissions that job holds, which is not a property of any text this
+# repository could hold. A fixture asserting it would be asserting something it
+# never asked, and the report's own row in `docs/gate-parity.md` says so.
+#
+# IT DEFAULTS TO SUCCESS AND THE FAILURE IS TYPED IN. The dispatch input decides
+# the conclusion and its default is `success`, so this workflow left alone is a
+# green entry in the registry and a scheduled run of it never reddens the branch.
+# A lever whose resting state was red would put the default branch in the state
+# this report exists to find and teach the next reader that the report is noise.
+#
+# IT IS SCHEDULED, WHICH IS THE CLASS #90 IS ABOUT. The report exists for a run
+# that concludes after a merge or on a schedule, because nobody is waiting on
+# one. A workflow reachable only by hand is watched by whoever pressed the
+# button, which is the opposite of the class, so this one carries a cron and
+# concludes success on it.
+#
+# IT GATES NOTHING AND IT REPORTS NOTHING. There is no `pull_request` trigger and
+# no `push` trigger, so this workflow never produces a check-run on a pull
+# request head. It is therefore not a candidate for the required list #26 is
+# deciding: a name that never arrives on a head is a permanent pending, which is
+# the condition that issue already sets against such a name.
+#
+# WHAT IT COSTS, SAID RATHER THAN LEFT TO BE FOUND. One more entry in the
+# registry the report walks, so every run of `branch-health` prints a line for
+# this workflow. That is the intended state: a report that could not see its own
+# lever could not be exercised by it.
+#
+# HOW TO TAKE THE READING. Dispatch this with `conclude: failure`, then dispatch
+# `branch-health`, which opens one issue titled after this workflow. Then
+# dispatch this with `conclude: success` and dispatch `branch-health` again,
+# which names this workflow as recovered and opens nothing. The issue stays open
+# until a person closes it, because the report does not close what it opened.
+#
+# WHAT A PULL LEAVES BEHIND, WHICH IS NOT THE CONCLUSION IT WAS ASKED FOR. A run
+# of this workflow reports a check-run against whatever commit the default branch
+# pointed at when it was dispatched, and a check-run is not replaced by a later
+# one of the same name. So a pull for `failure` stamps that commit permanently,
+# and the second pull for `success` adds a second check-run beside the first
+# rather than clearing it. Measured on the commit this file landed on:
+#
+#     H=f13c5e341b8d4d3e5eeaf8d2309bef973ea42adc
+#     gh api "repos/Flowfin/core/commits/$H/check-runs?per_page=100" --jq '.check_runs[] | select(.name=="branch-health-lever") | "\(.conclusion) \(.started_at)"'
+#     success 2026-09-02T09:57:46Z
+#     failure 2026-09-02T09:54:16Z
+#
+# The report is unaffected, and that is a fact about the report rather than a
+# reason the stamp does not matter: it reads each workflow's run listing and
+# takes the newest conclusion, so it saw the recovery. What does read badly is
+# anything that asks a commit for its check-runs and treats any failure among
+# them as the verdict, which is how a merge button and most dashboards read one.
+# Pull this when the branch is at a commit you are willing to leave marked.
+
+# NO TOOLCHAIN IS INSTALLED AND NOTHING IS CHECKED OUT. The conclusion is the
+# whole product of this run, so it reads neither the tree nor the platform.
+name: branch-health-lever
+
+on:
+  # Weekly, concluding success, so this workflow is a member of the class the
+  # report is for rather than something only ever run while somebody watches.
+  # Offset off the hour for the reason every other cron in this tree is: the top
+  # of an hour is where every scheduled job on the platform queues at once.
+  schedule:
+    - cron: "53 2 * * 3"
+  workflow_dispatch:
+    inputs:
+      conclude:
+        description: "What this run concludes on the default branch"
+        type: choice
+        default: success
+        options:
+          - success
+          - failure
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: branch-health-lever-workflow-${{ github.ref }}
+  # Not cancelled in flight. A superseded run concludes `cancelled`, which is a
+  # third answer this lever is not for, and the report would then be read against
+  # a conclusion nobody chose.
+  cancel-in-progress: false
+
+jobs:
+  branch-health-lever:
+    name: branch-health-lever
+    runs-on: ubuntu-latest
+    # One step that exits. Anything longer than this is the platform being slow
+    # to hand over a runner.
+    timeout-minutes: 5
+    permissions: {}
+
+    steps:
+      # The input is read through the environment rather than interpolated into
+      # the script, so nothing this workflow runs is assembled out of a value the
+      # dispatcher typed.
+      - name: Conclude what this run was asked to conclude
+        env:
+          CONCLUDE: ${{ inputs.conclude || 'success' }}
+        run: |
+          set -euo pipefail
+          case "$CONCLUDE" in
+            success)
+              echo "Concluding success. Nothing on the default branch is reddened by this run."
+              ;;
+            failure)
+              echo "Concluding failure on purpose (#90). This run exists so that the report in"
+              echo ".github/branch-health/branch-health.sh can be watched opening an issue for a"
+              echo "workflow standing red on the default branch. Dispatch this workflow again with"
+              echo "conclude: success to take it back out of that state."
+              exit 1
+              ;;
+            *)
+              echo "::error::this workflow was asked to conclude '$CONCLUDE', which is neither of the two answers it has. The dispatch input is a choice, so reaching this line means the workflow file and the run disagree about what the choices are."
+              exit 2
+              ;;
+          esac

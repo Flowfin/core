@@ -60,8 +60,15 @@ jobs:
           fi
 
       - name: Prove the rules, then apply them
+        # The author's login reaches the shell through the environment for the
+        # same reason the body does: it is data a person chose and is never
+        # interpolated into the script. It is read by one rule, `names-an-issue`,
+        # which an author that cannot write a body is exempt from (#108); the
+        # script compares it against an explicit list of logins rather than a
+        # pattern, so an empty value here refuses exactly as the rule did before.
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: |
