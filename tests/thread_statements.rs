@@ -60,6 +60,9 @@ use flowfin_core::playback::cadence::{
 };
 use flowfin_core::server::QueryResult;
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
+use flowfin_core::server::destinations::{
+    AdmittedOrigin, Destinations, WhatARedirectDoes, WhatConfiguringDid,
+};
 use flowfin_core::server::federation::Federation;
 use flowfin_core::server::retry::{
     Attempts, Jitter, TheWait, WhatAFailureDoes, WhatTheCallDoesNext, WhatTheRequestDoes,
@@ -191,6 +194,14 @@ fn the_four_states_a_request_ages_through_are_safe_from_any_thread() {
 #[test]
 fn the_federation_register_is_safe_from_any_thread() {
     const _: () = any_thread::<Federation<'static>>();
+}
+
+#[test]
+fn the_set_of_destinations_and_what_it_answers_are_safe_from_any_thread() {
+    const _: () = any_thread::<Destinations>();
+    const _: () = any_thread::<AdmittedOrigin>();
+    const _: () = any_thread::<WhatConfiguringDid>();
+    const _: () = any_thread::<WhatARedirectDoes>();
 }
 
 #[test]
