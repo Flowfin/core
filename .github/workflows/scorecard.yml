@@ -4,10 +4,15 @@
 # checks (Branch-Protection, Token-Permissions, Pinned-Dependencies,
 # Dangerous-Workflow, etc.) and uploads the findings as SARIF to the
 # code-scanning tab. The score is treated as a checklist, not a guarantee. Some
-# of what it raises here is dismissed rather than fixed, and the reasoning for a
-# dismissal lives in the dismissal itself: nothing in this tree holds it, and a
-# reader who cannot list the alerts cannot reach it. #89 is where a written
-# statement about a finding that is not going to be fixed will live.
+# of what it raises here is dismissed rather than fixed. THIS COMMENT SAID THE
+# REASONING FOR A DISMISSAL LIVED ONLY IN THE DISMISSAL, WHERE A READER WHO CANNOT
+# LIST THE ALERTS CANNOT REACH IT. `security/statements.json` holds it now, under
+# #89, with a disposition and a condition that retires it for each of the four
+# dismissed here. The dismissal comment is still what the code-scanning tab shows
+# and nothing keeps the two in step: the document is written by hand, a dismissal
+# is a state on the repository rather than a byte in this tree, and
+# `.github/statements/statements.sh` prints that bound on every run rather than
+# implying it compared them.
 #
 # Runs where publishing is valid: on push to the default branch, on a weekly
 # schedule (keeps the Maintained check fresh and re-scores on upstream changes),

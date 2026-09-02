@@ -179,6 +179,20 @@ a field names is the clause that actually moved is a judgement no reading of the
 text makes, and a later record that narrows an earlier one and writes no field at
 all is silent to every rule in it.
 
+**`Every scanner exclusion has a statement`** validates
+`security/statements.json`, which says publicly why a finding this repository does
+not fix does not apply, and compares it against the exclusion registers the tree
+carries. A malformed document is refused before any rule reads it, an entry
+missing a field or carrying one blank is refused, and the comparison runs in both
+directions: a directive a register excludes with no statement, and a statement for
+a directive no register excludes any more. The registers are derived rather than
+listed, so one added tomorrow is read on the day it lands.
+`.github/statements/statements.sh` proves every rule against its own violating
+document and its own near miss before it judges anything, and prints what it
+cannot reach: whether a statement is true, an exclusion that is not a directive in
+a register, and a finding dismissed on the code-scanning surface, which is a state
+on the repository rather than a byte in the tree.
+
 **`Analyse the shell the gate runs (shellcheck)`** analyses every tracked shell
 file. The rules it does not refuse are in `.github/shell-analysis/excluded-rules`
 with the reason for each.
