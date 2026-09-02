@@ -49,9 +49,16 @@
 //! through an act a person performed, against one server, naming what it shares,
 //! and revocable without the network. Which hosts may be contacted at all is
 //! 0069 and #69, and this is the register that would add one to that list.
+//!
+//! [`destinations`] holds that list: the origins the operator configured, the
+//! comparison an origin is admitted by, and what 0069 does with a redirect that
+//! leaves the origin a request was sent to. It sends nothing and refuses no
+//! request, for the same reason [`transport`] holds no socket, and its own
+//! documentation says which issue each half of that waits on.
 
 pub mod address;
 pub mod certificate;
+pub mod destinations;
 pub mod federation;
 pub mod recovery;
 pub mod retry;

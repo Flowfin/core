@@ -141,6 +141,10 @@ const _: () = {
     any_thread::<diagnostics::redaction::Correlator>();
     any_thread::<server::QueryResult>();
     any_thread::<server::federation::Federation<'static>>();
+    any_thread::<server::destinations::Destinations>();
+    any_thread::<server::destinations::AdmittedOrigin>();
+    any_thread::<server::destinations::WhatConfiguringDid>();
+    any_thread::<server::destinations::WhatARedirectDoes>();
     any_thread::<server::certificate::Fingerprint>();
     any_thread::<server::certificate::PresentedChain<'static>>();
     any_thread::<server::certificate::Refused<'static>>();
