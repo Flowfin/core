@@ -60,6 +60,7 @@ use crate::diagnostics::DiagnosticsSink;
 use crate::diagnostics::redaction::FieldName;
 use crate::failure::Failure;
 use crate::session::SecretStore;
+use crate::session::mid_playback;
 
 /// The two seconds a stop is bounded by where a client sets nothing.
 ///
@@ -507,6 +508,7 @@ pub const fn every_field_name_the_core_emits() -> &'static [FieldName] {
         envelope::ENTRY_KIND,
         envelope::CHECK,
         envelope::VERSION_FOUND,
+        mid_playback::POSITIONS_HELD,
     ]
 }
 

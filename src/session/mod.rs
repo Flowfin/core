@@ -42,9 +42,17 @@
 //! session's one renewal and which joins it, what each renewal outcome does, and
 //! when a renewal ahead of a rejection is due. It performs no renewal and holds
 //! no session, so what it answers with is what the session then does.
+//!
+//! [`mid_playback`] holds the part of 0005's mid-playback sequence the values
+//! above settle together with the queue in 0047 and the report in 0057: what a
+//! position report the server rejected does, and what each renewal outcome then
+//! does to the queue and to the one report the success branch makes. It holds
+//! no session and runs no drain, for the same reason [`renewal`] performs no
+//! renewal.
 
 pub mod delegated;
 pub mod device;
+pub mod mid_playback;
 pub mod password;
 pub mod quick_connect;
 pub mod renewal;
