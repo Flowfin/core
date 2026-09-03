@@ -22,7 +22,9 @@
 //! 0060's completion rule, which takes [`resume`]'s boundary rather than
 //! stating a second one. [`cadence`] carries 0057's interval, the five events
 //! that do not wait for it, what each does to it, and the constraint 0057 puts
-//! on [`resume`]'s rewind.
+//! on [`resume`]'s rewind. [`report`] is the report itself: the one act that
+//! puts a position on the queue in 0047, on each of those five events and when
+//! the interval says one is due, and the place #57's three conditions are asked.
 //!
 //! # Why the type is named for the unit
 //!
@@ -39,8 +41,11 @@
 //! caller or from a server, and never at each use. [`AdmittedPosition::of`] is
 //! that act. THE SITES THAT CALL IT DO NOT EXIST IN THIS TREE. Nothing here
 //! reaches a server and nothing here holds an item, so no value enters the core
-//! today and this module is the rule waiting for its callers: the reads are #39,
-//! the reports are #57, and the handover is #111.
+//! today and this module is the rule waiting for its callers: the reads are #39
+//! and the handover is #111. The reports are [`report`], and it is not one of
+//! those sites on purpose: it takes an [`AdmittedPosition`] rather than a
+//! number, so the act happens at whichever boundary hands it one, which is the
+//! client-facing call #115's creation owes rather than anything here.
 //!
 //! # What this module does not report
 //!
@@ -52,6 +57,7 @@
 //! sentence.
 
 pub mod cadence;
+pub mod report;
 pub mod resume;
 pub mod watched;
 

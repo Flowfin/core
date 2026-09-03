@@ -226,6 +226,10 @@ const _: () = {
     any_thread::<playback::cadence::ReportsWithoutWaiting>();
     any_thread::<playback::cadence::WhatItDoesToTheInterval>();
     any_thread::<playback::cadence::TheInterval>();
+    any_thread::<playback::report::ReportedOn>();
+    any_thread::<playback::report::PositionReport>();
+    any_thread::<playback::report::WhatObservingDid>();
+    any_thread::<playback::report::Reporting>();
     any_thread::<playback::resume::Resume>();
     any_thread::<playback::resume::PositionInForce>();
     any_thread::<playback::watched::Marked>();

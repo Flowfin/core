@@ -14,12 +14,14 @@
 //! paused, which five events do not wait, and which of them starts, stops or
 //! leaves the interval alone.
 //!
-//! WHAT IS NOT HERE IS THE REPORT. Nothing in this tree plays anything, holds a
-//! session or reaches a server, so no position is produced, nothing is enqueued
-//! and nothing is sent. This module holds the interval such a thing would run
-//! on. #57's three open conditions are a scrub producing one report, each
-//! immediate event reporting without waiting, and every report observed passing
-//! through the queue, and none of them is met by anything here.
+//! WHAT IS NOT HERE IS THE REPORT, AND IT IS BESIDE THIS FILE RATHER THAN
+//! ABSENT. [`super::report`] is the one act that puts a position on the queue
+//! in 0047, on each of the five events and when this interval says one is due,
+//! and its cases are where #57's three conditions are asked: a scrub producing
+//! one report, each immediate event reporting without waiting, and every report
+//! observed passing through the queue. Nothing in this tree plays anything or
+//! reaches a server, so what is proven there is the reporting and never the
+//! delivery. This module holds the interval the report runs on.
 //!
 //! WHAT IS ALSO NOT HERE IS A SECOND COALESCING RULE, and its absence is the
 //! decision rather than an omission. #57's own condition that a scrub produces
@@ -262,9 +264,9 @@ mod tests {
     //! 0057's interval, its five events and the constraint it puts on 0058,
     //! asked of the values.
     //!
-    //! What these cannot ask is any of #57's three open conditions. Each is
-    //! about a report being made and observed on a queue, and nothing in this
-    //! tree plays anything.
+    //! What these do not ask is any of #57's three conditions. Each is about a
+    //! report being made and observed on a queue, and the cases in
+    //! [`crate::playback::report`] are where they are asked.
 
     use super::{
         A_POSITION_IS_REPORTED_EVERY, ReportsWithoutWaiting, TheInterval, WhatItDoesToTheInterval,
