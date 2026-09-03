@@ -72,9 +72,13 @@ use crate::server::write_queue::{Target, WhatIsAsserted, WhatTheEnqueueDid, Writ
 
 /// What occasioned a report.
 ///
-/// Two occasions and no third. 0057 fixes that a report is made on each of the
-/// five events the moment it happens, and on the interval while something is
-/// playing, and it names nothing else that produces one.
+/// Three occasions and no fourth. 0057 fixes that a report is made on each of
+/// the five events the moment it happens, and on the interval while something
+/// is playing, and it names nothing else that produces one. THE THIRD IS
+/// 0005'S AND NOT 0057'S: the success branch of a renewal mid-playback reports
+/// the current position, which is one more occasion for the same assertion
+/// rather than a change to the cadence, and `crate::session::mid_playback` is
+/// where it is made.
 ///
 /// It is carried on the report rather than discarded so that whatever delivers
 /// the report can tell a stop from a tick, which #10's table separates by path.
@@ -88,6 +92,11 @@ pub enum ReportedOn {
     Event(ReportsWithoutWaiting),
     /// The interval said a report was due.
     TheInterval,
+    /// A renewal succeeded mid-playback, and 0005 says the current position is
+    /// reported then. It is the third occasion because 0005 adds it, in the
+    /// section that names #35, rather than 0057; what it asserts and how the
+    /// queue coalesces it are unchanged.
+    AfterARenewal,
 }
 
 /// What one report asserts: where playback of one item is.
@@ -253,6 +262,36 @@ impl Reporting {
         );
         self.interval = self.interval.after_a_report_at(now);
         WhatObservingDid::Reported(what_the_queue_did)
+    }
+
+    /// A renewal succeeded mid-playback: report where playback is now.
+    ///
+    /// 0005 says the success branch drains the queue in order and reports the
+    /// current position, and this is that report, through the queue like every
+    /// other. That is what makes it one report rather than two: the entry the
+    /// rejection left at the head is replaced in place by 0047's coalescing,
+    /// keeping its place in the order, so the drain resumes exactly where it
+    /// stopped and the position reached during the renewal arrives once.
+    /// `crate::session::mid_playback` is the caller, and it is the whole of
+    /// #35's sequence rather than this one call.
+    ///
+    /// The interval is left where it was, as it is for a seek: nothing about
+    /// the cadence changed, and a report that moved it would make the next
+    /// interval report due ten seconds after the renewal rather than ten
+    /// seconds after the last report the cadence made.
+    pub fn report_after_a_renewal(
+        &mut self,
+        position: AdmittedPosition,
+        queue: &mut WriteQueue<PositionReport>,
+    ) -> WhatTheEnqueueDid {
+        queue.enqueue(
+            self.target.clone(),
+            WhatIsAsserted::PlaybackPosition,
+            PositionReport {
+                position: position.position(),
+                reported_on: ReportedOn::AfterARenewal,
+            },
+        )
     }
 }
 

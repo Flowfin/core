@@ -274,6 +274,7 @@ fn the_statement_is_the_set_this_build_actually_carries() {
             "consecutive-refusals",
             "entry-kind",
             "for-tier",
+            "positions-held",
             "released-bytes",
             "released-entries",
             "suspended-for",

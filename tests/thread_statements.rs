@@ -84,6 +84,7 @@ use flowfin_core::session::delegated::{
     NoAttemptMatched, OpenAttempts, Relayable, TieValue, ValueAlreadyOpen, ValueNotUsable,
 };
 use flowfin_core::session::device::{Capabilities, DeviceIdentity, PartNotUsable};
+use flowfin_core::session::mid_playback::{WhatARejectedReportDoes, WhatTheOutcomeDoesToPlayback};
 use flowfin_core::session::password::{
     AccountName, AnswerRead, FactNotCarried, FactsASessionNeeds, NoSession, Password,
 };
@@ -566,6 +567,12 @@ fn what_a_rejected_call_does_is_safe_from_any_thread() {
 #[test]
 fn how_a_renewal_ended_is_safe_from_any_thread() {
     const _: () = any_thread::<HowTheRenewalEnded>();
+}
+
+#[test]
+fn what_a_token_that_dies_mid_playback_does_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatARejectedReportDoes>();
+    const _: () = any_thread::<WhatTheOutcomeDoesToPlayback>();
 }
 
 #[test]

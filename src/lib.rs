@@ -147,6 +147,8 @@ const _: () = {
     any_thread::<session::renewal::WhatTheOutcomeDoes>();
     any_thread::<session::renewal::Renewals>();
     any_thread::<session::renewal::RenewalSchedule>();
+    any_thread::<session::mid_playback::WhatARejectedReportDoes>();
+    any_thread::<session::mid_playback::WhatTheOutcomeDoesToPlayback>();
     any_thread::<measurement::Measurement<'static>>();
     any_thread::<diagnostics::Diagnostics<'static>>();
     any_thread::<diagnostics::redaction::Treatment>();
