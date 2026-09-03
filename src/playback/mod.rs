@@ -25,6 +25,10 @@
 //! on [`resume`]'s rewind. [`report`] is the report itself: the one act that
 //! puts a position on the queue in 0047, on each of those five events and when
 //! the interval says one is due, and the place #57's three conditions are asked.
+//! [`handover`] is 0111's ladder: which of the sources a server offered is
+//! played and from which rung, which audio and subtitle streams, where playback
+//! starts by [`resume`]'s answer, and what the play call hands back. It holds
+//! no address for a source played as it stands, for the reason written there.
 //!
 //! # Why the type is named for the unit
 //!
@@ -57,6 +61,7 @@
 //! sentence.
 
 pub mod cadence;
+pub mod handover;
 pub mod report;
 pub mod resume;
 pub mod watched;
