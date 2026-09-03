@@ -61,6 +61,11 @@ use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::playback::cadence::{
     ReportsWithoutWaiting, TheInterval, WhatItDoesToTheInterval,
 };
+use flowfin_core::playback::handover::{
+    Ceiling, ChosenStream, ConversionAddress, Handover, NothingPlayable, OfferedSource,
+    OfferedStream, Picture, Preferences, RoutesOffered, Rung, StreamKind, WhatThePlayerOpens,
+    WhatTheServerOffered,
+};
 use flowfin_core::playback::report::{PositionReport, ReportedOn, Reporting, WhatObservingDid};
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::server::destinations::{
@@ -753,4 +758,22 @@ fn what_asking_for_a_decode_does_is_safe_from_any_thread() {
 #[test]
 fn the_decoded_bytes_bookkeeping_is_safe_from_any_thread() {
     const _: () = any_thread::<DecodedBytesHeld>();
+}
+
+#[test]
+fn what_a_play_call_hands_back_is_safe_from_any_thread() {
+    const _: () = any_thread::<StreamKind>();
+    const _: () = any_thread::<Picture>();
+    const _: () = any_thread::<OfferedStream>();
+    const _: () = any_thread::<RoutesOffered>();
+    const _: () = any_thread::<ConversionAddress>();
+    const _: () = any_thread::<OfferedSource>();
+    const _: () = any_thread::<WhatTheServerOffered>();
+    const _: () = any_thread::<Rung>();
+    const _: () = any_thread::<Ceiling>();
+    const _: () = any_thread::<Preferences<'static>>();
+    const _: () = any_thread::<ChosenStream>();
+    const _: () = any_thread::<WhatThePlayerOpens>();
+    const _: () = any_thread::<Handover>();
+    const _: () = any_thread::<NothingPlayable>();
 }

@@ -37,6 +37,9 @@
 //! [`Failure::internal_fault`] and [`Failure::cancelled`] are mapped from
 //! nothing and built here anyway, for the reason 0037 gives: a second
 //! construction site is a second place a sixteenth thing can be invented.
+//! [`Failure::nothing_playable`] is 0111's refusal arriving the same way: the
+//! module that decides it says which of two conditions it was and builds
+//! nothing, and the one kind both become is built here.
 //!
 //! # What is not here, said once so a green build is not read as covering it
 //!
@@ -786,6 +789,27 @@ impl Failure {
         }
     }
 
+    /// Nothing the server offers or will convert is playable on this device.
+    ///
+    /// 0111 maps two conditions onto `request-refused`: the server answering
+    /// that it will serve nothing, and the core refusing every source on the
+    /// description the client supplied. Both are refusals of a request the
+    /// server understood, which is 0004's `Means` for the row, and 0111 names
+    /// the cost of one kind for two: the payload is the server's code and
+    /// nothing more, so a caller sees an absent code where the core refused and
+    /// where the server refused without one, and the event under 0100 is what
+    /// tells them apart. `src/playback/handover.rs` keeps the two apart for
+    /// that event and cannot name a variant of [`Failure`] in an expression, so
+    /// this is a further entrance to the one mapping point 0037 fixes rather
+    /// than a second mapping.
+    #[must_use]
+    pub fn nothing_playable(server_code: Option<&str>) -> Self {
+        Self::RequestRefused {
+            server_code: server_code.map(str::to_owned),
+            constructed: Constructed(()),
+        }
+    }
+
     /// A store the client supplied answering badly.
     #[must_use]
     pub const fn storage_unavailable(store: Store, operation: Operation) -> Self {
@@ -1316,6 +1340,23 @@ mod tests {
             Failure::internal_fault(FaultSite::SuccessMappedAsFailure).kind(),
             Kind::InternalFault
         );
+    }
+
+    #[test]
+    fn nothing_playable_is_request_refused_with_the_servers_code_where_it_gave_one() {
+        let from_the_server = Failure::nothing_playable(Some("NoCompatibleStream"));
+        assert_eq!(from_the_server.kind(), Kind::RequestRefused);
+        let Failure::RequestRefused { server_code, .. } = from_the_server else {
+            panic!("nothing playable mapped onto something else");
+        };
+        assert_eq!(server_code.as_deref(), Some("NoCompatibleStream"));
+
+        let from_the_core = Failure::nothing_playable(None);
+        assert_eq!(from_the_core.kind(), Kind::RequestRefused);
+        let Failure::RequestRefused { server_code, .. } = from_the_core else {
+            panic!("nothing playable mapped onto something else");
+        };
+        assert_eq!(server_code, None);
     }
 
     #[test]
