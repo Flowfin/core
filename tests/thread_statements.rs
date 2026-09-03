@@ -61,6 +61,7 @@ use flowfin_core::measurement::{Measurement, MeasurementSink};
 use flowfin_core::playback::cadence::{
     ReportsWithoutWaiting, TheInterval, WhatItDoesToTheInterval,
 };
+use flowfin_core::playback::report::{PositionReport, ReportedOn, Reporting, WhatObservingDid};
 use flowfin_core::server::address::{AddressNotUsable, BaseAddress};
 use flowfin_core::server::destinations::{
     AdmittedOrigin, Destinations, WhatARedirectDoes, WhatConfiguringDid,
@@ -630,6 +631,26 @@ fn what_such_an_event_does_to_the_interval_is_safe_from_any_thread() {
 #[test]
 fn the_progress_reporting_interval_is_safe_from_any_thread() {
     const _: () = any_thread::<TheInterval>();
+}
+
+#[test]
+fn what_occasioned_a_position_report_is_safe_from_any_thread() {
+    const _: () = any_thread::<ReportedOn>();
+}
+
+#[test]
+fn a_position_report_is_safe_from_any_thread() {
+    const _: () = any_thread::<PositionReport>();
+}
+
+#[test]
+fn what_observing_a_position_did_is_safe_from_any_thread() {
+    const _: () = any_thread::<WhatObservingDid>();
+}
+
+#[test]
+fn one_items_reporting_is_safe_from_any_thread() {
+    const _: () = any_thread::<Reporting>();
 }
 
 #[test]
