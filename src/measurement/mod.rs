@@ -52,6 +52,10 @@ use core::time::Duration;
 /// record; renaming one of the three below is a change to 0008, because those
 /// three are what a build is gated on and a rename detaches the gate from what it
 /// was gating.
+///
+/// A variant added here and not added to [`SpanName::all`] is refused by the
+/// suite rather than by the compiler, and [`SpanName::all`]'s own documentation
+/// says why that difference matters.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum SpanName {
@@ -71,6 +75,14 @@ impl SpanName {
     /// Here so that #67 can print the set rather than keep a copy of it, and so
     /// that the rule below is applied to the whole of it rather than to whichever
     /// members somebody remembered.
+    ///
+    /// IT IS A SECOND LIST BESIDE THE ENUM AND THE SUITE IS WHAT KEEPS THE TWO
+    /// TOGETHER. The compiler refuses a variant missing from [`SpanName::as_str`]
+    /// and has nothing to say about one missing from here, so the failure this
+    /// list can have is silence: a span the core emits and the published set does
+    /// not name, which is the exact shape 0061 declares the names in one place to
+    /// prevent. `every_variant_of_the_enum_is_in_the_declared_set` below reads
+    /// the enum out of this file's own source and refuses the difference.
     #[must_use]
     pub const fn all() -> &'static [Self] {
         &[
@@ -510,6 +522,87 @@ mod tests {
                 .expect("the fixture holds no poisoned lock")
                 .push(*span);
         }
+    }
+
+    /// This file's own source, embedded when it is compiled.
+    ///
+    /// A run-time reading is not available and is not wanted. The
+    /// `no-filesystem-access` rule in `.github/invariants/rules` refuses the
+    /// language's own file-opening vocabulary anywhere under `src/`, and this
+    /// sentence is written around that rule rather than naming what it matches,
+    /// which is the rule biting a comment rather than a crossing and is the same
+    /// departure `crate::diagnostics` already records for its neighbour. What is
+    /// compared here is two declarations in one file that the compiler already
+    /// holds, so nothing has to be opened at all.
+    const THIS_FILE: &str = include_str!("mod.rs");
+
+    /// The variants written in the enum, read out of the declaration itself.
+    ///
+    /// It reads the block rather than the whole file so that the words in the
+    /// prose around it cannot become members, and it stops at the first line that
+    /// closes the block at column zero.
+    fn variants_the_enum_declares() -> Vec<String> {
+        let opens = THIS_FILE
+            .find("pub enum SpanName {")
+            .expect("this file declares the enum it is about");
+        let block = &THIS_FILE[opens..];
+        let closes = block
+            .find(
+                "
+}",
+            )
+            .expect("the declaration this file reads is closed");
+
+        block[..closes]
+            .lines()
+            .filter_map(|line| {
+                let named = line.strip_prefix("    ")?.strip_suffix(',')?;
+                let starts_a_name = named
+                    .chars()
+                    .next()
+                    .is_some_and(|character| character.is_ascii_uppercase());
+                let is_one_word = named
+                    .chars()
+                    .all(|character| character.is_ascii_alphanumeric());
+                (starts_a_name && is_one_word).then(|| named.to_owned())
+            })
+            .collect()
+    }
+
+    /// 0061's rule that every name is declared in one place, held against the one
+    /// way this file can come apart.
+    ///
+    /// The compiler refuses a variant missing an arm in [`SpanName::as_str`] and
+    /// says nothing about one missing from [`SpanName::all`], so the failure is
+    /// silent: the set #67 publishes is short by a name the core emits, and
+    /// nothing anywhere goes red. That matters most exactly when 0061 says the
+    /// six sub-intervals arrive, one at a time, from six different issues.
+    #[test]
+    fn every_variant_of_the_enum_is_in_the_declared_set() {
+        let declared: Vec<String> = variants_the_enum_declares();
+        assert!(
+            declared.len() >= 3,
+            "the reading found {declared:?}, which is fewer than the enum carries,              so this case is proving nothing"
+        );
+
+        let listed: Vec<String> = SpanName::all()
+            .iter()
+            .map(|name| format!("{name:?}"))
+            .collect();
+
+        let missing: Vec<&String> = declared
+            .iter()
+            .filter(|variant| !listed.contains(variant))
+            .collect();
+        assert!(
+            missing.is_empty(),
+            "declared in the enum and absent from SpanName::all: {missing:?}",
+        );
+        assert_eq!(
+            declared.len(),
+            listed.len(),
+            "the enum declares {declared:?} and the set names {listed:?}",
+        );
     }
 
     #[test]
