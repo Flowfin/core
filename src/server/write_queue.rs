@@ -41,13 +41,24 @@
 //! counter it carries is what a restore would restore rather than something that
 //! survives one today.
 //!
-//! WHAT IS ALSO NOT HERE IS THE AGE. 0047 stores two moments per entry and
-//! computes an age the way 0043 computes a cache entry's, for reporting and
-//! never to act. That reading belongs with the two guards
-//! [`crate::cache::freshness`] already carries, it acts on nothing here, and no
-//! function below takes a clock reading at all - which is the same statement as
-//! 0047's rule that an entry is never expired by age, in the form that cannot be
-//! got wrong later.
+//! THIS PARAGRAPH SAID THE AGE WAS NOT HERE. It said 0047 stores two moments per
+//! entry and computes an age the way 0043 computes a cache entry's, that the
+//! reading belongs with the two guards [`crate::cache::freshness`] already
+//! carries, and that no function below takes a clock reading at all. The first
+//! half is built: an entry carries the pair 0047 names and answers
+//! [`Entry::age_at`] from it. The second half is what building it had to keep,
+//! and it is kept by borrowing rather than by discipline - the pair, the
+//! correction and the two guards are [`crate::cache::freshness`]'s own types, so
+//! there is no second arithmetic here to drift from the one 0043 fixed. The third
+//! is unchanged: every moment below arrives as an argument, nothing here reads a
+//! clock, and an age is computed only where somebody asks for one.
+//!
+//! WHAT THE AGE DOES IS NOTHING, AND THAT IS 0047'S RULE RATHER THAN AN
+//! UNFINISHED HALF. It is carried for reporting: not a reason to drop an entry,
+//! not an input to the bound, and not a threshold. The absence used to be held by
+//! there being no age at all, which is a guarantee that ends the moment one
+//! arrives, so what holds it now is a case: an entry whose age is unreadable and
+//! an entry a year old are both answered by the head and both delivered.
 //!
 //! # The number here is chosen and not measured
 //!
@@ -55,6 +66,9 @@
 //! coalescing at enqueue it is a thousand distinct items somebody touched rather
 //! than a thousand actions taken. #65 is the harness that would replace it with
 //! a measured number.
+
+use crate::cache::freshness::{Age, Skew, WrittenAt};
+use crate::clock::WallMoment;
 
 /// The entries one session's queue holds before an overflow drops something.
 ///
@@ -172,6 +186,7 @@ pub struct Entry<A> {
     target: Target,
     asserted_about: WhatIsAsserted,
     assertion: A,
+    enqueued_at: WrittenAt,
 }
 
 /// Written out by hand so an entry cannot carry its target's identifier into an
@@ -214,6 +229,42 @@ impl<A> Entry<A> {
     #[must_use]
     pub const fn assertion(&self) -> &A {
         &self.assertion
+    }
+
+    /// The two moments this entry was enqueued with.
+    ///
+    /// 0047 names them: the server's own last stated time, and the device's wall
+    /// reading at the instant the action was queued. They are what an age
+    /// survives a restart on, and 0047 spends its argument on the alternative -
+    /// a restored queue that treated every entry as freshly enqueued would keep
+    /// its order and lose every age, so a client could say only that something is
+    /// pending.
+    ///
+    /// It is [`WrittenAt`] rather than a pair of this module's own because 0047
+    /// says the age is computed the way 0043 computes a cache entry's, and one
+    /// type is how that stays true of a second arithmetic nobody wrote.
+    #[must_use]
+    pub const fn enqueued_at(&self) -> WrittenAt {
+        self.enqueued_at
+    }
+
+    /// How long this entry has been waiting, on 0102's anchor.
+    ///
+    /// The whole of the computation is [`Age::at_read`]'s, with the same
+    /// correction and the same two guards, which is what 0047 asks for by naming
+    /// 0043 rather than describing an arithmetic of its own. `the_skew_now` is
+    /// `None` where there is no current measurement to correct against, which is
+    /// the ordinary case for a queue: the server the entry is waiting for is the
+    /// server that has not been reachable.
+    ///
+    /// WHAT THIS ANSWER IS FOR IS A SENTENCE A CLIENT SAYS, AND NOTHING HERE
+    /// READS IT. 0047 makes the age reporting and never a threshold: an action
+    /// somebody took is not less true because their device was off, and expiring
+    /// one would be the silent discard that record exists against arriving
+    /// through a mechanism that looks like hygiene.
+    #[must_use]
+    pub fn age_at(&self, the_devices_wall_now: WallMoment, the_skew_now: Option<Skew>) -> Age {
+        Age::at_read(self.enqueued_at, the_devices_wall_now, the_skew_now)
     }
 }
 
@@ -344,11 +395,22 @@ impl<A> WriteQueue<A> {
     /// AT THE BOUND THE OLDEST GOES AND NOT THE NEWEST. The alternative refuses
     /// to record what somebody just did while holding something from three weeks
     /// ago, which is the version of the failure they are in front of.
+    ///
+    /// A REPLACEMENT KEEPS THE EARLIER ENTRY'S TWO MOMENTS, as it keeps its
+    /// position in the order, and 0047 says only the second of those. Taking the
+    /// later action's moments is the shape that reads as obvious - the statement
+    /// standing is the new one - and it reports every actively touched entry as
+    /// freshly enqueued, so a queue undelivered for a month says seconds for the
+    /// items somebody kept scrubbing. That is the failure 0047 names for a
+    /// restored queue arriving through the coalescing door instead, and it lands
+    /// on the person who used the application most, which is the same person
+    /// coalescing at enqueue exists to protect.
     pub fn enqueue(
         &mut self,
         target: Target,
         asserted_about: WhatIsAsserted,
         assertion: A,
+        enqueued_at: WrittenAt,
     ) -> WhatTheEnqueueDid {
         if let Some(held) = self
             .entries
@@ -375,6 +437,7 @@ impl<A> WriteQueue<A> {
             target,
             asserted_about,
             assertion,
+            enqueued_at,
         });
         self.next_order = self.next_order.saturating_add(1);
         what_it_did
@@ -421,6 +484,14 @@ mod tests {
     use super::{
         A_SESSIONS_QUEUE_HOLDS_AT_MOST, Target, WhatIsAsserted, WhatTheEnqueueDid, WriteQueue,
     };
+    use crate::cache::freshness::{Age, Skew, WhyTheAgeIsUnreadable, WrittenAt};
+    use crate::clock::WallMoment;
+    use core::time::Duration;
+
+    /// Seconds in a day, for the moments below, so that a case saying "a year"
+    /// says it in the units 0043's bound is written in rather than in a numeral
+    /// nobody can read.
+    const A_DAY: i64 = 24 * 60 * 60;
 
     fn item(identifier: &str) -> Target {
         Target::item(identifier.to_string())
@@ -430,8 +501,21 @@ mod tests {
         WriteQueue::empty()
     }
 
+    /// The pair 0047 stores at enqueue, with the two moments agreeing.
+    ///
+    /// Both are handed in, because nothing in this module reads a clock. A
+    /// server and a device that agree put the skew at write at zero, which is
+    /// what lets the cases below read as the arithmetic they are about; the one
+    /// case that is about a correction builds its own pair.
+    fn moments(seconds: i64) -> WrittenAt {
+        WrittenAt::at(
+            WallMoment::from_epoch(seconds, 0),
+            WallMoment::from_epoch(seconds, 0),
+        )
+    }
+
     fn put(queue: &mut WriteQueue<String>, id: &str, kind: WhatIsAsserted, said: &str) {
-        queue.enqueue(item(id), kind, said.to_string());
+        queue.enqueue(item(id), kind, said.to_string(), moments(0));
     }
 
     /// The order is a counter increased once per entry, which is what a clock
@@ -460,6 +544,7 @@ mod tests {
             item("a"),
             WhatIsAsserted::PlaybackPosition,
             "at 30".to_string(),
+            moments(0),
         );
 
         assert_eq!(what_it_did, WhatTheEnqueueDid::ReplacedInPlace);
@@ -480,6 +565,7 @@ mod tests {
                 item("a"),
                 WhatIsAsserted::PlaybackPosition,
                 format!("at {position}"),
+                moments(0),
             );
         }
 
@@ -534,6 +620,7 @@ mod tests {
                 item(&format!("item-{target}")),
                 WhatIsAsserted::Watched,
                 "yes".to_string(),
+                moments(0),
             );
         }
         assert_eq!(queue.len(), A_SESSIONS_QUEUE_HOLDS_AT_MOST);
@@ -543,6 +630,7 @@ mod tests {
             item("one-too-many"),
             WhatIsAsserted::Watched,
             "yes".to_string(),
+            moments(0),
         );
 
         let WhatTheEnqueueDid::DroppedTheOldest(dropped) = what_it_did else {
@@ -573,6 +661,7 @@ mod tests {
                 item(&format!("item-{target}")),
                 WhatIsAsserted::Watched,
                 "yes".to_string(),
+                moments(0),
             );
         }
 
@@ -581,6 +670,7 @@ mod tests {
                 item("item-7"),
                 WhatIsAsserted::Watched,
                 format!("still yes {again}"),
+                moments(0),
             );
             assert_eq!(what_it_did, WhatTheEnqueueDid::ReplacedInPlace);
         }
@@ -636,6 +726,7 @@ mod tests {
                 item(&format!("item-{target}")),
                 WhatIsAsserted::Watched,
                 "yes".to_string(),
+                moments(0),
             );
         }
         assert_eq!(queue.dropped(), 1);
@@ -698,6 +789,189 @@ mod tests {
         assert_eq!(queue.len(), 0);
         assert!(queue.next_to_deliver().is_none());
         assert!(queue.after_it_was_delivered().is_none());
+        assert_eq!(queue.dropped(), 0);
+    }
+
+    /// The two moments 0047 stores are the two the entry hands back, so a restore
+    /// has something to compute an age from rather than a queue that can say only
+    /// that something is pending.
+    #[test]
+    fn an_entry_carries_the_two_moments_it_was_enqueued_with() {
+        let mut queue = a_queue();
+        queue.enqueue(
+            item("a"),
+            WhatIsAsserted::Watched,
+            "yes".to_string(),
+            WrittenAt::at(
+                WallMoment::from_epoch(1_700_000_000, 0),
+                WallMoment::from_epoch(1_700_000_040, 0),
+            ),
+        );
+
+        let enqueued_at = queue.entries()[0].enqueued_at();
+        assert_eq!(
+            enqueued_at
+                .the_servers_stated_moment()
+                .seconds_from_the_epoch(),
+            1_700_000_000
+        );
+        assert_eq!(
+            enqueued_at
+                .the_devices_wall_moment()
+                .seconds_from_the_epoch(),
+            1_700_000_040
+        );
+    }
+
+    /// The age is the device difference, and it is the whole of 0043's
+    /// arithmetic rather than a second one: a minute on the device is a minute.
+    #[test]
+    fn an_entry_reports_how_long_it_has_been_waiting() {
+        let mut queue = a_queue();
+        put(&mut queue, "a", WhatIsAsserted::Watched, "yes");
+
+        assert_eq!(
+            queue.entries()[0].age_at(WallMoment::from_epoch(60, 0), None),
+            Age::Of(Duration::from_secs(60))
+        );
+    }
+
+    /// A device clock that moved between the enqueue and the reading moved both
+    /// device readings and neither server moment, and the correction removes
+    /// exactly that movement. This is 0043's correction reaching the queue,
+    /// which is what 0047 asks for by naming that record rather than describing
+    /// an arithmetic of its own.
+    #[test]
+    fn a_device_clock_that_jumped_forward_is_corrected_out_of_the_age() {
+        let mut queue = a_queue();
+        queue.enqueue(
+            item("a"),
+            WhatIsAsserted::Watched,
+            "yes".to_string(),
+            moments(1000),
+        );
+
+        // Sixty seconds passed and the device also jumped forty seconds ahead of
+        // the server, so its own reading is a hundred seconds on.
+        let age = queue.entries()[0].age_at(
+            WallMoment::from_epoch(1100, 0),
+            Some(Skew::between(
+                WallMoment::from_epoch(1060, 0),
+                WallMoment::from_epoch(1100, 0),
+            )),
+        );
+
+        assert_eq!(age, Age::Of(Duration::from_secs(60)));
+    }
+
+    /// The first of 0043's two guards, reaching a queued action: a device that
+    /// came up believing it is earlier than when the action was taken.
+    #[test]
+    fn a_device_clock_that_moved_backwards_leaves_the_age_unreadable() {
+        let mut queue = a_queue();
+        queue.enqueue(
+            item("a"),
+            WhatIsAsserted::Watched,
+            "yes".to_string(),
+            moments(1000),
+        );
+
+        assert_eq!(
+            queue.entries()[0].age_at(WallMoment::from_epoch(940, 0), None),
+            Age::Unreadable(WhyTheAgeIsUnreadable::ItComputedAsNegative)
+        );
+    }
+
+    /// The second guard: a device that jumped forward past the bound beyond
+    /// which a computed age is not believed.
+    #[test]
+    fn an_age_past_the_sanity_bound_is_unreadable() {
+        let mut queue = a_queue();
+        put(&mut queue, "a", WhatIsAsserted::Watched, "yes");
+
+        assert_eq!(
+            queue.entries()[0].age_at(WallMoment::from_epoch(400 * A_DAY, 0), None),
+            Age::Unreadable(WhyTheAgeIsUnreadable::ItPassedTheSanityBound)
+        );
+    }
+
+    /// A replacement keeps the earlier entry's moments, as it keeps its position
+    /// in the order. Taking the later action's moments reports every actively
+    /// touched entry as freshly enqueued, which is 0047's restored-queue failure
+    /// arriving through the coalescing door, and it lands on the person who used
+    /// the application most.
+    #[test]
+    fn a_replacement_keeps_the_earlier_entrys_moments() {
+        let mut queue = a_queue();
+        queue.enqueue(
+            item("a"),
+            WhatIsAsserted::PlaybackPosition,
+            "at 10".to_string(),
+            moments(0),
+        );
+
+        let what_it_did = queue.enqueue(
+            item("a"),
+            WhatIsAsserted::PlaybackPosition,
+            "at 90".to_string(),
+            moments(20 * A_DAY),
+        );
+
+        assert_eq!(what_it_did, WhatTheEnqueueDid::ReplacedInPlace);
+        assert_eq!(queue.entries()[0].assertion(), "at 90");
+        assert_eq!(
+            queue.entries()[0]
+                .enqueued_at()
+                .the_devices_wall_moment()
+                .seconds_from_the_epoch(),
+            0,
+            "the replacement took the later action's moments"
+        );
+        assert_eq!(
+            queue.entries()[0].age_at(WallMoment::from_epoch(21 * A_DAY, 0), None),
+            Age::Of(Duration::from_hours(21 * 24)),
+            "the entry reported the age of the last thing somebody said"
+        );
+    }
+
+    /// 0047's rule that nothing is ever expired by age, held by a case rather
+    /// than by there being no age to expire on. An entry a year old and an entry
+    /// whose age is unreadable are both at the head in order and both delivered.
+    #[test]
+    fn an_entry_is_never_expired_by_age() {
+        let mut queue = a_queue();
+        queue.enqueue(
+            item("a-year-ago"),
+            WhatIsAsserted::Watched,
+            "yes".to_string(),
+            moments(0),
+        );
+        queue.enqueue(
+            item("after-a-clock-that-moved"),
+            WhatIsAsserted::Watched,
+            "yes".to_string(),
+            moments(500 * A_DAY),
+        );
+
+        let now = WallMoment::from_epoch(366 * A_DAY, 0);
+        assert!(matches!(
+            queue.entries()[0].age_at(now, None),
+            Age::Unreadable(WhyTheAgeIsUnreadable::ItPassedTheSanityBound)
+        ));
+        assert!(matches!(
+            queue.entries()[1].age_at(now, None),
+            Age::Unreadable(WhyTheAgeIsUnreadable::ItComputedAsNegative)
+        ));
+
+        assert_eq!(queue.len(), 2);
+        assert_eq!(queue.next_to_deliver().map(super::Entry::order), Some(1));
+
+        let mut delivered = Vec::new();
+        while let Some(taken) = queue.after_it_was_delivered() {
+            delivered.push(taken.target().as_str().to_string());
+        }
+
+        assert_eq!(delivered, ["a-year-ago", "after-a-clock-that-moved"]);
         assert_eq!(queue.dropped(), 0);
     }
 }

@@ -64,6 +64,7 @@
 //! moment, which is what 0057 makes every position, and this module claims
 //! nothing about the gap.
 
+use crate::cache::freshness::WrittenAt;
 use crate::diagnostics::redaction::FieldName;
 use crate::diagnostics::{Diagnostics, EventName, Field, FieldValue, Severity};
 use crate::playback::AdmittedPosition;
@@ -243,17 +244,25 @@ pub fn a_report_was_rejected(
 /// The current position is the client's reading at this moment, taken the way
 /// 0057 takes every position, and the report leaves the cadence interval where
 /// it was.
+///
+/// `enqueued_at` is the pair 0047 stores with a queue entry, handed in for the
+/// reason every moment in this core is. It reaches the queue on the success
+/// branch alone, and the entry the rejection left at the head keeps its own
+/// moments under 0047's coalescing, so what a client can say afterwards is how
+/// long this item's position has been undelivered rather than how long ago the
+/// token was renewed.
 pub fn the_renewal_ended(
     renewals: &mut Renewals,
     how: HowTheRenewalEnded,
     reporting: &mut Reporting,
     current: AdmittedPosition,
+    enqueued_at: WrittenAt,
     queue: &mut WriteQueue<PositionReport>,
     diagnostics: &Diagnostics<'_>,
 ) -> WhatTheOutcomeDoesToPlayback {
     match renewals.ended(how) {
         WhatTheOutcomeDoes::RetryTheWaitingCallsOnce => {
-            let what_the_queue_did = reporting.report_after_a_renewal(current, queue);
+            let what_the_queue_did = reporting.report_after_a_renewal(current, enqueued_at, queue);
             WhatTheOutcomeDoesToPlayback::CurrentPositionReportedAndTheDrainResumes(
                 what_the_queue_did,
             )
@@ -283,6 +292,7 @@ mod tests {
         POSITIONS_HELD, WhatARejectedReportDoes, WhatTheOutcomeDoesToPlayback,
         a_report_was_rejected, the_renewal_ended,
     };
+    use crate::cache::freshness::WrittenAt;
     use crate::clock::{Clocks, ElapsedInstant, SteadyInstant, WallMoment};
     use crate::diagnostics::redaction::CorrelatorSalt;
     use crate::diagnostics::{Diagnostics, DiagnosticsSink, Event, FieldValue, Severity};
@@ -390,6 +400,7 @@ mod tests {
                 ReportsWithoutWaiting::Started,
                 played_to(0),
                 at(0),
+                enqueued(),
                 &mut queue
             ),
             WhatTheEnqueueDid::Added
@@ -399,6 +410,7 @@ mod tests {
                 ReportsWithoutWaiting::Seeked,
                 played_to(10),
                 at(1),
+                enqueued(),
                 &mut queue
             ),
             WhatTheEnqueueDid::ReplacedInPlace
@@ -409,12 +421,22 @@ mod tests {
                 ReportsWithoutWaiting::Started,
                 played_to(0),
                 at(2),
+                enqueued(),
                 &mut queue
             ),
             WhatTheEnqueueDid::Added
         );
         assert_eq!(queue.len(), 2);
         (queue, film)
+    }
+
+    /// The pair 0047 stores with a queue entry.
+    ///
+    /// The cases here are about what each renewal outcome does to the queue and
+    /// to the one report the success branch makes, and none of them asks an
+    /// entry its age, so one agreeing pair is what they hand in.
+    fn enqueued() -> WrittenAt {
+        WrittenAt::at(WallMoment::from_epoch(0, 0), WallMoment::from_epoch(0, 0))
     }
 
     fn rejected_under(renewals: &Renewals) -> Rejection {
@@ -494,6 +516,7 @@ mod tests {
             HowTheRenewalEnded::AFreshToken,
             &mut film,
             played_to(12),
+            enqueued(),
             &mut queue,
             &diagnostics,
         );
@@ -576,6 +599,7 @@ mod tests {
             HowTheRenewalEnded::AFreshToken,
             &mut film,
             played_to(25),
+            enqueued(),
             &mut queue,
             &diagnostics,
         );
@@ -621,6 +645,7 @@ mod tests {
             HowTheRenewalEnded::TheServerRefusedIt,
             &mut film,
             played_to(25),
+            enqueued(),
             &mut queue,
             &diagnostics,
         );
@@ -661,6 +686,7 @@ mod tests {
             HowTheRenewalEnded::NothingAnswered,
             &mut film,
             played_to(25),
+            enqueued(),
             &mut queue,
             &diagnostics,
         );
@@ -692,6 +718,7 @@ mod tests {
             HowTheRenewalEnded::AFreshToken,
             &mut film,
             played_to(25),
+            enqueued(),
             &mut queue,
             &diagnostics,
         );
