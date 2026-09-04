@@ -6,7 +6,12 @@
 # something to report that fits neither template should not be turned away by a
 # heading.
 #
-# No contact links. A link here publishes a route to a person, and which address
-# this repository publishes, for a vulnerability or for anything else, is entry 5
-# of #1 and is not decided.
+# No contact links, and the reason is no longer that nothing is decided. Entry 5
+# of #1 was answered on 2026-09-04: the routes are GitHub's own, a private report
+# on this repository and a message to the account that holds it, and no mailbox is
+# published anywhere on this board. Both are named in `SECURITY.md` and in
+# `CODE_OF_CONDUCT.md`, which is where a reporter who never opened the chooser
+# finds them. A link here would be a second copy of a route, and a second copy is
+# the thing that drifts against the first one and sends somebody to the older of
+# the two.
 blank_issues_enabled: true
