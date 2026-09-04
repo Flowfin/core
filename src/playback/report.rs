@@ -67,6 +67,7 @@
 use super::AdmittedPosition;
 use super::Ticks;
 use super::cadence::{ReportsWithoutWaiting, TheInterval};
+use crate::cache::freshness::WrittenAt;
 use crate::clock::ElapsedInstant;
 use crate::server::write_queue::{Target, WhatIsAsserted, WhatTheEnqueueDid, WriteQueue};
 
@@ -209,11 +210,17 @@ impl Reporting {
     ///
     /// What comes back is what the queue did, and it is the only thing that
     /// comes back: a report that was not asked of the queue does not exist.
+    ///
+    /// `enqueued_at` is the pair 0047 stores with every entry, and it is handed
+    /// in rather than read here for the reason `at` is: nothing under `src/`
+    /// reads a platform clock, which is 0102's rule and the `no-platform-clock`
+    /// rule in `.github/invariants/rules`.
     pub fn report(
         &mut self,
         event: ReportsWithoutWaiting,
         position: AdmittedPosition,
         at: ElapsedInstant,
+        enqueued_at: WrittenAt,
         queue: &mut WriteQueue<PositionReport>,
     ) -> WhatTheEnqueueDid {
         let what_the_queue_did = queue.enqueue(
@@ -223,6 +230,7 @@ impl Reporting {
                 position: position.position(),
                 reported_on: ReportedOn::Event(event),
             },
+            enqueued_at,
         );
         self.interval = self.interval.after(event, at);
         what_the_queue_did
@@ -240,10 +248,16 @@ impl Reporting {
     /// A report made here moves the interval on from `now`, so the next one is
     /// due ten seconds after this one rather than ten seconds after the last
     /// event.
+    ///
+    /// `enqueued_at` is asked for on every call and used only where a report is
+    /// due, which is most calls making none. It is the caller's reading either
+    /// way, and a signature that took it only when it was needed would be a
+    /// second entry point to the same cadence.
     pub fn observe(
         &mut self,
         position: AdmittedPosition,
         now: ElapsedInstant,
+        enqueued_at: WrittenAt,
         queue: &mut WriteQueue<PositionReport>,
     ) -> WhatObservingDid {
         if !self.interval.is_running() {
@@ -259,6 +273,7 @@ impl Reporting {
                 position: position.position(),
                 reported_on: ReportedOn::TheInterval,
             },
+            enqueued_at,
         );
         self.interval = self.interval.after_a_report_at(now);
         WhatObservingDid::Reported(what_the_queue_did)
@@ -279,9 +294,16 @@ impl Reporting {
     /// the cadence changed, and a report that moved it would make the next
     /// interval report due ten seconds after the renewal rather than ten
     /// seconds after the last report the cadence made.
+    ///
+    /// `enqueued_at` reaches the queue and, where the rejection left an entry
+    /// for this item at the head, is not what the entry keeps: 0047's
+    /// coalescing keeps the earlier entry's moments along with its position, so
+    /// the age says how long the item's position has been undelivered rather
+    /// than how long ago the renewal ended.
     pub fn report_after_a_renewal(
         &mut self,
         position: AdmittedPosition,
+        enqueued_at: WrittenAt,
         queue: &mut WriteQueue<PositionReport>,
     ) -> WhatTheEnqueueDid {
         queue.enqueue(
@@ -291,6 +313,7 @@ impl Reporting {
                 position: position.position(),
                 reported_on: ReportedOn::AfterARenewal,
             },
+            enqueued_at,
         )
     }
 }
@@ -305,7 +328,8 @@ mod tests {
     //! the queue that holds every report is not durable.
 
     use super::{PositionReport, ReportedOn, Reporting, WhatObservingDid};
-    use crate::clock::ElapsedInstant;
+    use crate::cache::freshness::WrittenAt;
+    use crate::clock::{ElapsedInstant, WallMoment};
     use crate::playback::cadence::ReportsWithoutWaiting;
     use crate::playback::{AdmittedPosition, Ticks};
     use crate::server::write_queue::{
@@ -326,11 +350,27 @@ mod tests {
         Target::item(identifier.to_string())
     }
 
+    /// The pair 0047 stores with a queue entry.
+    ///
+    /// Every case here is about the cadence and about what the queue did with a
+    /// report, and none of them asks an entry its age, so one agreeing pair is
+    /// what they hand in. `crate::server::write_queue` is where the arithmetic
+    /// over that pair is asked anything.
+    fn enqueued() -> WrittenAt {
+        WrittenAt::at(WallMoment::from_epoch(0, 0), WallMoment::from_epoch(0, 0))
+    }
+
     /// An item started at second zero, with its one report already on the
     /// queue.
     fn playing(identifier: &str, queue: &mut WriteQueue<PositionReport>) -> Reporting {
         let mut reporting = Reporting::for_item(item(identifier), at(0));
-        let did = reporting.report(ReportsWithoutWaiting::Started, played_to(0), at(0), queue);
+        let did = reporting.report(
+            ReportsWithoutWaiting::Started,
+            played_to(0),
+            at(0),
+            enqueued(),
+            queue,
+        );
         assert_eq!(did, WhatTheEnqueueDid::Added);
         reporting
     }
@@ -370,6 +410,7 @@ mod tests {
                 ReportsWithoutWaiting::Seeked,
                 position,
                 moment,
+                enqueued(),
                 &mut queue,
             ));
         }
@@ -405,7 +446,7 @@ mod tests {
                 "the interval was already due, so this case proves nothing"
             );
 
-            let did = reporting.report(*event, played_to(1), at(1), &mut queue);
+            let did = reporting.report(*event, played_to(1), at(1), enqueued(), &mut queue);
 
             assert_eq!(
                 did,
@@ -433,6 +474,7 @@ mod tests {
             let did = reporting.observe(
                 played_to(second),
                 at(u64::try_from(second).expect("nine is a small number")),
+                enqueued(),
                 &mut queue,
             );
             assert_eq!(
@@ -467,6 +509,7 @@ mod tests {
             match reporting.observe(
                 played_to(second),
                 at(u64::try_from(second).expect("a viewing fits in a day")),
+                enqueued(),
                 queue,
             ) {
                 WhatObservingDid::Reported(did) => reports.push(did),
@@ -481,6 +524,7 @@ mod tests {
             ReportsWithoutWaiting::Paused,
             played_to(25),
             at(25),
+            enqueued(),
             &mut queue,
         ));
         observed(&mut reporting, &mut queue, 3600, &mut reports);
@@ -488,12 +532,14 @@ mod tests {
             ReportsWithoutWaiting::Resumed,
             played_to(25),
             at(3600),
+            enqueued(),
             &mut queue,
         ));
         reports.push(reporting.report(
             ReportsWithoutWaiting::Seeked,
             played_to(30),
             at(3602),
+            enqueued(),
             &mut queue,
         ));
         observed(&mut reporting, &mut queue, 3610, &mut reports);
@@ -501,6 +547,7 @@ mod tests {
             ReportsWithoutWaiting::Stopped,
             played_to(45),
             at(3620),
+            enqueued(),
             &mut queue,
         ));
 
@@ -543,6 +590,7 @@ mod tests {
             ReportsWithoutWaiting::Started,
             played_to(0),
             at(1),
+            enqueued(),
             &mut queue,
         );
         assert_eq!(did, WhatTheEnqueueDid::Added);
@@ -550,12 +598,14 @@ mod tests {
             ReportsWithoutWaiting::Seeked,
             played_to(90),
             at(2),
+            enqueued(),
             &mut queue,
         );
         second.report(
             ReportsWithoutWaiting::Seeked,
             played_to(15),
             at(3),
+            enqueued(),
             &mut queue,
         );
 
@@ -579,11 +629,11 @@ mod tests {
         let mut reporting = playing("the-film", &mut queue);
 
         assert_eq!(
-            reporting.observe(played_to(9), at(9), &mut queue),
+            reporting.observe(played_to(9), at(9), enqueued(), &mut queue),
             WhatObservingDid::NotDueYet
         );
         assert_eq!(
-            reporting.observe(played_to(10), at(10), &mut queue),
+            reporting.observe(played_to(10), at(10), enqueued(), &mut queue),
             WhatObservingDid::Reported(WhatTheEnqueueDid::ReplacedInPlace)
         );
         assert_eq!(
@@ -591,11 +641,11 @@ mod tests {
             ReportedOn::TheInterval
         );
         assert_eq!(
-            reporting.observe(played_to(19), at(19), &mut queue),
+            reporting.observe(played_to(19), at(19), enqueued(), &mut queue),
             WhatObservingDid::NotDueYet
         );
         assert_eq!(
-            reporting.observe(played_to(20), at(20), &mut queue),
+            reporting.observe(played_to(20), at(20), enqueued(), &mut queue),
             WhatObservingDid::Reported(WhatTheEnqueueDid::ReplacedInPlace)
         );
         assert_eq!(
@@ -616,12 +666,13 @@ mod tests {
                 ReportsWithoutWaiting::Seeked,
                 played_to(second * 100),
                 at(u64::try_from(second).expect("nine is a small number")),
+                enqueued(),
                 &mut queue,
             );
         }
 
         assert_eq!(
-            reporting.observe(played_to(901), at(10), &mut queue),
+            reporting.observe(played_to(901), at(10), enqueued(), &mut queue),
             WhatObservingDid::Reported(WhatTheEnqueueDid::ReplacedInPlace)
         );
     }
@@ -637,12 +688,13 @@ mod tests {
             ReportsWithoutWaiting::Paused,
             played_to(4),
             at(4),
+            enqueued(),
             &mut queue,
         );
 
         for now in [4_u64, 5, 14, 3600, 86_400] {
             assert_eq!(
-                reporting.observe(played_to(4), at(now), &mut queue),
+                reporting.observe(played_to(4), at(now), enqueued(), &mut queue),
                 WhatObservingDid::NothingIsPlaying,
                 "a report was made {now} second(s) in while paused"
             );
@@ -666,22 +718,24 @@ mod tests {
             ReportsWithoutWaiting::Paused,
             played_to(4),
             at(4),
+            enqueued(),
             &mut queue,
         );
         let did = reporting.report(
             ReportsWithoutWaiting::Resumed,
             played_to(4),
             at(3600),
+            enqueued(),
             &mut queue,
         );
 
         assert_eq!(did, WhatTheEnqueueDid::ReplacedInPlace);
         assert_eq!(
-            reporting.observe(played_to(13), at(3609), &mut queue),
+            reporting.observe(played_to(13), at(3609), enqueued(), &mut queue),
             WhatObservingDid::NotDueYet
         );
         assert_eq!(
-            reporting.observe(played_to(14), at(3610), &mut queue),
+            reporting.observe(played_to(14), at(3610), enqueued(), &mut queue),
             WhatObservingDid::Reported(WhatTheEnqueueDid::ReplacedInPlace)
         );
     }
@@ -694,7 +748,7 @@ mod tests {
         let mut reporting = Reporting::for_item(item("the-film"), at(0));
 
         assert_eq!(
-            reporting.observe(played_to(0), at(30), &mut queue),
+            reporting.observe(played_to(0), at(30), enqueued(), &mut queue),
             WhatObservingDid::NothingIsPlaying
         );
         assert!(queue.is_empty());
@@ -712,6 +766,7 @@ mod tests {
             ReportsWithoutWaiting::Started,
             played_to(0),
             at(0),
+            enqueued(),
             &mut queue,
         );
 
