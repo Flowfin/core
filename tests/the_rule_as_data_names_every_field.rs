@@ -237,8 +237,8 @@ fn no_source_file_carries_more_than_one_test_module() {
 /// a reader of a bundle would meet, and it is a negative disclosure as much as a
 /// positive one: NO FIELD THIS BUILD EMITS IS EXCLUDED. 0071 puts the session
 /// token and anything derived from it under that treatment, and nothing in this
-/// tree emits one yet, so a bundle assembled today says the reduced field is the
-/// only one it holds a correlator for.
+/// tree emits one yet, so a bundle assembled today says the two reduced fields
+/// are the only ones it holds a correlator for.
 #[test]
 fn the_statement_is_the_set_this_build_actually_carries() {
     let stated = stated();
@@ -249,7 +249,7 @@ fn the_statement_is_the_set_this_build_actually_carries() {
         .map(|(name, _)| name.as_str())
         .collect();
     reduced.sort_unstable();
-    assert_eq!(reduced, vec!["entry"]);
+    assert_eq!(reduced, vec!["entry", "for-target"]);
 
     let excluded: Vec<&str> = stated
         .iter()
@@ -270,6 +270,7 @@ fn the_statement_is_the_set_this_build_actually_carries() {
     assert_eq!(
         whole,
         vec![
+            "asserted-about",
             "check",
             "consecutive-refusals",
             "entry-kind",

@@ -262,7 +262,8 @@ pub fn the_renewal_ended(
 ) -> WhatTheOutcomeDoesToPlayback {
     match renewals.ended(how) {
         WhatTheOutcomeDoes::RetryTheWaitingCallsOnce => {
-            let what_the_queue_did = reporting.report_after_a_renewal(current, enqueued_at, queue);
+            let what_the_queue_did =
+                reporting.report_after_a_renewal(current, enqueued_at, queue, diagnostics);
             WhatTheOutcomeDoesToPlayback::CurrentPositionReportedAndTheDrainResumes(
                 what_the_queue_did,
             )
@@ -307,6 +308,8 @@ mod tests {
     /// decision; the facility needs one for the moment it stamps on an event.
     #[derive(Debug, Default)]
     struct Still;
+
+    static STILL: Still = Still;
 
     impl Clocks for Still {
         fn steady(&self) -> SteadyInstant {
@@ -356,6 +359,15 @@ mod tests {
         }
     }
 
+    /// The facility with nobody listening, for the enqueues this fixture makes.
+    ///
+    /// 0047 reports a drop and this queue never reaches its bound, so nothing
+    /// here is a report anybody would receive. The cases that DO watch the sink
+    /// build their own with a collector.
+    fn nobody_listening() -> Diagnostics<'static> {
+        Diagnostics::new(&STILL, None, Severity::Detail, a_salt())
+    }
+
     fn a_salt() -> CorrelatorSalt {
         CorrelatorSalt::from_bytes([0x5a; CorrelatorSalt::WIDTH])
     }
@@ -401,7 +413,8 @@ mod tests {
                 played_to(0),
                 at(0),
                 enqueued(),
-                &mut queue
+                &mut queue,
+                &nobody_listening(),
             ),
             WhatTheEnqueueDid::Added
         );
@@ -411,7 +424,8 @@ mod tests {
                 played_to(10),
                 at(1),
                 enqueued(),
-                &mut queue
+                &mut queue,
+                &nobody_listening(),
             ),
             WhatTheEnqueueDid::ReplacedInPlace
         );
@@ -422,7 +436,8 @@ mod tests {
                 played_to(0),
                 at(2),
                 enqueued(),
-                &mut queue
+                &mut queue,
+                &nobody_listening(),
             ),
             WhatTheEnqueueDid::Added
         );

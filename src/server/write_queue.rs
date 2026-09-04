@@ -60,6 +60,14 @@
 //! arrives, so what holds it now is a case: an entry whose age is unreadable and
 //! an entry a year old are both answered by the head and both delivered.
 //!
+//! THE DROP REPORT IS MADE HERE AND THE STANDING COUNT IS BESIDE IT. 0047 asks
+//! for both, because the two answer different people: an event reaches a client
+//! that was listening at the moment it happened, and a count reaches one that
+//! was not. The event carries the kind and the correlator 0071 defines for the
+//! target, never the identifier, and [`Diagnostics`] is what turns the second
+//! into the first, so the reduction is decided at the boundary rather than by
+//! this module remembering to do it.
+//!
 //! # The number here is chosen and not measured
 //!
 //! 0047 says so of its bound, and says what makes a thousand defensible: with
@@ -69,6 +77,31 @@
 
 use crate::cache::freshness::{Age, Skew, WrittenAt};
 use crate::clock::WallMoment;
+use crate::diagnostics::redaction::FieldName;
+use crate::diagnostics::{Diagnostics, EventName, Field, FieldValue, Severity};
+
+/// The event 0047 owes at the moment an entry is dropped at the bound.
+///
+/// At `failure` rather than `notice`, which is 0105's sentence about a dropped
+/// queue entry and its reason: a cache entry can be fetched again and a person's
+/// own action cannot, so what did not happen here is something somebody did
+/// reaching the server. A client filtering `notice` out is a client that would
+/// stop seeing the one thing 0047 exists to prevent being silent about.
+const AN_ENTRY_WAS_DROPPED: EventName = EventName::declared("write-queue.entry-dropped");
+
+/// Which item the dropped entry was about.
+///
+/// Reduced, so it leaves as the correlator 0071 defines and never as the
+/// identifier. That is 0047's own requirement for this report, and it is what
+/// makes two drops for one item readable as one item rather than as two.
+pub(crate) const FOR_TARGET: FieldName = FieldName::reduced("for-target");
+
+/// Which statement about that item was dropped.
+///
+/// Carried whole: it is one of a fixed set this module declares, so two people
+/// running the same build against the same server cannot hold different values
+/// for it, which is 0068's question and the one 0071's first treatment is for.
+pub(crate) const ASSERTED_ABOUT: FieldName = FieldName::carried_whole("asserted-about");
 
 /// The entries one session's queue holds before an overflow drops something.
 ///
@@ -272,9 +305,12 @@ impl<A> Entry<A> {
 ///
 /// 0047 requires a drop to be reported at the moment it happens, through the
 /// interface in 0100, carrying the kind of action and the correlator for its
-/// target rather than the identifier. This is what the enqueue hands back so
-/// that the report is made by whoever is holding a diagnostics facility, and it
-/// carries the target so the correlator can be derived from it there.
+/// target rather than the identifier. THE ENQUEUE MAKES THAT REPORT ITSELF AND
+/// THIS PARAGRAPH SAID IT WAS HANDED BACK FOR SOMEBODY ELSE TO MAKE. Handing it
+/// back left the record's "every drop" resting on every caller remembering, and
+/// a caller that ignores the answer produces exactly the silent discard the
+/// whole record exists against. What is still handed back is this value, because
+/// a caller may want to say something of its own about what was lost.
 ///
 /// IT CARRIES NO ASSERTION. What was dropped is gone, and holding the value
 /// would put a person's own action into the type whose whole purpose is to say
@@ -396,6 +432,17 @@ impl<A> WriteQueue<A> {
     /// to record what somebody just did while holding something from three weeks
     /// ago, which is the version of the failure they are in front of.
     ///
+    /// A DROP IS REPORTED HERE AND NOT BY THE CALLER. 0047 says every drop is
+    /// reported at the moment it happens, and the moment it happens is inside
+    /// this call. The diagnostics facility is a parameter rather than something
+    /// the queue holds, for the reason every clock reading is one: this module
+    /// owns no facility of the client's and reaches for nothing.
+    ///
+    /// The order the dropped entry stood in is on the value handed back and not
+    /// on the event. 0047 names two things the report carries, the kind and the
+    /// correlator, and a counter meaningful only inside one queue is not one of
+    /// them.
+    ///
     /// A REPLACEMENT KEEPS THE EARLIER ENTRY'S TWO MOMENTS, as it keeps its
     /// position in the order, and 0047 says only the second of those. Taking the
     /// later action's moments is the shape that reads as obvious - the statement
@@ -411,6 +458,7 @@ impl<A> WriteQueue<A> {
         asserted_about: WhatIsAsserted,
         assertion: A,
         enqueued_at: WrittenAt,
+        diagnostics: &Diagnostics<'_>,
     ) -> WhatTheEnqueueDid {
         if let Some(held) = self
             .entries
@@ -425,11 +473,23 @@ impl<A> WriteQueue<A> {
         if self.entries.len() >= A_SESSIONS_QUEUE_HOLDS_AT_MOST {
             let oldest = self.entries.remove(0);
             self.dropped = self.dropped.saturating_add(1);
-            what_it_did = WhatTheEnqueueDid::DroppedTheOldest(Dropped {
+            let dropped = Dropped {
                 target: oldest.target,
                 asserted_about: oldest.asserted_about,
                 order: oldest.order,
-            });
+            };
+            diagnostics.emit(
+                Severity::Failure,
+                AN_ENTRY_WAS_DROPPED,
+                &[
+                    Field::new(FOR_TARGET, FieldValue::Text(dropped.target.as_str())),
+                    Field::new(
+                        ASSERTED_ABOUT,
+                        FieldValue::Text(dropped.asserted_about.as_str()),
+                    ),
+                ],
+            );
+            what_it_did = WhatTheEnqueueDid::DroppedTheOldest(dropped);
         }
 
         self.entries.push(Entry {
@@ -485,8 +545,92 @@ mod tests {
         A_SESSIONS_QUEUE_HOLDS_AT_MOST, Target, WhatIsAsserted, WhatTheEnqueueDid, WriteQueue,
     };
     use crate::cache::freshness::{Age, Skew, WhyTheAgeIsUnreadable, WrittenAt};
-    use crate::clock::WallMoment;
+    use crate::clock::{Clocks, ElapsedInstant, SteadyInstant, WallMoment};
+    use crate::diagnostics::redaction::CorrelatorSalt;
+    use crate::diagnostics::{Diagnostics, DiagnosticsSink, Event, FieldValue, Severity};
     use core::time::Duration;
+    use std::sync::Mutex;
+
+    /// A clock that does not move.
+    ///
+    /// 0100 stamps an event with the wall moment and nothing here reads it back,
+    /// which that record says of the field itself: it is for lining an event up
+    /// against a server's own log, and no core behaviour depends on it.
+    #[derive(Debug, Default)]
+    struct Still;
+
+    impl Clocks for Still {
+        fn steady(&self) -> SteadyInstant {
+            SteadyInstant::from_nanos(0)
+        }
+
+        fn elapsed(&self) -> ElapsedInstant {
+            ElapsedInstant::from_nanos(0)
+        }
+
+        fn wall(&self) -> WallMoment {
+            WallMoment::from_epoch(0, 0)
+        }
+    }
+
+    static STILL: Still = Still;
+
+    fn a_salt() -> CorrelatorSalt {
+        CorrelatorSalt::from_bytes([0x5a; CorrelatorSalt::WIDTH])
+    }
+
+    /// The facility with nobody listening, which is what most cases here want:
+    /// they are about the order, the coalescing and the bound, and a report
+    /// nobody receives changes none of the three.
+    fn nobody_listening() -> Diagnostics<'static> {
+        Diagnostics::new(&STILL, None, Severity::Detail, a_salt())
+    }
+
+    /// One event as a case reads it: how much attention it is worth, what it is
+    /// called, and its fields as name and text.
+    type Told = (Severity, &'static str, Vec<(&'static str, String)>);
+
+    /// Keeps each event's severity, name and fields as text, so a case reads
+    /// what the client received rather than what the queue was asked to send.
+    #[derive(Debug, Default)]
+    struct Collector {
+        told: Mutex<Vec<Told>>,
+    }
+
+    impl Collector {
+        fn told(&self) -> Vec<Told> {
+            self.told
+                .lock()
+                .expect("the fixture holds no poisoned lock")
+                .clone()
+        }
+    }
+
+    impl DiagnosticsSink for Collector {
+        fn event(&self, event: &Event<'_>) {
+            let fields = event
+                .fields()
+                .iter()
+                .map(|field| {
+                    let value = match field.value() {
+                        FieldValue::Text(text) => text.to_owned(),
+                        FieldValue::Count(count) => count.to_string(),
+                        FieldValue::Interval(interval) => format!("{interval:?}"),
+                        FieldValue::Truth(truth) => truth.to_string(),
+                    };
+                    (field.name().as_str(), value)
+                })
+                .collect();
+            self.told
+                .lock()
+                .expect("the fixture holds no poisoned lock")
+                .push((event.severity(), event.name().as_str(), fields));
+        }
+    }
+
+    fn listening(collector: &Collector) -> Diagnostics<'_> {
+        Diagnostics::new(&STILL, Some(collector), Severity::Detail, a_salt())
+    }
 
     /// Seconds in a day, for the moments below, so that a case saying "a year"
     /// says it in the units 0043's bound is written in rather than in a numeral
@@ -515,7 +659,13 @@ mod tests {
     }
 
     fn put(queue: &mut WriteQueue<String>, id: &str, kind: WhatIsAsserted, said: &str) {
-        queue.enqueue(item(id), kind, said.to_string(), moments(0));
+        queue.enqueue(
+            item(id),
+            kind,
+            said.to_string(),
+            moments(0),
+            &nobody_listening(),
+        );
     }
 
     /// The order is a counter increased once per entry, which is what a clock
@@ -545,6 +695,7 @@ mod tests {
             WhatIsAsserted::PlaybackPosition,
             "at 30".to_string(),
             moments(0),
+            &nobody_listening(),
         );
 
         assert_eq!(what_it_did, WhatTheEnqueueDid::ReplacedInPlace);
@@ -566,6 +717,7 @@ mod tests {
                 WhatIsAsserted::PlaybackPosition,
                 format!("at {position}"),
                 moments(0),
+                &nobody_listening(),
             );
         }
 
@@ -621,6 +773,7 @@ mod tests {
                 WhatIsAsserted::Watched,
                 "yes".to_string(),
                 moments(0),
+                &nobody_listening(),
             );
         }
         assert_eq!(queue.len(), A_SESSIONS_QUEUE_HOLDS_AT_MOST);
@@ -631,6 +784,7 @@ mod tests {
             WhatIsAsserted::Watched,
             "yes".to_string(),
             moments(0),
+            &nobody_listening(),
         );
 
         let WhatTheEnqueueDid::DroppedTheOldest(dropped) = what_it_did else {
@@ -662,6 +816,7 @@ mod tests {
                 WhatIsAsserted::Watched,
                 "yes".to_string(),
                 moments(0),
+                &nobody_listening(),
             );
         }
 
@@ -671,6 +826,7 @@ mod tests {
                 WhatIsAsserted::Watched,
                 format!("still yes {again}"),
                 moments(0),
+                &nobody_listening(),
             );
             assert_eq!(what_it_did, WhatTheEnqueueDid::ReplacedInPlace);
         }
@@ -727,6 +883,7 @@ mod tests {
                 WhatIsAsserted::Watched,
                 "yes".to_string(),
                 moments(0),
+                &nobody_listening(),
             );
         }
         assert_eq!(queue.dropped(), 1);
@@ -806,6 +963,7 @@ mod tests {
                 WallMoment::from_epoch(1_700_000_000, 0),
                 WallMoment::from_epoch(1_700_000_040, 0),
             ),
+            &nobody_listening(),
         );
 
         let enqueued_at = queue.entries()[0].enqueued_at();
@@ -849,6 +1007,7 @@ mod tests {
             WhatIsAsserted::Watched,
             "yes".to_string(),
             moments(1000),
+            &nobody_listening(),
         );
 
         // Sixty seconds passed and the device also jumped forty seconds ahead of
@@ -874,6 +1033,7 @@ mod tests {
             WhatIsAsserted::Watched,
             "yes".to_string(),
             moments(1000),
+            &nobody_listening(),
         );
 
         assert_eq!(
@@ -908,6 +1068,7 @@ mod tests {
             WhatIsAsserted::PlaybackPosition,
             "at 10".to_string(),
             moments(0),
+            &nobody_listening(),
         );
 
         let what_it_did = queue.enqueue(
@@ -915,6 +1076,7 @@ mod tests {
             WhatIsAsserted::PlaybackPosition,
             "at 90".to_string(),
             moments(20 * A_DAY),
+            &nobody_listening(),
         );
 
         assert_eq!(what_it_did, WhatTheEnqueueDid::ReplacedInPlace);
@@ -934,6 +1096,78 @@ mod tests {
         );
     }
 
+    /// 0047's report, at the moment it happens: the kind of action and the
+    /// correlator for the target, at `failure` rather than `notice` because a
+    /// person's own action cannot be fetched again.
+    #[test]
+    fn a_drop_is_reported_as_it_happens_with_the_kind_and_a_correlator() {
+        let collector = Collector::default();
+        let diagnostics = listening(&collector);
+        let mut queue: WriteQueue<String> = WriteQueue::empty();
+
+        for target in 0..A_SESSIONS_QUEUE_HOLDS_AT_MOST {
+            queue.enqueue(
+                item(&format!("item-{target}")),
+                WhatIsAsserted::Watched,
+                "yes".to_string(),
+                moments(0),
+                &diagnostics,
+            );
+        }
+        assert!(
+            collector.told().is_empty(),
+            "a queue under its bound reported something"
+        );
+
+        queue.enqueue(
+            item("one-too-many"),
+            WhatIsAsserted::Watched,
+            "yes".to_string(),
+            moments(0),
+            &diagnostics,
+        );
+
+        let told = collector.told();
+        assert_eq!(told.len(), 1, "the drop was reported {} times", told.len());
+        let (severity, name, fields) = &told[0];
+        assert_eq!(*severity, Severity::Failure);
+        assert_eq!(*name, "write-queue.entry-dropped");
+        assert_eq!(fields.len(), 2, "the event carried {fields:?}");
+        assert_eq!(fields[1], ("asserted-about", "watched".to_string()));
+    }
+
+    /// The half of that report 0047 states as a refusal: the correlator names
+    /// the target and the identifier reaches nobody.
+    #[test]
+    fn a_drop_report_carries_a_correlator_and_never_the_identifier() {
+        let collector = Collector::default();
+        let diagnostics = listening(&collector);
+        let mut queue: WriteQueue<String> = WriteQueue::empty();
+
+        for target in 0..=A_SESSIONS_QUEUE_HOLDS_AT_MOST {
+            queue.enqueue(
+                item(&format!("an-item-nobody-should-read-{target}")),
+                WhatIsAsserted::PlaybackPosition,
+                "at 10".to_string(),
+                moments(0),
+                &diagnostics,
+            );
+        }
+
+        let told = collector.told();
+        assert_eq!(told.len(), 1);
+        let (name, value) = &told[0].2[0];
+        assert_eq!(*name, "for-target");
+        assert!(
+            !value.contains("an-item-nobody-should-read"),
+            "the identifier reached the sink as {value}"
+        );
+        assert!(
+            !value.is_empty() && value.chars().all(|character| character.is_ascii_hexdigit()),
+            "the target left as something other than a correlator: {value}"
+        );
+    }
+
     /// 0047's rule that nothing is ever expired by age, held by a case rather
     /// than by there being no age to expire on. An entry a year old and an entry
     /// whose age is unreadable are both at the head in order and both delivered.
@@ -945,12 +1179,14 @@ mod tests {
             WhatIsAsserted::Watched,
             "yes".to_string(),
             moments(0),
+            &nobody_listening(),
         );
         queue.enqueue(
             item("after-a-clock-that-moved"),
             WhatIsAsserted::Watched,
             "yes".to_string(),
             moments(500 * A_DAY),
+            &nobody_listening(),
         );
 
         let now = WallMoment::from_epoch(366 * A_DAY, 0);
