@@ -67,4 +67,5 @@ allocated, and why a record is superseded rather than edited are in
 - [0268. A conjunctive licence expression, and the term the set does not name](0268-a-conjunctive-licence-expression.md)
 - [0269. A reading a record pasted, after the tree has moved](0269-a-reading-a-record-pasted-that-has-moved.md)
 - [0272. The route next up is read from](0272-the-route-next-up-is-read-from.md)
+- [0291. The provider the socket waits on, and what the wait costs](0291-the-provider-the-socket-waits-on.md)
 - [0292. The means the core speaks HTTP with, and what it costs](0292-the-means-the-core-speaks-http-with.md)
