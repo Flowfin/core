@@ -52,6 +52,48 @@ name = "flowfin_core"
 #     cargo metadata --format-version 1 --locked | jq -r '.packages[] | "\(.name) \(.license)"'
 sha2 = { version = "0.11", default-features = false }
 
+# Admitted by: the clause for a requirement a landed record already states.
+# `docs/decisions/0027-the-transports-timeouts-and-connections.md` requires one
+# transport every request goes through, and
+# `docs/decisions/0011-the-language-the-toolchain-and-the-binding-layer.md`
+# measures that the standard library reaches TCP and stops, with no HTTP. So the
+# worth was decided by those records and what is left is the licence set, the four
+# behaviours and the smallest thing that meets the requirement.
+# `docs/decisions/0292-the-means-the-core-speaks-http-with.md` is where that was
+# taken, including why the protocol and not a client: every bound, every
+# connection and every destination 0027, 0069 and 0102 decide is a value this tree
+# already holds, and a client holds them instead.
+#
+# The licence is `MIT OR Apache-2.0` on this package and on five of the six it
+# reaches, with `MIT` on the sixth; every member is in 0103's admitted half and no
+# conjunction appears, so 0268's undecided state is not reached. None of the five
+# outright refusals applies: nothing in the graph opens a socket or resolves a
+# name, none touches the filesystem, the only thread in it is inside `bytes`'s own
+# `loom` test module, the one logging facade is `log`, which 0243 already narrowed
+# this behaviour for and which the verifier entry brings anyway, and nothing here
+# carries a field-bearing surface of its own. The readings are in 0292.
+#
+# Retired by: the toolchain offering HTTP on a stable build, which 0011 already
+# names as the shape that retires this class; or 0027 being superseded by a record
+# that no longer requires a transport; or this package ceasing to be released,
+# which for a `0.x` crate is the cost the record prices. Not by "when we no longer
+# need it", which 0103 refuses as a condition.
+#
+# `default-features = false` with `client` alone because the default list also
+# carries `server`, which compiles a request parser this core will never reach. It
+# costs no package - the resolved graph is the same seven either way, measured
+# both ways in 0292 - and what it removes is a second parser of untrusted bytes
+# that #86's corpus does not cover and that an auditor would still find in the
+# binary.
+#
+# The version is pinned at the minor, so a patch release is taken and `0.7` is
+# not. Under this ecosystem's convention a `0.x` minor is a breaking change, and
+# 0292 records that cadence as the price of this shape rather than hiding it.
+#
+#     cargo tree -e normal --target TRIPLE
+#     cargo metadata --format-version 1 --locked | jq -r '.packages[] | "\(.name) \(.license)"'
+ureq-proto = { version = "0.6", default-features = false, features = ["client"] }
+
 # WHAT THE SENTENCE THAT STOOD HERE STILL SAYS. It said this section was empty on
 # purpose and named 0103 as the rule that admits an entry. The emptiness is gone
 # and the rule is not: an entry arriving here without a clause and a removal
