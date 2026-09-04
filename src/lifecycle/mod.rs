@@ -59,6 +59,7 @@ use crate::cache::envelope;
 use crate::diagnostics::DiagnosticsSink;
 use crate::diagnostics::redaction::FieldName;
 use crate::failure::Failure;
+use crate::server::write_queue;
 use crate::session::SecretStore;
 use crate::session::mid_playback;
 
@@ -509,6 +510,8 @@ pub const fn every_field_name_the_core_emits() -> &'static [FieldName] {
         envelope::CHECK,
         envelope::VERSION_FOUND,
         mid_playback::POSITIONS_HELD,
+        write_queue::FOR_TARGET,
+        write_queue::ASSERTED_ABOUT,
     ]
 }
 
