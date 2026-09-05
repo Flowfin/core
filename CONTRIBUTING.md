@@ -447,6 +447,21 @@ The number of a record is the number of the issue whose decision it records, and
 `docs/decisions/README.md` lists every record. Adding a record without its index
 line leaves the index wrong and nothing here refuses that.
 
+A record written from 2026-09-05 on states what it decides and does not explain
+why the record exists or speak about itself. "The failure this record exists to
+prevent" and "what this section exists for" are the shapes it does not use: a
+sentence about the record's own presence tells a reader nothing that the
+decision, the failure and the reversal condition do not already say. Records
+that predate that date keep their wording deliberately. The register allows
+three in-place edits and rewording is not one of them, so the sentences already
+landed stay as they are, and which records carry one is derived rather than
+listed here:
+
+    git grep -nE "this (record|section) exists" -- docs/decisions/
+
+Nothing refuses the shape in a new record. The rule is prose, and the review of
+the pull request that adds the record is where it is caught.
+
 ## Adding a check to the gate
 
 Where a check needs logic rather than one command, the logic goes in a script
