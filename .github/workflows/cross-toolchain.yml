@@ -1,0 +1,78 @@
+# Which of 0113's target triples this runner can compile C for (#291).
+#
+# WHY THIS RUNS AT ALL. 0243 decides a certificate is validated through
+# `rustls`, every crypto provider `rustls` offers is C, and `targets` beside
+# this compiles the library for seven triples on one Linux runner. 0291 weighed
+# the cross-toolchain, the dropped triple and the wait, took the wait, and wrote
+# down that it did so without ever measuring which C cross-compilers this image
+# carries - every reading behind that question was taken on a contributor's
+# Windows machine. This job is that measurement, taken where it has to be taken.
+#
+# IT REFUSES NOTHING ABOUT WHAT IT FINDS. A triple this image cannot compile C
+# for is the state 0291 already decided to wait through, so a red tick for it
+# would redden every pull request for a decision that is already taken. What the
+# script refuses is a survey that cannot be read, and it says so on every run.
+# `External addresses in documents` and `Scorecard analysis` are the two runs
+# already in this gate that report without refusing; this is the third.
+#
+# IT IS THE ONLY CHECK HERE WHOSE SUBJECT IS THE IMAGE. Every other one judges
+# the tree, and a tree judged today is the tree tomorrow. An image gains and
+# loses a toolchain on somebody else's schedule, so this verdict is this run's
+# and nothing about it is carried forward: the answer is re-measured on every
+# pull request and on every push to the default branch, and the day it changes
+# is the day 0291's second reversal condition is met or lost.
+#
+# The check-run name is exactly `cross-toolchain`, on both the workflow and the
+# job, for the reason `.github/workflows/targets.yml` gives: GitHub takes the
+# name from the job's `name:` and falls back to the job id, so a rename here
+# would silently detach anything that came to require it.
+#
+# No toolchain is installed. Nothing here invokes cargo or rustc: the set of
+# triples is read out of `.github/targets/targets` through that leg's own
+# reader, and everything else is a C compiler this image either carries or does
+# not.
+name: cross-toolchain
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Deny at the workflow level and grant per job, so a job added later starts with
+# nothing rather than with what this one needs.
+permissions: {}
+
+concurrency:
+  # Namespaced on the workflow name rather than the bare word, for the reason
+  # #178 recorded: a group string two workflows share means the run created
+  # second cancels the other, and the gate that dies that way leaves a green tick
+  # beside no verdict.
+  group: cross-toolchain-workflow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cross-toolchain:
+    name: cross-toolchain
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read # check out the register and the script that reads it
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config.
+          persist-credentials: false
+
+      # Printed rather than assumed. The verdict below is about this image, so
+      # which image it was is part of the reading rather than context for it.
+      - name: Say which image this reading was taken on
+        run: |
+          echo "runner image: ${ImageOS:-unknown} ${ImageVersion:-unknown}"
+          echo "kernel:       $(uname -srm)"
+          cat /etc/os-release
+
+      - name: Prove the fixtures, then compile one unit for every triple the register names
+        run: bash .github/cross-toolchain/cross-toolchain.sh check

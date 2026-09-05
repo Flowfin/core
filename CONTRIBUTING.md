@@ -282,12 +282,33 @@ fixtures that prove them. It is not a third member of the pair below: those two
 return zero whatever they found, and this one refuses a run that produced no
 report.
 
-Two runs report and refuse nothing, which is deliberate rather than an oversight.
-**`External addresses in documents`** requests the addresses documents name and
-prints what answered; an address outside this repository that is down for an hour
-is not a defect here, and a gate that reddens for it teaches people that red means
-nothing. **`Scorecard analysis`** scores the repository and writes to the
-code-scanning surface.
+**`cross-toolchain`** is the one check here whose subject is the runner image
+rather than this tree. It compiles one C translation unit for every triple in
+0113's set, using the invocations named in `.github/cross-toolchain/probes`, and
+reports which of them this image can compile C for. 0243 validates a certificate
+through `rustls`, every crypto provider `rustls` offers is C, and 0291 chose to
+wait rather than to buy a cross-toolchain or to drop a client platform - and said
+in its own text that it made that choice without this measurement, every reading
+behind the question having been taken on a contributor's Windows machine. This
+leg is that measurement, and it is re-taken on every run because an image gains
+and loses a toolchain on somebody else's schedule. The set is not read twice: the
+triples come from the `targets` leg's own reader through
+`bash .github/targets/targets.sh triples`.
+`.github/cross-toolchain/cross-toolchain.sh` holds the rules and the fixtures
+that prove them.
+
+THREE RUNS REPORT AND REFUSE NOTHING, which is deliberate rather than an
+oversight, AND THIS PARAGRAPH SAID TWO. **`External addresses in documents`**
+requests the addresses documents name and prints what answered; an address
+outside this repository that is down for an hour is not a defect here, and a gate
+that reddens for it teaches people that red means nothing. **`Scorecard
+analysis`** scores the repository and writes to the code-scanning surface. The
+third is `cross-toolchain` above, and what it declines to refuse is narrower than
+either: it refuses a survey that cannot be read - a register block missing a
+field, a triple in 0113's set no block covers, a probe for a triple that set does
+not name - and never the finding that a triple has no compiler here, because that
+is the state 0291 already decided to wait through and a red tick for it would
+redden every pull request for a decision already taken.
 
 ## Which of these is a gate, and which is a sentence
 

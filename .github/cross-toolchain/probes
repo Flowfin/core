@@ -1,0 +1,86 @@
+# The C compiler a build for each triple in 0113's set would reach for (#291).
+#
+# 0243 decides that a certificate is validated through `rustls`, every crypto
+# provider `rustls` offers is C, and the target leg compiles the library for
+# seven triples on one Linux runner. So the first compile after that manifest
+# entry arrives goes red on every triple whose C compiler the runner does not
+# carry. 0291 took the wait rather than the cross-toolchain, and named the
+# reading below as one of the things that would reverse it:
+#
+#     The runner image is measured carrying a working C cross-toolchain for
+#     every triple in that set, on the runner rather than on a contributor's
+#     machine.
+#
+# That measurement had never been taken. #291's body names it as the issue's own
+# first act, and 0291 says in its own text that it is unmade and that taking it
+# needs a run on the runner rather than a claim about the image. This register
+# and the script beside it are that run.
+#
+# WHAT IS MEASURED IS A COMPILE AND NOT A PATH. A probe is invoked on a real
+# translation unit that includes the C library headers, because a compiler
+# driver targets any triple it knows without a sysroot as long as nothing asks
+# for a header. A probe that only asked whether a binary is on PATH would report
+# every Apple triple served on a Linux runner carrying no Apple SDK, which is
+# the false positive this whole question exists to avoid.
+#
+# NOTHING HERE REFUSES A TRIPLE THE RUNNER CANNOT SERVE. That is the finding, it
+# is what 0291 waits on, and a leg that reddened for it would redden on every
+# pull request for a decision that is already taken and written down. What is
+# refused is a survey that cannot be read: a block missing a field, a triple in
+# 0113's set that no block covers, a block naming a triple that set does not
+# carry, and a run that examined nothing.
+#
+# The fields, and the loader refuses a block missing any of them:
+#
+#   triple   the triple from `.github/targets/targets` this probe is for. Every
+#            triple in that register is covered by at least one block and no
+#            block names a triple outside it, in both directions.
+#   probe    the compiler invocation, minus the input and the output, which the
+#            script completes with `-c <unit>.c -o <unit>.o`. Several blocks may
+#            name one triple; the triple is served where any of them compiles.
+#   reason   why this is the invocation a C build for that triple would reach
+#            for. A probe nobody argued for measures whatever it happens to run.
+#
+# A BLOCK IS NOT A CLAIM THAT THE COMPILER IS THERE. It is a claim about what
+# would be reached for if it were, and the run is what says which of them
+# answered.
+
+triple: aarch64-linux-android
+probe: clang --target=aarch64-linux-android21
+reason: The driver form the Android NDK's own wrapper expands to, with the API level the wrapper carries in its name. cc-rs reaches for the wrapper first and for this second, and both fail identically without the NDK sysroot.
+
+triple: aarch64-linux-android
+probe: aarch64-linux-android21-clang
+reason: The NDK's own wrapper, which is what is on PATH where the NDK is installed and its toolchain directory exported. It is named separately from the driver form above so that an image carrying the NDK is not reported short because the plain driver found no sysroot.
+
+triple: armv7-linux-androideabi
+probe: clang --target=armv7a-linux-androideabi21
+reason: The 32-bit Android ABI. The C triple is `armv7a-linux-androideabi` where the Rust triple is `armv7-linux-androideabi`, which is the one place in this register the two spellings differ, and a probe written with the Rust spelling would measure a triple no Android compiler knows.
+
+triple: armv7-linux-androideabi
+probe: armv7a-linux-androideabi21-clang
+reason: The NDK's wrapper for the same ABI, for the reason the second Android block above gives.
+
+triple: aarch64-apple-ios
+probe: clang --target=arm64-apple-ios
+reason: The invocation cc-rs builds for this triple, spelled the way a C driver spells it. An Apple SDK is not on the driver's default search path anywhere but macOS, so this block is the one that says whether the runner carries one.
+
+triple: aarch64-apple-tvos
+probe: clang --target=arm64-apple-tvos
+reason: Apple's television platform, and the same question as the block above with a second SDK behind it. It is a separate block rather than an assumption that one Apple answer covers both, because an image may carry one platform SDK and not another.
+
+triple: aarch64-apple-darwin
+probe: clang --target=arm64-apple-darwin
+reason: The macOS desktop on Apple silicon. It is the Apple triple most likely to be served by a plain driver, since a macOS header set is the one an Apple toolchain installs first, so measuring it separately is what stops the three Apple entries being read as one verdict.
+
+triple: x86_64-pc-windows-msvc
+probe: clang-cl --target=x86_64-pc-windows-msvc
+reason: The MSVC-compatible driver, which is the only one of the two forms that can exist on a Linux image at all. It needs the Windows SDK headers, which is exactly what this run asks about.
+
+triple: x86_64-pc-windows-msvc
+probe: cl
+reason: The Microsoft compiler itself, which is what cc-rs reaches for on this triple. It exists on the Windows images and not on the Linux one, and naming it here is what makes the verdict for this triple a reading rather than an assumption about which images carry it.
+
+triple: x86_64-unknown-linux-gnu
+probe: cc
+reason: The host triple of the runner the target leg runs on, where the C compiler is the image's own and no cross-toolchain is involved. It is in the register rather than excused from it, because a survey that skipped the case it expects to pass has no control in it.
