@@ -3,6 +3,8 @@
 Every record here, by number and title. The shape a record takes, how numbers are
 allocated, and why a record is superseded rather than edited are in
 [0001. Decision records](0001-decision-records.md).
+How a record written from 2026-09-05 on is worded, and why the ones before it keep
+their wording, is under `## Decisions` in [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 - [0001. Decision records](0001-decision-records.md)
 - [0003. What the core does not do](0003-what-the-core-does-not-do.md)
