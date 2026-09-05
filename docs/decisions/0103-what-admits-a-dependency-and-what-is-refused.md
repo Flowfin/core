@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Status: accepted. Supersedes nothing. Superseded by nothing.
+Status: accepted. Supersedes nothing. Superseded by 0303.
 
 Narrowed-by: 0243, on the fourth behaviour refused outright, a dependency that writes to a log
 
