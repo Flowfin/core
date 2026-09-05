@@ -5,7 +5,7 @@
 name = "flowfin-core"
 version = "0.0.0"
 edition = "2024"
-license = "AGPL-3.0-or-later"
+license = "MIT OR Apache-2.0"
 description = "The shared core every Flowfin client uses: reaching a server, holding a session, caching, artwork, playback position and measurement."
 repository = "https://github.com/Flowfin/core"
 publish = false

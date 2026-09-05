@@ -175,6 +175,14 @@ this repository treats as one, and what a reporter gets back.
 
 ## License
 
-AGPL-3.0, copyright 2026 Nils Lehnen.
+`MIT OR Apache-2.0`, at your choice, copyright 2026 Nils Lehnen.
 
-The full text is in [LICENSE](LICENSE).
+The two texts are in [LICENSE-MIT](LICENSE-MIT) and
+[LICENSE-APACHE](LICENSE-APACHE). Either one on its own is enough; which of
+them you take is yours to pick.
+
+This repository published under AGPL-3.0-or-later until 2026-09-05. A copy
+received under those terms keeps them, and what changed on that day is the
+terms the core is offered on from it. The answer that stands, the reason given
+for it, and the dependency set that follows from it are in
+[0303. The licence the core is offered under](docs/decisions/0303-the-licence-the-core-is-offered-under.md).

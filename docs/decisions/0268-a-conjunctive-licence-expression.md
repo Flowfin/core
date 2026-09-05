@@ -203,6 +203,11 @@ are satisfiable inside the work this core is distributed as, by the enumeration
 that work's own licence carries, rather than by anybody's judgement about whether
 they read as permissive.
 
+The licence this ground reads is not the one the core is offered under from
+2026-09-05. This half is re-read against the answer that stands in
+[0303](0303-the-licence-the-core-is-offered-under.md), which is also where the
+other half below is read as the ground that survives the move.
+
 The second half of the ground is that the admitted set already carries both
 shapes, so no obligation class arrives with this term. The notice condition is
 `MIT`'s:

@@ -124,6 +124,10 @@ A client embeds this library, so entry 2's answer is what carries entry 1's answ
 to eleven clients rather than stopping at this repository. That follows from the
 pair and is not a decision of this record.
 
+Entry 1 was answered a second time and the answer above is the one that was
+superseded. The answer that stands is
+[0303](0303-the-licence-the-core-is-offered-under.md).
+
 ## What the standard library supplies, and what it does not
 
 This section exists because the difference decides how large the dependency graph

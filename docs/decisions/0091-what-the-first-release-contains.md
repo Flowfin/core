@@ -76,6 +76,10 @@ from #74 linked and summarised, and the licence named:
     gh api repos/Flowfin/core --jq '.license.spdx_id'
     AGPL-3.0
 
+The licence the reading above names is the one that was superseded. What #95
+names is the answer that stands, in
+[0303](0303-the-licence-the-core-is-offered-under.md).
+
 ## What it does not contain, said before it is installed rather than after
 
 No user interface. No playback of anything. No client for any platform. Those

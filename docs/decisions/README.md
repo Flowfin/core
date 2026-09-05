@@ -71,3 +71,4 @@ their wording, is under `## Decisions` in [CONTRIBUTING.md](../../CONTRIBUTING.m
 - [0272. The route next up is read from](0272-the-route-next-up-is-read-from.md)
 - [0291. The provider the socket waits on, and what the wait costs](0291-the-provider-the-socket-waits-on.md)
 - [0292. The means the core speaks HTTP with, and what it costs](0292-the-means-the-core-speaks-http-with.md)
+- [0303. The licence the core is offered under, and the dependency set that follows from it](0303-the-licence-the-core-is-offered-under.md)
