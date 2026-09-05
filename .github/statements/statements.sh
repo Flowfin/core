@@ -273,7 +273,7 @@ judge_coverage() {
   rm -f "$df" "$ddf" "$uf"
 }
 
-FIXTURE_FINDING='{"id":"s/A","scanner":"Scorecard","subject":"a check","status":"not_applicable","justification":"one maintainer","impact":"nothing stands in place of it","retires_when":"a second account exists"}'
+FIXTURE_FINDING='{"id":"s/A","scanner":"Scorecard","subject":"a check","status":"not_applicable","justification":"one account","impact":"nothing stands in place of it","retires_when":"a second account exists"}'
 FIXTURE_EXCLUSION='{"id":"sc/SC1","scanner":"shellcheck","configuration":".github/x/excluded-rules","rule":"SC1","scope":"the rule alone","reason":"it is the ordinary case here","not_looked_for":"the mistake the rule exists for","retires_when":"the checks stop doing that"}'
 
 doc_with() {

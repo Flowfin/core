@@ -14,7 +14,7 @@
       "scanner": "Scorecard",
       "subject": "the branch protection this repository sets on its default branch",
       "status": "not_applicable",
-      "justification": "The check asks for required approvers, code owners, stale-review dismissal and last-push approval. Every one of those names a second account, and this repository has one maintainer, so a rule nobody can satisfy is switched off rather than left red forever.",
+      "justification": "The check asks for required approvers, code owners, stale-review dismissal and last-push approval. Every one of those names a second account, and I am the only account with write access here, so a rule nobody can satisfy is switched off rather than left red forever.",
       "impact": "The part of the check that is about being up to date with the base is met by a stronger route than the setting: the branch-health watcher builds the merge locally against the current base and judges the result, rather than asking whether a branch pointer is behind.",
       "retires_when": "A second account can approve a change on this repository. Every clause above becomes satisfiable in the same moment."
     },
@@ -23,7 +23,7 @@
       "scanner": "Scorecard",
       "subject": "whether a change reaching the default branch was approved by somebody other than its author",
       "status": "not_applicable",
-      "justification": "There is one maintainer here, so the check is unsatisfiable by construction rather than unmet by choice.",
+      "justification": "I am the only account with write access here, so the check is unsatisfiable by construction rather than unmet by choice.",
       "impact": "Nothing stands in place of a second reader. Every pull request body on this board says plainly whether anybody other than the author has read the change, and where nobody has it says so and lets its evidence stand in place of a review. A negative disclosure is what is offered here, not a substitute control.",
       "retires_when": "A second account reads changes on this repository."
     },
@@ -32,7 +32,7 @@
       "scanner": "Scorecard",
       "subject": "whether this repository holds an OpenSSF Best Practices badge",
       "status": "not_applicable",
-      "justification": "The badge criteria include a second reviewer and a vulnerability-response process with a named team. Neither exists for a project with one maintainer, so the badge is unobtainable rather than unclaimed.",
+      "justification": "The badge criteria include a second reviewer and a vulnerability-response process with a named team. Neither exists on a project I run alone, so the badge is unobtainable rather than unclaimed.",
       "impact": "A consumer looking for the assurances the badge stands for does not get them from a badge here. What this repository offers instead is the gate, which is derivable rather than asserted, and SECURITY.md, which says how to report something.",
       "retires_when": "The project has the second reviewer and the named response team the criteria ask for, at which point the badge is applied for rather than dismissed."
     },
@@ -41,7 +41,7 @@
       "scanner": "Scorecard",
       "subject": "whether a fuzzing harness for this repository is registered with OSS-Fuzz or an equivalent",
       "status": "not_applicable",
-      "justification": "There is no untrusted input surface in this tree today that a fuzzer would reach, and onboarding to OSS-Fuzz needs maintainers who can be paged.",
+      "justification": "There is no untrusted input surface in this tree today that a fuzzer would reach, and onboarding to OSS-Fuzz needs somebody who can be paged.",
       "impact": "THIS DISPOSITION IS TRUE OF THE TREE AS IT STANDS AND NOT OF THE TREE THIS BOARD HAS PLANNED. 0101 puts a server's answers and an artwork byte stream on the untrusted list, 0055 calls the decoder the most attacked surface this repository will carry, and issue #86 is open to fuzz every parser reachable from that list and replay the seed corpus inside the gating build. A consumer reading a permanent dismissal here would take the absence of a fuzzer for a decision rather than for a state, and it is a state.",
       "retires_when": "A parser reachable from 0101's untrusted list lands in this tree, which is what #86 is open for. The dismissal does not expire on its own and nothing raises the finding again when that happens, which is why the condition is written here rather than left in the dismissal."
     }
