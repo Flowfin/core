@@ -42,6 +42,7 @@
 # Verbs:
 #   selftest   run every fixture and prove each rule bites
 #   check      read the register, then compile the library for every triple in it
+#   triples    print the set, for the leg beside this one that surveys it
 #
 # No POSIX character classes and no interval expressions in any pattern below.
 # The awk on the runner is mawk and the awk on a contributor's machine is
@@ -338,8 +339,21 @@ TRIPLES
   echo "Every triple the register names compiles."
 }
 
+# The set itself, for a leg beside this one that has to survey the same triples.
+# It is a verb here rather than a second reader there, because two readers of one
+# register agree until the day they do not, and the disagreement then shows up as
+# a platform one leg reports on and the other does not.
+triples() {
+  if [ ! -f "$REGISTER" ]; then
+    echo "::error::${REGISTER} is not here." >&2
+    return 1
+  fi
+  declared_triples < "$REGISTER"
+}
+
 case "${1:-}" in
   selftest) selftest ;;
   check)    selftest && echo && check ;;
-  *)        echo "usage: $0 selftest|check" >&2; exit 2 ;;
+  triples)  triples ;;
+  *)        echo "usage: $0 selftest|check|triples" >&2; exit 2 ;;
 esac
