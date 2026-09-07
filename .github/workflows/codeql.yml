@@ -94,10 +94,22 @@ jobs:
 
       # `upload: never` here, and a separate upload step below, for the reason
       # .github/workflows/shell-analysis.yml already gives: a pull request from a
-      # fork and a Dependabot one run with a token that cannot write security
-      # events, and the gate has to refuse on those runs whatever the surface can
-      # accept. Splitting the two lets the upload be skipped without the verdict
-      # being skipped with it.
+      # fork runs with a token that cannot write security events, and the gate has
+      # to refuse on that run whatever the surface can accept. Splitting the two
+      # lets the upload be skipped without the verdict being skipped with it.
+      #
+      # THIS PARAGRAPH NAMED A DEPENDABOT PULL REQUEST BESIDE THE FORK AND THE RUN
+      # LOG REFUTES IT (#311). The proposal Dependabot opened as #256 ran this
+      # workflow with the write it was said not to have:
+      #
+      #     gh run view 33360249639 --repo Flowfin/core --log | grep -oE 'SecurityEvents: write|Contents: read|Metadata: read|GITHUB_TOKEN Permissions'
+      #     GITHUB_TOKEN Permissions
+      #     Contents: read
+      #     Metadata: read
+      #     SecurityEvents: write
+      #
+      # So the condition below excludes the fork and nothing else. What the fork
+      # half rests on is not measured here and stays a claim.
       - name: Analyse
         uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
         with:
@@ -123,9 +135,12 @@ jobs:
       # After the judging step rather than before it, so the verdict is already
       # made when this runs and an upload cannot stand in front of a refusal.
       # always() is what carries the findings of a run that refused something,
-      # which is the run whose findings are worth having on the surface.
+      # which is the run whose findings are worth having on the surface. That
+      # ordering is also what bounds the cost of the widening above: an upload
+      # that fails on a head this condition now reaches leaves a red step behind
+      # a verdict that was already made, and hides no finding.
       - name: Upload the findings to the code-scanning tab
-        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]'))
+        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
         with:
           sarif_file: ${{ env.SARIF_DIR }}/rust.sarif
