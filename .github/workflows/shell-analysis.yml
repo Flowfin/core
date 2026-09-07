@@ -18,7 +18,9 @@
 # writes them as SARIF and the step below uploads that file, so an alert carries
 # the same set the gate refused, at the same severity and with the same rules
 # excused. A pull request from a fork runs with a token that cannot write there, so
-# the upload is skipped on one and the gate still refuses.
+# the upload is skipped on one and the gate still refuses. A Dependabot proposal is
+# NOT one of those: the paragraph at the upload step carries the run log that
+# refutes the sentence that said it was.
 #
 # This covers the shell and nothing else. The analysis over the core's own language
 # is the other half of #81 and waits on #11, because there is no code in this tree
@@ -79,8 +81,20 @@ jobs:
       # whose findings are worth having on the surface.
       #
       # Only where the token can write security events: a push to main and a pull
-      # request from a branch on this repository. A fork's pull request and a
-      # Dependabot one run read-only, and the upload is skipped rather than failed.
+      # request from a branch on this repository. A fork's pull request runs
+      # read-only, and the upload is skipped rather than failed.
+      #
+      # THIS PARAGRAPH NAMED A DEPENDABOT PULL REQUEST BESIDE THE FORK AND THE RUN
+      # LOG REFUTES IT (#311). The proposal Dependabot opened as #256 ran a
+      # workflow of this repository with the write it was said not to have, and the
+      # same reading is quoted in full in .github/workflows/codeql.yml beside the
+      # sentence it corrects there:
+      #
+      #     gh run view 33360249639 --repo Flowfin/core --log | grep -oE 'SecurityEvents: write'
+      #     SecurityEvents: write
+      #
+      # So the condition below excludes the fork and nothing else. What the fork
+      # half rests on is not measured here and stays a claim.
       #
       # No continue-on-error here, unlike .github/workflows/zizmor.yml, and the
       # reason is the ordering above: there the upload runs before the gating step
@@ -88,7 +102,7 @@ jobs:
       # so a red upload step names an upload that did not happen and hides no
       # finding.
       - name: Upload the findings to the code-scanning tab
-        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]'))
+        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
         with:
           sarif_file: ${{ env.SARIF }}
