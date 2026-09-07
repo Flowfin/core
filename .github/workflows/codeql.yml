@@ -87,7 +87,7 @@ jobs:
       # rather than watching a compiler. Written here rather than left to a
       # default so that a change of default is a change to this file.
       - name: Initialise the analysis
-        uses: github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           languages: rust
           build-mode: none
@@ -111,7 +111,7 @@ jobs:
       # So the condition below excludes the fork and nothing else. What the fork
       # half rests on is not measured here and stays a claim.
       - name: Analyse
-        uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           output: ${{ env.SARIF_DIR }}
           upload: never
@@ -141,7 +141,7 @@ jobs:
       # a verdict that was already made, and hides no finding.
       - name: Upload the findings to the code-scanning tab
         if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: github/codeql-action/upload-sarif@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: ${{ env.SARIF_DIR }}/rust.sarif
           category: /language:rust

@@ -47,6 +47,6 @@ permissions:
 
 jobs:
   hygiene:
-    uses: iderex/wache/.github/workflows/pr-hygiene.yml@113085b269d3437a3f96ff9e7060b64b0af88ab1 # v1.2.0
+    uses: iderex/wache/.github/workflows/pr-hygiene.yml@4d91113f744527d4dd6397bb09fb276ef18b09fc # v1.3.0
     with:
       subject_names_issue: false
